@@ -1,120 +1,111 @@
 "use server";
 
 import { prisma } from "@/lib/prisma";
+import { z } from "zod";
 
-// Tipe data yang diterima dari Frontend
-interface CheckoutPayload {
-  productId: string;
-  targetId: string;
-  zoneId?: string;
-  server?: string;
-  quantity: number;
-  paymentMethod: string;
-  email: string;
-  whatsapp: string;
-  waNotif: boolean;
-}
+// 1. ZOD SCHEMA UNTUK VALIDASI (Standard Enterprise)
+const TransactionSchema = z.object({
+  gameId: z.string().min(1, "Game wajib dipilih"),
+  productId: z.string().min(1, "Produk wajib dipilih"),
+  targetId: z.string().min(1, "ID Player wajib diisi"), 
+  zoneId: z.string().optional(),
+  email: z.string().email("Format email tidak valid").optional().or(z.literal("")),
+  whatsapp: z.string().min(9, "Nomor WA tidak valid"),
+  paymentId: z.string().min(1, "Metode Pembayaran wajib dipilih"),
+  quantity: z.number().min(1).default(1),
+});
 
-export async function createTransaction(data: CheckoutPayload) {
+export async function createTransaction(formData: any) {
   try {
-    // 1. CARI PRODUK DI DATABASE (Keamanan: Jangan percaya harga dari frontend!)
+    const parsed = TransactionSchema.safeParse(formData);
+    if (!parsed.success) {
+      return { success: false, message: parsed.error.issues[0].message };
+    }
+
+    const data = parsed.data;
+
+    // Ambil data produk dan relasi gamenya
     const product = await prisma.product.findUnique({
       where: { id: data.productId },
       include: { game: true }
     });
 
-    if (!product) throw new Error("Produk tidak ditemukan, Bosku!");
+    if (!product || !product.isActive) {
+      return { success: false, message: "Produk tidak ditemukan atau sedang tidak aktif." };
+    }
 
-    // 2. KALKULASI HARGA PRESISI
-    const subTotal = product.priceSell * data.quantity;
+    const payment = await prisma.paymentMethod.findUnique({
+      where: { id: data.paymentId }
+    });
+
+    if (!payment || !payment.isActive) {
+      return { success: false, message: "Metode pembayaran tidak valid." };
+    }
+
+    // 2. KALKULASI HARGA PRESISI (Konversi Decimal ke Number agar aman)
+    const subTotal = Number(product.priceSell) * data.quantity;
     
-    // Simulasi biaya admin berdasarkan metode pembayaran
-    let adminFee = 0;
-    if (data.paymentMethod.includes("QRIS")) adminFee = 750;
-    else if (data.paymentMethod.includes("VA")) adminFee = 4000;
-    else adminFee = 1500; // E-Wallet & Lainnya
-
-    const notifFee = data.waNotif ? 500 : 0;
+    // Kalkulasi biaya admin
+    let adminFee = Number(payment.feeFlat) + (subTotal * Number(payment.feePercent) / 100);
+    const taxVat = 0; // Tambahkan logika PPN di sini jika diperlukan nanti
+    const discount = 0; // Tambahkan logika Promo di sini
     
-    // (Opsional) Logika Kupon Promo bisa disisipkan di sini
-    const discount = 0; 
+    const totalAmount = subTotal + adminFee + taxVat - discount;
+    const profit = (Number(product.priceSell) - Number(product.priceModal)) * data.quantity;
 
-    const grossAmount = subTotal + adminFee + notifFee - discount;
-    const profit = (product.priceSell - product.priceCost) * data.quantity + notifFee; // Untung bersih!
+    // Generate Invoice Unik (Format: INV-TIMESTAMP-RANDOM)
+    const invoiceId = `INV-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
 
-    // 3. BUAT INVOICE UNIK
-    const invoiceId = `SGY-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
-
-    // 4. SIMPAN TRANSAKSI KE DATABASE (Status: PENDING)
-    const transaction = await prisma.transaction.create({
+    // 3. SIMPAN KE DATABASE (Mapping dengan Skema Enterprise)
+    const newTransaction = await prisma.transaction.create({
       data: {
         invoiceId,
-        productId: product.id,
-        targetPlayerId: data.zoneId ? `${data.targetId} (${data.zoneId})` : data.targetId,
+        gameId: data.gameId,
+        productId: data.productId,
+        sku: product.sku, 
+        denomName: product.name,
+        targetId: data.targetId, 
+        zoneId: data.zoneId || null,
+        email: data.email || null,
         whatsapp: data.whatsapp,
-        amount: grossAmount,
+        paymentId: data.paymentId,
+        
+        // Simpan harga ke database
+        priceModal: Number(product.priceModal) * data.quantity,
+        priceSell: Number(product.priceSell) * data.quantity,
+        adminFee: adminFee,
+        taxVat: taxVat,
+        discount: discount,
+        totalAmount: totalAmount,
         profit: profit,
-        orderStatus: "PENDING",
+        
         paymentStatus: "UNPAID",
+        orderStatus: "PENDING",
+        expiredAt: new Date(Date.now() + 24 * 60 * 60 * 1000), // Expired dalam 24 jam
       }
     });
 
-    // 5. MINTA TOKEN KE MIDTRANS (Menggunakan Fetch native Next.js 15)
-    // Gunakan URL Sandbox untuk testing, ganti ke production nanti
-    const midtransUrl = process.env.NODE_ENV === "production" 
-      ? "https://app.midtrans.com/snap/v1/transactions"
-      : "https://app.sandbox.midtrans.com/snap/v1/transactions";
+    // 4. REQUEST KE PAYMENT GATEWAY (Midtrans/Tripay/dll)
+    // TODO: Ganti baris ini dengan pemanggilan API Payment Gateway asli Bosku
+    const simulatedToken = `SNAP-${invoiceId}-${Math.random().toString(36).substring(7)}`;
 
-    const midtransAuth = Buffer.from(process.env.MIDTRANS_SERVER_KEY + ":").toString("base64");
-
-    const midtransResponse = await fetch(midtransUrl, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Accept": "application/json",
-        "Authorization": `Basic ${midtransAuth}`
-      },
-      body: JSON.stringify({
-        transaction_details: {
-          order_id: invoiceId,
-          gross_amount: grossAmount
-        },
-        item_details: [
-          {
-            id: product.skuCode,
-            price: product.priceSell,
-            quantity: data.quantity,
-            name: `${product.game.name} - ${product.name}`
-          },
-          { id: "FEE", price: adminFee, quantity: 1, name: "Biaya Layanan" },
-          ...(data.waNotif ? [{ id: "WA", price: 500, quantity: 1, name: "Notifikasi WA" }] : [])
-        ],
-        customer_details: {
-          first_name: data.targetId,
-          email: data.email || "sultan@sassygurl.com",
-          phone: data.whatsapp
-        }
-      })
-    });
-
-    const midtransData = await midtransResponse.json();
-
-    if (!midtransData.token) {
-      console.error("Midtrans Error:", midtransData);
-      throw new Error("Gagal mengambil token Midtrans.");
-    }
-
-    // 6. UPDATE DATABASE DENGAN TOKEN MIDTRANS
+    // 5. UPDATE TRANSAKSI DENGAN TOKEN/REFERENSI PEMBAYARAN
     await prisma.transaction.update({
-      where: { id: transaction.id },
-      data: { snapToken: midtransData.token }
+      where: { id: newTransaction.id },
+      data: {
+        paymentRef: simulatedToken // Simpan token di kolom paymentRef
+      }
     });
 
-    // 7. KEMBALIKAN TOKEN KE FRONTEND
-    return { success: true, token: midtransData.token, invoiceId };
+    return { 
+      success: true, 
+      message: "Transaksi berhasil dibuat!",
+      invoiceId: newTransaction.invoiceId,
+      paymentToken: simulatedToken
+    };
 
-  } catch (error: any) {
-    console.error("Transaction Error:", error);
-    return { success: false, message: error.message || "Terjadi kesalahan sistem." };
+  } catch (error) {
+    console.error("TRANSACTION_ERROR:", error);
+    return { success: false, message: "Terjadi kesalahan sistem saat memproses transaksi." };
   }
 }
