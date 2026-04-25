@@ -1,30 +1,28 @@
-import { prisma } from "@/lib/prisma";
 import { NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
 import { cookies } from "next/headers";
-
-export const dynamic = "force-dynamic";
 
 export async function GET() {
   try {
     const cookieStore = await cookies();
-    const memberId = cookieStore.get("sassy_member_session")?.value;
+    const sessionId = cookieStore.get("sassy_member_session")?.value;
 
-    if (!memberId) return NextResponse.json({ success: false });
+    if (!sessionId) return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
 
-    const member = await prisma.member.findUnique({
-      where: { id: memberId },
-      include: {
-        transactions: {
-          include: { product: { include: { category: true } } },
-          orderBy: { createdAt: 'desc' }
-        }
+    const user = await prisma.user.findUnique({
+      where: { id: sessionId },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        phone: true,
+        balance: true,
+        role: true
       }
     });
 
-    if (!member) return NextResponse.json({ success: false });
-
-    return NextResponse.json({ success: true, member });
+    return NextResponse.json(user);
   } catch (error) {
-    return NextResponse.json({ success: false });
+    return NextResponse.json({ message: "Server Error" }, { status: 500 });
   }
 }

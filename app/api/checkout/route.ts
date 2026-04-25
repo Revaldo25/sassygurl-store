@@ -1,64 +1,45 @@
-import { prisma } from "@/lib/prisma";
 import { NextResponse } from "next/server";
-import { cookies } from "next/headers";
+import { prisma } from "@/lib/prisma";
 
 export async function POST(req: Request) {
   try {
-    // 0. Ambil tiket member jika pembeli sedang login
-    const cookieStore = await cookies();
-    const memberId = cookieStore.get("sassy_member_session")?.value;
+    const { productId, targetId, zoneId, whatsapp } = await JSON.parse(await req.text());
 
-    // 1. Terima data dari klik tombol Beli di Frontend
-    const body = await req.json();
-    const { userId, zoneId, wa, productId, paymentMethod } = body;
-
-    // 2. Cek produk di database & cari modal termurahnya
     const product = await prisma.product.findUnique({
       where: { id: productId },
-      include: { 
-        providerOptions: { orderBy: { priceCost: 'asc' } } 
-      }
+      include: { game: true, provider: true } // 👈 Relasi yang benar
     });
 
-    if (!product) {
-      return NextResponse.json({ error: "Waduh, produknya tidak ditemukan!" }, { status: 404 });
-    }
+    if (!product) return NextResponse.json({ message: "Produk tidak ditemukan" }, { status: 404 });
 
-    // 3. Hitung Keuntungan (Profit = Harga Jual - Modal Termurah)
-    const bestProvider = product.providerOptions[0];
-    const cost = bestProvider ? bestProvider.priceCost : product.priceSell;
-    const profit = product.priceSell - cost;
+    // KALKULASI MATEMATIKA AMAN
+    const price = Number(product.priceSell);
+    const fee = 0; // Sesuaikan jika ada biaya tambahan
+    const total = price + fee;
 
-    // 4. Buat Nomor Invoice Keren
-    const invoiceId = `SGY-${Date.now().toString().slice(-6)}`;
-
-    // 5. Simpan Pesanan ke Database Supabase
     const transaction = await prisma.transaction.create({
       data: {
-        invoiceId: invoiceId,
-        targetId: userId,
-        targetZone: zoneId || "",
-        whatsapp: wa,
+        invoiceId: `INV-${Date.now()}`,
         productId: product.id,
+        gameId: product.gameId,
+        sku: product.sku,
+        denomName: product.name,
+        targetId: targetId,
+        zoneId: zoneId || null,
+        whatsapp: whatsapp,
+        paymentId: "PASTI-ADA-ID", // Sesuaikan dengan logic paymentId Bosku
+        priceModal: product.priceModal,
         priceSell: product.priceSell,
-        priceCost: cost,
-        profit: profit,
-        paymentMethod: paymentMethod || "qris",
-        orderStatus: "PENDING", 
-        providerId: bestProvider ? bestProvider.providerId : null,
-        memberId: memberId || null, // Di sini data membernya disambungkan
+        adminFee: fee,
+        totalAmount: total,
+        profit: Number(product.priceSell) - Number(product.priceModal),
+        expiredAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
       }
     });
 
-    // 6. Kirim konfirmasi balik ke Frontend
-    return NextResponse.json({ 
-      success: true, 
-      invoiceId: transaction.invoiceId, 
-      productName: product.name 
-    });
-
+    return NextResponse.json(transaction);
   } catch (error) {
-    console.error("Error Checkout:", error);
-    return NextResponse.json({ error: "Gagal memproses pesanan di server" }, { status: 500 });
+    console.error(error);
+    return NextResponse.json({ message: "Error Internal" }, { status: 500 });
   }
 }
