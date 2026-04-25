@@ -14,7 +14,7 @@ export async function PATCH(req: Request) {
   const { id, status } = await req.json();
   const updated = await prisma.transaction.update({
     where: { id },
-    data: { status }
+    data: { orderStatus: status } // 👈 Kita arahkan ke kolom yang benar
   });
   return NextResponse.json(updated);
 }
