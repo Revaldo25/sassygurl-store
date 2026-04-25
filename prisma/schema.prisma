@@ -83,18 +83,20 @@ enum PaymentType {
 }
 
 // ============================================================================
-// 1. SISTEM PENGGUNA, KYC & KEAMANAN
+// 1. SISTEM PENGGUNA & NEXTAUTH (ANTI-ERROR)
 // ============================================================================
 model User {
   id                String       @id @default(uuid())
-  name              String
-  email             String?      @unique  // 👈 Tambahkan tanda ? (Biar bisa login via no WA saja)
+  name              String?      // Dibuat opsional karena Google kadang tidak kirim nama
+  email             String?      @unique
+  emailVerified     DateTime?    // Wajib ada untuk standar NextAuth
+  image             String?      // Wajib ada untuk foto profil Google/Facebook
   password          String?   
-  phone             String?      @unique  // 👈 Tambahkan tanda ? (Biar bisa login via Email saja)
+  phone             String?      @unique
   role              Role         @default(MEMBER)
   
   kycStatus         KycStatus    @default(UNVERIFIED)
-  isVerified        Boolean      @default(false) // 👈 Tambahkan ini untuk sinkronasi OTP auth.ts
+  isVerified        Boolean      @default(false)
   idCardNumber      String?      @unique 
   idCardImage       String?
   taxNumber         String?      
@@ -105,8 +107,7 @@ model User {
   balance           Decimal      @default(0) @db.Decimal(15, 2)
   points            Int          @default(0)
   
-  // 👈 Tambahkan @default(uuid()) agar Prisma otomatis membuatkan kode kalau user baru daftar
-  referralCode      String       @unique @default(uuid()) 
+  referralCode      String       @unique @default(uuid())
   referrerId        String?
   referrer          User?        @relation("UserReferral", fields: [referrerId], references: [id])
   referees          User[]       @relation("UserReferral")
@@ -121,14 +122,14 @@ model User {
   createdAt         DateTime     @default(now())
   updatedAt         DateTime     @updatedAt
 
-  accounts      Account[]
+  accounts          Account[]
 
   @@index([email, phone, referralCode])
   @@index([kycStatus])
 }
 
 // ============================================================================
-// 2. DOUBLE-ENTRY LEDGER (Standar Audit Keuangan)
+// 2. DOUBLE-ENTRY LEDGER 
 // ============================================================================
 model WalletLedger {
   id              String       @id @default(uuid())
@@ -151,14 +152,14 @@ model WalletLedger {
 }
 
 // ============================================================================
-// 3. KATALOG GAME & INVENTORY MANAJEMEN
+// 3. KATALOG GAME
 // ============================================================================
 model Category {
-  id            String    @id @default(uuid())
-  name          String
-  slug          String    @unique
-  sortOrder     Int       @default(0)
-  games         Game[]
+  id          String    @id @default(uuid())
+  name        String
+  slug        String    @unique
+  sortOrder   Int       @default(0)
+  games       Game[]
 }
 
 model Game {
@@ -197,7 +198,7 @@ model Review {
   
   rating        Int
   comment       String?     @db.Text
-  images        Json?       
+  images        Json?        
   
   createdAt     DateTime    @default(now())
 
@@ -205,136 +206,137 @@ model Review {
 }
 
 // ============================================================================
-// 4. PRODUK & MULTI-PROVIDER
+// 4. PRODUK (DITAMBAH priceSell AGAR COCOK DENGAN KODE TRANSAKSI)
 // ============================================================================
 model Provider {
-  id              String    @id @default(uuid())
-  name            String    @unique
-  balance         Decimal   @default(0) @db.Decimal(15, 2)
-  isActive        Boolean   @default(true)
+  id            String    @id @default(uuid())
+  name          String    @unique
+  balance       Decimal   @default(0) @db.Decimal(15, 2)
+  isActive      Boolean   @default(true)
   
-  successRate     Decimal   @default(100) @db.Decimal(5, 2)
-  avgLatencyMs    Int       @default(0)
+  successRate   Decimal   @default(100) @db.Decimal(5, 2)
+  avgLatencyMs  Int       @default(0)
   
-  products        Product[]
+  products      Product[]
 }
 
 model Product {
-  id              String    @id @default(uuid())
-  gameId          String
-  game            Game      @relation(fields: [gameId], references: [id], onDelete: Cascade)
+  id            String    @id @default(uuid())
+  gameId        String
+  game          Game      @relation(fields: [gameId], references: [id], onDelete: Cascade)
   
-  providerId      String
-  provider        Provider  @relation(fields: [providerId], references: [id])
-  sku             String    @unique
+  providerId    String
+  provider      Provider  @relation(fields: [providerId], references: [id])
+  sku           String    @unique
   
-  name            String
-  description     String?
+  name          String
+  description   String?
   
-  priceModal      Decimal   @db.Decimal(10, 2)
-  priceMember     Decimal   @db.Decimal(10, 2)
-  priceReseller   Decimal   @db.Decimal(10, 2)
-  priceVip        Decimal   @db.Decimal(10, 2)
-  originalPrice   Decimal?  @db.Decimal(10, 2)
+  priceModal    Decimal   @db.Decimal(10, 2)
+  priceSell     Decimal   @default(0) @db.Decimal(10, 2) // 🔥 Solusi Error Transaksi
+  priceMember   Decimal   @db.Decimal(10, 2)
+  priceReseller Decimal   @db.Decimal(10, 2)
+  priceVip      Decimal   @db.Decimal(10, 2)
+  originalPrice Decimal?  @db.Decimal(10, 2)
 
-  isActive        Boolean   @default(true)
-  isFlashSale     Boolean   @default(false)
-  stock           Int       @default(99999)
+  isActive      Boolean   @default(true)
+  isFlashSale   Boolean   @default(false)
+  stock         Int       @default(99999)
 
-  transactions    Transaction[]
+  transactions  Transaction[]
 
   @@index([sku, gameId, isActive])
 }
 
 // ============================================================================
-// 5. PAYMENT GATEWAY & PROMO ENGINE
+// 5. PAYMENT GATEWAY & PROMO
 // ============================================================================
 model PaymentMethod {
-  id            String      @id @default(uuid())
-  code          String      @unique
-  name          String
-  type          PaymentType 
-  logo          String?
+  id          String      @id @default(uuid())
+  code        String      @unique
+  name        String
+  type        PaymentType 
+  logo        String?
   
-  feeFlat       Decimal     @default(0) @db.Decimal(10, 2)
-  feePercent    Decimal     @default(0) @db.Decimal(5, 2)
+  feeFlat     Decimal     @default(0) @db.Decimal(10, 2)
+  feePercent  Decimal     @default(0) @db.Decimal(5, 2)
   
-  isActive      Boolean     @default(true)
-  sortOrder     Int         @default(0)
+  isActive    Boolean     @default(true)
+  sortOrder   Int         @default(0)
+
+  transactions Transaction[]
+}
+
+model Promo {
+  id            String    @id @default(uuid())
+  code          String    @unique
+  title         String
+  description   String?
+  
+  type          PromoType    
+  value         Decimal   @db.Decimal(10, 2)
+  maxDiscount   Decimal?  @db.Decimal(10, 2)
+  minTransaction Decimal  @default(0) @db.Decimal(10, 2)
+  
+  quota         Int       @default(100)
+  usedCount     Int       @default(0)
+  
+  startDate     DateTime  @default(now())
+  endDate       DateTime
+  isActive      Boolean   @default(true)
 
   transactions  Transaction[]
 }
 
-model Promo {
-  id              String    @id @default(uuid())
-  code            String    @unique
-  title           String
-  description     String?
-  
-  type            PromoType    
-  value           Decimal   @db.Decimal(10, 2)
-  maxDiscount     Decimal?  @db.Decimal(10, 2)
-  minTransaction  Decimal   @default(0) @db.Decimal(10, 2)
-  
-  quota           Int       @default(100)
-  usedCount       Int       @default(0)
-  
-  startDate       DateTime  @default(now())
-  endDate         DateTime
-  isActive        Boolean   @default(true)
-
-  transactions    Transaction[]
-}
-
 // ============================================================================
-// 6. MESIN TRANSAKSI ENTERPRISE 
+// 6. TRANSAKSI
 // ============================================================================
 model Transaction {
-  id              String    @id @default(uuid())
-  invoiceId       String    @unique
+  id            String    @id @default(uuid())
+  invoiceId     String    @unique
   
-  userId          String?
-  user            User?     @relation(fields: [userId], references: [id])
+  userId        String?
+  user          User?     @relation(fields: [userId], references: [id])
   
-  gameId          String
-  game            Game      @relation(fields: [gameId], references: [id])
-  productId       String
-  product         Product   @relation(fields: [productId], references: [id])
-  sku             String
-  denomName       String
+  gameId        String
+  game          Game      @relation(fields: [gameId], references: [id])
+  productId     String
+  product       Product   @relation(fields: [productId], references: [id])
+  sku           String
+  denomName     String
   
-  targetId        String
-  zoneId          String?
-  targetName      String?
+  targetId      String
+  zoneId        String?
+  targetName    String?
   
-  email           String
-  whatsapp        String
+  email         String?   // Dibuat opsional agar sinkron
+  whatsapp      String?
 
-  paymentId       String
-  payment         PaymentMethod @relation(fields: [paymentId], references: [id])
-  promoId         String?
-  promo           Promo?        @relation(fields: [promoId], references: [id])
+  paymentId     String
+  payment       PaymentMethod @relation(fields: [paymentId], references: [id])
+  promoId       String?
+  promo         Promo?        @relation(fields: [promoId], references: [id])
   
-  priceModal      Decimal   @db.Decimal(10, 2)
-  priceSell       Decimal   @db.Decimal(10, 2)
-  adminFee        Decimal   @db.Decimal(10, 2)
-  taxVat          Decimal   @default(0) @db.Decimal(10, 2) 
-  discount        Decimal   @default(0) @db.Decimal(10, 2)
-  totalAmount     Decimal   @db.Decimal(10, 2)
-  profit          Decimal   @db.Decimal(10, 2)
+  priceModal    Decimal   @db.Decimal(10, 2)
+  priceSell     Decimal   @db.Decimal(10, 2)
+  adminFee      Decimal   @db.Decimal(10, 2)
+  taxVat        Decimal   @default(0) @db.Decimal(10, 2) 
+  discount      Decimal   @default(0) @db.Decimal(10, 2)
+  totalAmount   Decimal   @db.Decimal(10, 2)
+  profit        Decimal   @db.Decimal(10, 2)
 
-  paymentStatus   PaymentStatus @default(UNPAID)
-  orderStatus     OrderStatus   @default(PENDING)
+  paymentStatus PaymentStatus @default(UNPAID)
+  orderStatus   OrderStatus   @default(PENDING)
   
-  paymentRef      String?
-  providerRef     String?
-  sn              String?       
-  webhookData     Json?
+  paymentRef    String?
+  providerRef   String?
+  sn            String?       
+  webhookData   Json?
 
-  createdAt       DateTime  @default(now())
-  expiredAt       DateTime
-  paidAt          DateTime?
-  completedAt     DateTime?
+  createdAt     DateTime  @default(now())
+  expiredAt     DateTime
+  paidAt        DateTime?
+  completedAt   DateTime?
 
   @@index([invoiceId, paymentStatus, orderStatus])
   @@index([targetId])
@@ -342,71 +344,71 @@ model Transaction {
 }
 
 // ============================================================================
-// 7. CUSTOMER SUPPORT (Sistem Tiket)
+// 7. CUSTOMER SUPPORT
 // ============================================================================
 model SupportTicket {
-  id              String         @id @default(uuid())
-  ticketNumber    String         @unique 
-  userId          String
-  user            User           @relation(fields: [userId], references: [id])
+  id            String         @id @default(uuid())
+  ticketNumber  String         @unique 
+  userId        String
+  user          User           @relation(fields: [userId], references: [id])
   
-  subject         String
-  transactionId   String?        
-  status          TicketStatus   @default(OPEN)
-  priority        TicketPriority @default(MEDIUM)
+  subject       String
+  transactionId String?        
+  status        TicketStatus   @default(OPEN)
+  priority      TicketPriority @default(MEDIUM)
   
-  messages        TicketMessage[]
+  messages      TicketMessage[]
   
-  createdAt       DateTime       @default(now())
-  updatedAt       DateTime       @updatedAt
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
 
   @@index([userId, status])
 }
 
 model TicketMessage {
-  id              String         @id @default(uuid())
-  ticketId        String
-  ticket          SupportTicket  @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  id            String         @id @default(uuid())
+  ticketId      String
+  ticket        SupportTicket  @relation(fields: [ticketId], references: [id], onDelete: Cascade)
   
-  senderId        String         
-  message         String         @db.Text
-  attachments     Json?          
+  senderId      String         
+  message       String         @db.Text
+  attachments   Json?          
   
-  createdAt       DateTime       @default(now())
+  createdAt     DateTime       @default(now())
 
   @@index([ticketId])
 }
 
 // ============================================================================
-// 8. SYSTEM AUDIT TRAIL 
+// 8. AUDIT TRAIL
 // ============================================================================
 model SystemAudit {
-  id              String       @id @default(uuid())
-  actionBy        String       
-  admin           User         @relation("ActionBy", fields: [actionBy], references: [id])
+  id            String       @id @default(uuid())
+  actionBy      String       
+  admin         User         @relation("ActionBy", fields: [actionBy], references: [id])
   
-  action          String       
-  entity          String       
-  entityId        String       
+  action        String       
+  entity        String       
+  entityId      String       
   
-  oldValues       Json?
-  newValues       Json?
+  oldValues     Json?
+  newValues     Json?
   
-  ipAddress       String?
-  userAgent       String?
+  ipAddress     String?
+  userAgent     String?
   
-  createdAt       DateTime     @default(now())
+  createdAt     DateTime     @default(now())
 
   @@index([actionBy, entity, createdAt])
 }
 
 // ============================================================================
-// 9. SECURITY & OTP (Two-Factor Authentication)
+// 9. SECURITY & NEXTAUTH ACCOUNTS
 // ============================================================================
 model VerificationToken {
   id         String   @id @default(uuid())
-  identifier String   // Email atau Nomor WA
-  token      String   @unique // Kode OTP (6 Digit)
+  identifier String   
+  token      String   @unique 
   expires    DateTime
   createdAt  DateTime @default(now())
 
