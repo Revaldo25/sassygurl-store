@@ -13,10 +13,11 @@ export async function POST(req: Request) {
     // Cari transaksi berdasarkan Nomor Invoice
     const transaction = await prisma.transaction.findUnique({
       where: { invoiceId: invoiceId.trim() },
-      include: { 
-        product: {
-          include: { category: true }
-        } 
+      include: {
+        product: true,
+        game: {
+          include: { category: true } // ✅ BENAR, karena Category adalah milik Game
+        }
       }
     });
 
