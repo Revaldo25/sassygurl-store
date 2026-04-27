@@ -1,0 +1,425 @@
+[
+  {
+    "new": "public/file.svg"
+  },
+  {
+    "new": "public/globe.svg"
+  },
+  {
+    "new": "public/next.svg"
+  },
+  {
+    "new": "public/vercel.svg"
+  },
+  {
+    "new": "public/window.svg"
+  },
+  {
+    "new": "public/images/games/akef_icon.jpeg"
+  },
+  {
+    "new": "public/images/games/ff_icon.jpeg"
+  },
+  {
+    "new": "public/images/games/gi_icon.jpeg"
+  },
+  {
+    "new": "public/images/games/hok_icon.jpeg"
+  },
+  {
+    "new": "public/images/games/hsr_icon.webp"
+  },
+  {
+    "new": "public/images/games/lol_icon.jpeg"
+  },
+  {
+    "new": "public/images/games/lolwr_icon.jpeg"
+  },
+  {
+    "new": "public/images/games/mccg_icon.jpeg"
+  },
+  {
+    "new": "public/images/games/mlbb_icon.jpeg"
+  },
+  {
+    "new": "public/images/games/nikke_icon.jpeg"
+  },
+  {
+    "new": "public/images/games/rbx_icon.png"
+  },
+  {
+    "new": "public/images/games/valorant_icon.jpeg"
+  },
+  {
+    "new": "public/images/games/wuwa_icon.webp"
+  },
+  {
+    "new": "public/images/games/zzz_icon.webp"
+  },
+  {
+    "new": "public/images/items/mccg/weekly_pass/weekly_chess_gogo.webp"
+  },
+  {
+    "new": "public/images/items/zzz/pack/entrypack.webp"
+  },
+  {
+    "new": "public/images/items/zzz/membership/interknot_membership.webp"
+  },
+  {
+    "new": "public/images/items/zzz/monochromes/monochromes_1980.webp"
+  },
+  {
+    "new": "public/images/items/zzz/monochromes/monochromes_300.webp"
+  },
+  {
+    "new": "public/images/items/zzz/monochromes/monochromes_3280.webp"
+  },
+  {
+    "new": "public/images/items/zzz/monochromes/monochromes_60.webp"
+  },
+  {
+    "new": "public/images/items/zzz/monochromes/monochromes_6480.webp"
+  },
+  {
+    "new": "public/images/items/zzz/monochromes/monochromes_980.jpeg"
+  },
+  {
+    "new": "public/images/items/wuwa/lunites/lunites_1980.webp"
+  },
+  {
+    "new": "public/images/items/wuwa/lunites/lunites_300.webp"
+  },
+  {
+    "new": "public/images/items/wuwa/lunites/lunites_3280.webp"
+  },
+  {
+    "new": "public/images/items/wuwa/lunites/lunites_60.webp"
+  },
+  {
+    "new": "public/images/items/wuwa/lunites/lunites_6480.webp"
+  },
+  {
+    "new": "public/images/items/wuwa/lunites/lunites_980.webp"
+  },
+  {
+    "new": "public/images/items/wuwa/subscription/lunite_subscription.webp"
+  },
+  {
+    "new": "public/images/items/wuwa/aid/sage_solvent_aid.png"
+  },
+  {
+    "new": "public/images/items/wuwa/aid/tidal_monthly_aid.png"
+  },
+  {
+    "new": "public/images/items/wuwa/bundle/truthseeker_forging_collection.png"
+  },
+  {
+    "new": "public/images/items/wuwa/bundle/truthseeker_forging_collection1.png"
+  },
+  {
+    "new": "public/images/items/wuwa/bundle/truthseeker_radiant_collection_2.png"
+  },
+  {
+    "new": "public/images/items/valorant/vp/valorant_points.webp"
+  },
+  {
+    "new": "public/images/items/rbx/robux/robux.jpeg"
+  },
+  {
+    "new": "public/images/items/pubg/uc/uc_12000.png"
+  },
+  {
+    "new": "public/images/items/pubg/uc/uc_1500.png"
+  },
+  {
+    "new": "public/images/items/pubg/uc/uc_18000.png"
+  },
+  {
+    "new": "public/images/items/pubg/uc/uc_24000.png"
+  },
+  {
+    "new": "public/images/items/pubg/uc/uc_30.png"
+  },
+  {
+    "new": "public/images/items/pubg/uc/uc_300.png"
+  },
+  {
+    "new": "public/images/items/pubg/uc/uc_3000.png"
+  },
+  {
+    "new": "public/images/items/pubg/uc/uc_30000.png"
+  },
+  {
+    "new": "public/images/items/pubg/uc/uc_36000.png"
+  },
+  {
+    "new": "public/images/items/pubg/uc/uc_60.png"
+  },
+  {
+    "new": "public/images/items/pubg/uc/uc_600.png"
+  },
+  {
+    "new": "public/images/items/pubg/uc/uc_6000.png"
+  },
+  {
+    "new": "public/images/items/nikke/gems/gems_120.jpeg"
+  },
+  {
+    "new": "public/images/items/nikke/gems/gems_1500.jpeg"
+  },
+  {
+    "new": "public/images/items/nikke/gems/gems_2300.jpeg"
+  },
+  {
+    "new": "public/images/items/nikke/gems/gems_2370.jpeg"
+  },
+  {
+    "new": "public/images/items/nikke/gems/gems_320.jpeg"
+  },
+  {
+    "new": "public/images/items/nikke/gems/gems_4200.jpeg"
+  },
+  {
+    "new": "public/images/items/nikke/gems/gems_60.jpeg"
+  },
+  {
+    "new": "public/images/items/nikke/gems/gems_6200.jpeg"
+  },
+  {
+    "new": "public/images/items/nikke/gems/gems_6.jpeg"
+  },
+  {
+    "new": "public/images/items/nikke/gems/gems_720.jpeg"
+  },
+  {
+    "new": "public/images/items/nikke/set/nikke_class_research_set.jpg"
+  },
+  {
+    "new": "public/images/items/nikke/set/nikke_enhanced_module_set.jpg"
+  },
+  {
+    "new": "public/images/items/nikke/set/nikke_grow_selection_set.jpg"
+  },
+  {
+    "new": "public/images/items/nikke/set/nikke_manufacturer_research_set.jpg"
+  },
+  {
+    "new": "public/images/items/nikke/set/nikke_technical_master.jpg"
+  },
+  {
+    "new": "public/images/items/nikke/set/manufacture_backup.jpg"
+  },
+  {
+    "new": "public/images/items/nikke/set/technical_support_s1.jpg"
+  },
+  {
+    "new": "public/images/items/nikke/set/technical_support_s2.jpg"
+  },
+  {
+    "new": "public/images/items/nikke/pass/monthly_pass.jpg"
+  },
+  {
+    "new": "public/images/items/mlbb/pass/weekly_diamond_pass.jpeg"
+  },
+  {
+    "new": "public/images/items/mlbb/pass/starlight_card.jpeg"
+  },
+  {
+    "new": "public/images/items/mlbb/pass/twilight_pass.jpeg"
+  },
+  {
+    "new": "public/images/items/mlbb/diamond/diamond_170.png"
+  },
+  {
+    "new": "public/images/items/mlbb/diamond/diamond_2010.png"
+  },
+  {
+    "new": "public/images/items/mlbb/diamond/diamond_3.png"
+  },
+  {
+    "new": "public/images/items/mlbb/diamond/diamond_4830.png"
+  },
+  {
+    "new": "public/images/items/mlbb/diamond/diamond_568.png"
+  },
+  {
+    "new": "public/images/items/mlbb/diamond/diamond_59.png"
+  },
+  {
+    "new": "public/images/items/lolwr/celestial_blessings/celestial_blessings.png"
+  },
+  {
+    "new": "public/images/items/lolwr/wild_cores/wild_cores.png"
+  },
+  {
+    "new": "public/images/items/lol/rp/lol_rp_13500.png"
+  },
+  {
+    "new": "public/images/items/lol/rp/lol_rp_1380.png"
+  },
+  {
+    "new": "public/images/items/lol/rp/lol_rp_2800.png"
+  },
+  {
+    "new": "public/images/items/lol/rp/lol_rp_4500.png"
+  },
+  {
+    "new": "public/images/items/lol/rp/lol_rp_575.png"
+  },
+  {
+    "new": "public/images/items/lol/rp/lol_rp_6500.png"
+  },
+  {
+    "new": "public/images/items/hok/tokens/hok_tokens_1200.png"
+  },
+  {
+    "new": "public/images/items/hok/tokens/hok_tokens_16.png"
+  },
+  {
+    "new": "public/images/items/hok/tokens/hok_tokens_23.png"
+  },
+  {
+    "new": "public/images/items/hok/tokens/hok_tokens_240.png"
+  },
+  {
+    "new": "public/images/items/hok/tokens/hok_tokens_2400.png"
+  },
+  {
+    "new": "public/images/items/hok/tokens/hok_tokens_400.png"
+  },
+  {
+    "new": "public/images/items/hok/tokens/hok_tokens_4000.png"
+  },
+  {
+    "new": "public/images/items/hok/tokens/hok_tokens_560.png"
+  },
+  {
+    "new": "public/images/items/hok/tokens/hok_tokens_8.png"
+  },
+  {
+    "new": "public/images/items/hok/tokens/hok_tokens_80.png"
+  },
+  {
+    "new": "public/images/items/hok/tokens/hok_tokens_800.png"
+  },
+  {
+    "new": "public/images/items/hok/tokens/hok_tokens_8000.png"
+  },
+  {
+    "new": "public/images/items/akef/bundle/all_rounder_bundle.png"
+  },
+  {
+    "new": "public/images/items/akef/bundle/grand_vision_arsenal_bundle.png"
+  },
+  {
+    "new": "public/images/items/akef/bundle/hr_support_bundle.png"
+  },
+  {
+    "new": "public/images/items/akef/bundle/monthly_materials_bundle.png"
+  },
+  {
+    "new": "public/images/items/akef/bundle/verdance_hh_bundle.png"
+  },
+  {
+    "new": "public/images/items/akef/bundle/weekly_materials_bundle.png"
+  },
+  {
+    "new": "public/images/items/akef/bundle/protocol_flow_bundle.png"
+  },
+  {
+    "new": "public/images/items/akef/pack/etchings_of_our_cosmic_dreams_pack.png"
+  },
+  {
+    "new": "public/images/items/akef/pack/value_arsenal_ticket_pack.png"
+  },
+  {
+    "new": "public/images/items/akef/pass/monthly_pass.png"
+  },
+  {
+    "new": "public/images/items/akef/protocol/protocol_customized.png"
+  },
+  {
+    "new": "public/images/items/akef/origeometry/origeometry_114.png"
+  },
+  {
+    "new": "public/images/items/akef/origeometry/origeometry_12.png"
+  },
+  {
+    "new": "public/images/items/akef/origeometry/origeometry_184.png"
+  },
+  {
+    "new": "public/images/items/akef/origeometry/origeometry_388.png"
+  },
+  {
+    "new": "public/images/items/akef/origeometry/origeometry_400.png"
+  },
+  {
+    "new": "public/images/items/akef/origeometry/origeometry_42.png"
+  },
+  {
+    "new": "public/images/items/akef/origeometry/origeometry_68.png"
+  },
+  {
+    "new": "public/images/items/hsr/pass/express_supply_pass.webp"
+  },
+  {
+    "new": "public/images/items/hsr/oneiric_shards/oneiric_shards_1980.webp"
+  },
+  {
+    "new": "public/images/items/hsr/oneiric_shards/oneiric_shards_300.webp"
+  },
+  {
+    "new": "public/images/items/hsr/oneiric_shards/oneiric_shards_3280.webp"
+  },
+  {
+    "new": "public/images/items/hsr/oneiric_shards/oneiric_shards_60.webp"
+  },
+  {
+    "new": "public/images/items/hsr/oneiric_shards/oneiric_shards_6480.webp"
+  },
+  {
+    "new": "public/images/items/hsr/oneiric_shards/oneiric_shards_980.webp"
+  },
+  {
+    "new": "public/images/items/hsr/bundle/departure_bundle.webp"
+  },
+  {
+    "new": "public/images/items/gi/welkin_moon/blessing_of_the_welkin_moon.webp"
+  },
+  {
+    "new": "public/images/items/gi/chronal_nexus/chronal_nexus_1980.webp"
+  },
+  {
+    "new": "public/images/items/gi/chronal_nexus/chronal_nexus_300.webp"
+  },
+  {
+    "new": "public/images/items/gi/chronal_nexus/chronal_nexus_3280.webp"
+  },
+  {
+    "new": "public/images/items/gi/chronal_nexus/chronal_nexus_60.webp"
+  },
+  {
+    "new": "public/images/items/gi/chronal_nexus/chronal_nexus_6480.webp"
+  },
+  {
+    "new": "public/images/items/gi/chronal_nexus/chronal_nexus_980.webp"
+  },
+  {
+    "new": "public/images/items/gi/genesis_crystal/genesis_crystal_1980.webp"
+  },
+  {
+    "new": "public/images/items/gi/genesis_crystal/genesis_crystal_300.webp"
+  },
+  {
+    "new": "public/images/items/gi/genesis_crystal/genesis_crystal_3280.webp"
+  },
+  {
+    "new": "public/images/items/gi/genesis_crystal/genesis_crystal_60.webp"
+  },
+  {
+    "new": "public/images/items/gi/genesis_crystal/genesis_crystal_6480.webp"
+  },
+  {
+    "new": "public/images/items/gi/genesis_crystal/genesis_crystal_980.webp"
+  }
+]

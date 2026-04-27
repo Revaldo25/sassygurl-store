@@ -1,135 +1,147 @@
-import { PrismaClient, Role, KycStatus, PaymentType, PromoType } from '@prisma/client';
+import { PrismaClient, PaymentType } from "@prisma/client";
+import { games, paymentMethods, getBestProvider } from "../lib/catalog";
 
 const prisma = new PrismaClient();
 
-async function main() {
-  console.log("🚀 Memulai Operasi 'Titan' Seeding SassyGurlStore Elite...");
-
-  // 1. PEMBERSIHAN DATA (CLEAN SLATE) - Urutan sangat penting karena relasi FK
-  await prisma.systemAudit.deleteMany();
-  await prisma.ticketMessage.deleteMany();
-  await prisma.supportTicket.deleteMany();
-  await prisma.walletLedger.deleteMany();
-  await prisma.review.deleteMany();
-  await prisma.transaction.deleteMany();
-  await prisma.product.deleteMany();
-  await prisma.game.deleteMany();
-  await prisma.category.deleteMany();
-  await prisma.provider.deleteMany();
-  await prisma.paymentMethod.deleteMany();
-  await prisma.promo.deleteMany();
-  await prisma.user.deleteMany();
-
-  console.log("🧹 Database bersih mengkilap. Membangun fondasi...");
-
-  // 2. SEED PROVIDERS (Supplier Diamond)
-  const providers = await Promise.all([
-    prisma.provider.create({ data: { name: "DIGIFLAZZ", balance: 100000000 } }),
-    prisma.provider.create({ data: { name: "VIP_RESELLER", balance: 50000000 } }),
-    prisma.provider.create({ data: { name: "APIGAMES", balance: 75000000 } }),
-  ]);
-
-  // 3. SEED ADMIN & VIP USERS
-  const admin = await prisma.user.create({
-    data: {
-      name: "Sultan Sassy Admin",
-      email: "admin@sassygurl.com",
-      phone: "081122334455",
-      role: Role.SUPERADMIN,
-      kycStatus: KycStatus.VERIFIED,
-      referralCode: "SASSY-BOSS",
-    }
+async function seedCategories() {
+  const category = await prisma.category.upsert({
+    where: { slug: "premium-topup" },
+    update: { name: "Premium Top-Up", sortOrder: 1 },
+    create: { name: "Premium Top-Up", slug: "premium-topup", sortOrder: 1 },
   });
 
-  // 4. SEED CATEGORIES
-  const categories = await Promise.all([
-    prisma.category.create({ data: { name: "Mobile Games", slug: "mobile-games", sortOrder: 1 } }),
-    prisma.category.create({ data: { name: "PC Games", slug: "pc-games", sortOrder: 2 } }),
-    prisma.category.create({ data: { name: "Vouchers", slug: "vouchers", sortOrder: 3 } }),
-  ]);
+  return category;
+}
 
-  // 5. SEED GAMES (Daftar Game Populer Internasional)
-  const gamesData = [
-    { name: "Mobile Legends", slug: "mlbb", catIdx: 0, publisher: "Moonton", hasServer: true },
-    { name: "Free Fire", slug: "ff", catIdx: 0, publisher: "Garena", hasServer: false },
-    { name: "Genshin Impact", slug: "genshin", catIdx: 0, publisher: "Hoyoverse", hasServer: true },
-    { name: "Valorant", slug: "valo", catIdx: 1, publisher: "Riot Games", hasServer: false },
-    { name: "Honkai: Star Rail", slug: "hsr", catIdx: 0, publisher: "Hoyoverse", hasServer: true },
-    { name: "Steam Wallet IDR", slug: "steam", catIdx: 2, publisher: "Valve", hasServer: false },
-  ];
+async function seedProviders() {
+  const digiflazz = await prisma.provider.upsert({
+    where: { name: "Digiflazz" },
+    update: { isActive: true, successRate: 99.2, avgLatencyMs: 780 },
+    create: { name: "Digiflazz", isActive: true, successRate: 99.2, avgLatencyMs: 780 },
+  });
 
-  console.log("🎮 Menanam benih game dan ribuan variasi produk...");
+  const vip = await prisma.provider.upsert({
+    where: { name: "VIP Reseller" },
+    update: { isActive: true, successRate: 98.8, avgLatencyMs: 620 },
+    create: { name: "VIP Reseller", isActive: true, successRate: 98.8, avgLatencyMs: 620 },
+  });
 
-  for (const g of gamesData) {
-    const game = await prisma.game.create({
-      data: {
-        name: g.name,
-        slug: g.slug,
-        categoryId: categories[g.catIdx].id,
-        publisher: g.publisher,
-        hasServerId: g.hasServer,
-        isHot: true,
-      }
+  return { digiflazz, vip };
+}
+
+async function main() {
+  console.log("🌙 Seeding SassyGurl Store Ultra...");
+
+  const category = await seedCategories();
+  const providers = await seedProviders();
+
+  for (const gameData of games) {
+    const game = await prisma.game.upsert({
+      where: { slug: gameData.slug },
+      update: {
+        name: gameData.name,
+        publisher: gameData.shortCode,
+        thumbnail: gameData.icon,
+        banner: gameData.banner,
+        guideImage: gameData.banner,
+        isHot: gameData.isFeatured ?? false,
+        isActive: true,
+      },
+      create: {
+        categoryId: category.id,
+        name: gameData.name,
+        slug: gameData.slug,
+        publisher: gameData.shortCode,
+        thumbnail: gameData.icon,
+        banner: gameData.banner,
+        guideImage: gameData.banner,
+        hasServerId: true,
+        isHot: gameData.isFeatured ?? false,
+        isActive: true,
+      },
     });
 
-    // MEGA GENERATOR: 200 Produk per Game (Total 1200+ produk untuk awal)
-    // Kita gunakan looping agar produk terlihat melimpah layaknya toko maturity
-    for (let i = 1; i <= 200; i++) {
-      const amount = i * 10; 
-      const priceModal = amount * 200; // Logika harga modal palsu
+    for (const productData of gameData.products) {
+      const providerQuote = getBestProvider(productData);
+      const providerId = providerQuote.name === "Digiflazz" ? providers.digiflazz.id : providers.vip.id;
 
-      await prisma.product.create({
-        data: {
-          gameId: game.id,
-          providerId: providers[0].id,
-          sku: `${g.slug.toUpperCase()}-${amount}`,
-          name: `${amount * 5} Diamonds / Credits`,
-          priceModal: priceModal,
-          priceMember: priceModal * 1.15,   // Margin 15%
-          priceReseller: priceModal * 1.08, // Margin 8%
-          priceVip: priceModal * 1.04,      // Margin 4%
-          originalPrice: priceModal * 1.30, // Harga Coret
+      await prisma.product.upsert({
+        where: { sku: productData.sku },
+        update: {
+          name: productData.name,
+          description: productData.description ?? productData.label ?? null,
+          priceModal: providerQuote.price,
+          priceSell: providerQuote.price,
+          priceMember: Math.round(providerQuote.price * 0.99),
+          priceReseller: Math.round(providerQuote.price * 0.985),
+          priceVip: Math.round(providerQuote.price * 0.97),
+          originalPrice: productData.basePrice,
           isActive: true,
-        }
+          isFlashSale: Boolean(productData.isHot),
+          stock: 99999,
+          providerId,
+          gameId: game.id,
+        },
+        create: {
+          gameId: game.id,
+          providerId,
+          sku: productData.sku,
+          name: productData.name,
+          description: productData.description ?? productData.label ?? null,
+          priceModal: providerQuote.price,
+          priceSell: providerQuote.price,
+          priceMember: Math.round(providerQuote.price * 0.99),
+          priceReseller: Math.round(providerQuote.price * 0.985),
+          priceVip: Math.round(providerQuote.price * 0.97),
+          originalPrice: productData.basePrice,
+          isActive: true,
+          isFlashSale: Boolean(productData.isHot),
+          stock: 99999,
+        },
       });
     }
   }
 
-  // 6. SEED PAYMENT METHODS (Standard Enterprise)
-  const payments = [
-    { code: "QRIS", name: "QRIS All Payment", type: PaymentType.QRIS, feeFlat: 0, feePercent: 0.7 },
-    { code: "BCAVA", name: "BCA Virtual Account", type: PaymentType.VIRTUAL_ACCOUNT, feeFlat: 4500, feePercent: 0 },
-    { code: "MANDIRIVA", name: "Mandiri VA", type: PaymentType.VIRTUAL_ACCOUNT, feeFlat: 4500, feePercent: 0 },
-    { code: "GOPAY", name: "GoPay", type: PaymentType.EWALLET, feeFlat: 1000, feePercent: 2 },
-    { code: "ALFAMART", name: "Alfamart / Alfamidi", type: PaymentType.RETAIL, feeFlat: 5000, feePercent: 0 },
-  ];
+  for (const method of paymentMethods) {
+    const type =
+      method.type === "QRIS"
+        ? PaymentType.QRIS
+        : method.type === "EWALLET"
+          ? PaymentType.EWALLET
+          : method.type === "VIRTUAL_ACCOUNT"
+            ? PaymentType.VIRTUAL_ACCOUNT
+            : PaymentType.RETAIL;
 
-  for (const pm of payments) {
-    await prisma.paymentMethod.create({ data: pm });
+    await prisma.paymentMethod.upsert({
+      where: { code: method.code },
+      update: {
+        name: method.name,
+        type,
+        logo: method.icon,
+        feeFlat: method.feeFlat,
+        feePercent: method.feePercent,
+        isActive: true,
+        sortOrder: method.highlight ? 0 : 1,
+      },
+      create: {
+        code: method.code,
+        name: method.name,
+        type,
+        logo: method.icon,
+        feeFlat: method.feeFlat,
+        feePercent: method.feePercent,
+        isActive: true,
+        sortOrder: method.highlight ? 0 : 1,
+      },
+    });
   }
 
-  // 7. SEED PROMO (Gaya Tiket Elite)
-  await prisma.promo.create({
-    data: {
-      code: "SULTANAPRIL",
-      title: "Ramadan Sultan Cashback",
-      description: "Diskon 10% khusus untuk member VIP.",
-      type: PromoType.PERCENTAGE,
-      value: 10,
-      maxDiscount: 25000,
-      minTransaction: 100000,
-      startDate: new Date(),
-      endDate: new Date("2026-12-31"),
-      isActive: true,
-    }
-  });
-
-  console.log("✅ SEEDING SELESAI! Empayar SassyGurlStore kini penuh dengan aset berharga.");
+  console.log("✅ Seed selesai. Games, products, providers, dan payment methods tersinkron.");
 }
 
 main()
-  .catch((e) => {
-    console.error("❌ Seeding Gagal:", e);
+  .catch((error) => {
+    console.error(error);
     process.exit(1);
   })
   .finally(async () => {
