@@ -321,15 +321,31 @@ export default function MemberDashboardClient({ initialStats, initialTransaction
 function StatusBadge({ status }: { status: string }) {
   const config =
     status === "PAID"
-      ? { color: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20", icon: CheckCircle2, label: "SUCCESS" }
-      : status === "PENDING"
-        ? { color: "bg-amber-500/10 text-amber-400 border-amber-500/20", icon: Clock, label: "PENDING" }
-        : { color: "bg-red-500/10 text-red-400 border-red-500/20", icon: XCircle, label: "FAILED" };
+      ? { color: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20", icon: CheckCircle2, label: "SUCCESS", glow: "shadow-[0_0_12px_rgba(16,185,129,0.4)]" }
+      : status === "PROCESSING"
+        ? { color: "bg-blue-500/10 text-blue-400 border-blue-500/20", icon: Clock, label: "PROCESSING", glow: "shadow-[0_0_12px_rgba(59,130,246,0.4)]" }
+        : status === "PENDING"
+          ? { color: "bg-amber-500/10 text-amber-400 border-amber-500/20", icon: Clock, label: "PENDING", glow: "shadow-[0_0_12px_rgba(245,158,11,0.3)]" }
+          : { color: "bg-red-500/10 text-red-400 border-red-500/20", icon: XCircle, label: "FAILED", glow: "shadow-[0_0_12px_rgba(239,68,68,0.3)]" };
 
   return (
-    <span className={`inline-flex items-center gap-1.5 rounded-full border px-4 py-1.5 text-[9px] font-black shadow-sm ${config.color}`}>
-      <config.icon className="h-3 w-3" />
+    <motion.span
+      initial={{ scale: 0.9, opacity: 0 }}
+      animate={{ scale: 1, opacity: 1 }}
+      transition={{ type: "spring", stiffness: 400, damping: 20 }}
+      className={`inline-flex items-center gap-1.5 rounded-full border px-4 py-1.5 text-[9px] font-black ${config.color} ${config.glow}`}
+    >
+      {(status === "PROCESSING" || status === "PENDING") ? (
+        <motion.span
+          animate={{ rotate: 360 }}
+          transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
+        >
+          <config.icon className="h-3 w-3" />
+        </motion.span>
+      ) : (
+        <config.icon className="h-3 w-3" />
+      )}
       {config.label}
-    </span>
+    </motion.span>
   );
 }

@@ -22,6 +22,7 @@ public class SassyGurlDbContext : DbContext
     public DbSet<PaymentMethod> PaymentMethods { get; set; } = null!;
     public DbSet<Promo> Promos { get; set; } = null!;
     public DbSet<Transaction> Transactions { get; set; } = null!;
+    public DbSet<RefundQueue> RefundQueues { get; set; } = null!;
     public DbSet<SupportTicket> SupportTickets { get; set; } = null!;
     public DbSet<TicketMessage> TicketMessages { get; set; } = null!;
     public DbSet<SystemAudit> SystemAudits { get; set; } = null!;

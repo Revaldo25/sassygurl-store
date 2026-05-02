@@ -1,9 +1,16 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { motion } from "framer-motion";
-import { ShieldCheck, User, Loader2, BadgeCheck, Lock, ChevronRight } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import { ShieldCheck, User, Loader2, BadgeCheck, Lock, ChevronRight, AlertCircle } from "lucide-react";
 import { simulateUsername } from "@/lib/catalog";
+import { z } from "zod";
+
+// Zod Schema for strict input validation
+const accountSchema = z.object({
+  id: z.string().min(5, "User ID minimal 5 karakter").max(15, "User ID maksimal 15 karakter").regex(/^\d+$/, "User ID hanya boleh angka"),
+  zone: z.string().max(8, "Zone maksimal 8 karakter").optional().or(z.literal("")),
+});
 
 type Props = {
   gameSlug: string;
@@ -27,17 +34,24 @@ export default function AccountInput({
   const [username, setUsername] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [touched, setTouched] = useState(false);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   const resolved = useMemo(() => simulateUsername(gameSlug, id, zone), [gameSlug, id, zone]);
 
   useEffect(() => {
-    if (!id || id.replace(/\D/g, "").length < 6) {
+    const validation = accountSchema.safeParse({ id, zone: requiresZone ? zone : undefined });
+    
+    if (!validation.success) {
+      if (touched) {
+        setErrorMsg(validation.error.errors[0].message);
+      }
       setUsername(null);
       setLoading(false);
       onResolved?.({ id, zone, username: null });
       return;
     }
 
+    setErrorMsg(null);
     setLoading(true);
     const timer = setTimeout(() => {
       setUsername(resolved);
@@ -95,6 +109,20 @@ export default function AccountInput({
           </div>
         </label>
       </div>
+
+      <AnimatePresence>
+        {errorMsg && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: "auto" }}
+            exit={{ opacity: 0, height: 0 }}
+            className="mt-3 flex items-center gap-2 rounded-xl bg-red-500/10 px-4 py-3 text-sm text-red-400 border border-red-500/20"
+          >
+            <AlertCircle className="h-4 w-4 shrink-0" />
+            <p>{errorMsg}</p>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       <div className="mt-4 rounded-2xl border border-white/8 bg-black/20 p-4">
         <div className="flex items-center justify-between gap-4">

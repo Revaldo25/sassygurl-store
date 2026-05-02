@@ -1,8 +1,12 @@
 using Microsoft.EntityFrameworkCore;
 using SassyGurl.Api.Data;
 using SassyGurl.Api.DTOs.Common;
+using SassyGurl.Api.Models;
 using SassyGurl.Api.Models.Enums;
 using System.Text.Json;
+using System.Threading;
+using Microsoft.AspNetCore.SignalR;
+using SassyGurl.Api.Hubs;
 
 namespace SassyGurl.Api.Services;
 
@@ -16,15 +20,22 @@ public class PaymentService : IPaymentService
     private readonly SassyGurlDbContext _context;
     private readonly ILogger<PaymentService> _logger;
     private readonly IMidtransWebhookSecurity _webhookSecurity;
+    private readonly IProviderService _providerService;
+    private readonly IHubContext<NotificationHub> _hub;
+    private static readonly SemaphoreSlim _semaphore = new SemaphoreSlim(1, 1);
 
     public PaymentService(
         SassyGurlDbContext context,
         ILogger<PaymentService> logger,
-        IMidtransWebhookSecurity webhookSecurity)
+        IMidtransWebhookSecurity webhookSecurity,
+        IProviderService providerService,
+        IHubContext<NotificationHub> hub)
     {
         _context = context;
         _logger = logger;
         _webhookSecurity = webhookSecurity;
+        _providerService = providerService;
+        _hub = hub;
     }
 
     public async Task<ApiResponse<string>> ProcessMidtransWebhookAsync(JsonDocument payload, string sourceIp)
@@ -86,47 +97,117 @@ public class PaymentService : IPaymentService
         transaction.WebhookData = payload.RootElement.GetRawText();
 
         // Map Midtrans status to our enums
-        switch (transactionStatus)
+        await _semaphore.WaitAsync();
+        try
         {
-            case "capture":
-            case "settlement":
-                if (fraudStatus != "deny")
-                {
-                    transaction.PaymentStatus = PaymentStatus.PAID;
-                    transaction.PaidAt = DateTime.UtcNow;
-                    transaction.OrderStatus = OrderStatus.PROCESSING;
-                    // TODO: Trigger provider fulfillment (Digiflazz/VIP Reseller)
-                }
-                break;
+            // Re-fetch transaction inside lock to ensure latest state
+            transaction = await _context.Transactions
+                .Include(t => t.Product)
+                .FirstOrDefaultAsync(t => t.InvoiceId == orderId);
 
-            case "pending":
-                transaction.PaymentStatus = PaymentStatus.UNPAID;
-                break;
+            if (transaction!.PaymentStatus is PaymentStatus.PAID or PaymentStatus.REFUNDED or PaymentStatus.CHARGEBACK or PaymentStatus.EXPIRED)
+            {
+                return ApiResponse<string>.Ok("OK", "Duplicate webhook ignored (Checked in lock).");
+            }
 
-            case "deny":
-            case "cancel":
-            case "expire":
-                transaction.PaymentStatus = PaymentStatus.EXPIRED;
-                transaction.OrderStatus = OrderStatus.ERROR;
-                break;
+            switch (transactionStatus)
+            {
+                case "capture":
+                case "settlement":
+                    if (fraudStatus != "deny")
+                    {
+                        transaction.PaymentStatus = PaymentStatus.PAID;
+                        transaction.PaidAt = DateTime.UtcNow;
+                        transaction.OrderStatus = OrderStatus.PROCESSING;
+                        
+                        await _context.SaveChangesAsync(); // Save Payment status first
+                        
+                        // Fire to Provider
+                        var providerRes = await _providerService.PlaceOrderAsync(
+                            transaction.Product.Sku, 
+                            transaction.TargetId, 
+                            transaction.ZoneId ?? "", 
+                            transaction.InvoiceId);
 
-            case "refund":
-                transaction.PaymentStatus = PaymentStatus.REFUNDED;
-                transaction.OrderStatus = OrderStatus.REFUNDING;
-                break;
+                        if (providerRes.IsSuccess)
+                        {
+                            transaction.OrderStatus = OrderStatus.SUCCESS;
+                            transaction.ProviderRef = providerRes.ProviderRef;
+                            transaction.Sn = providerRes.Sn;
+                        }
+                        else
+                        {
+                            transaction.OrderStatus = OrderStatus.ERROR;
+                            
+                            // Add to RefundQueue because Paid but Failed to topup
+                            _context.RefundQueues.Add(new RefundQueue
+                            {
+                                TransactionId = transaction.Id,
+                                Reason = $"Provider Error: {providerRes.Message}",
+                                IsProcessed = false
+                            });
+                            
+                            _logger.LogCritical("Topup Failed for Paid Order {InvoiceId}. Added to RefundQueue. Reason: {Reason}", transaction.InvoiceId, providerRes.Message);
+                        }
+                    }
+                    break;
 
-            case "chargeback":
-                transaction.PaymentStatus = PaymentStatus.CHARGEBACK;
-                transaction.OrderStatus = OrderStatus.REFUNDING;
-                break;
+                case "pending":
+                    transaction.PaymentStatus = PaymentStatus.UNPAID;
+                    break;
 
-            default:
-                _logger.LogInformation("Unhandled Midtrans status: {Status} for OrderId={OrderId}", transactionStatus, orderId);
-                return ApiResponse<string>.Ok("OK", "Status accepted without changes.");
+                case "deny":
+                case "cancel":
+                case "expire":
+                    transaction.PaymentStatus = PaymentStatus.EXPIRED;
+                    transaction.OrderStatus = OrderStatus.ERROR;
+                    break;
+
+                case "refund":
+                    transaction.PaymentStatus = PaymentStatus.REFUNDED;
+                    transaction.OrderStatus = OrderStatus.REFUNDING;
+                    break;
+
+                case "chargeback":
+                    transaction.PaymentStatus = PaymentStatus.CHARGEBACK;
+                    transaction.OrderStatus = OrderStatus.REFUNDING;
+                    break;
+
+                default:
+                    _logger.LogInformation("Unhandled Midtrans status: {Status} for OrderId={OrderId}", transactionStatus, orderId);
+                    return ApiResponse<string>.Ok("OK", "Status accepted without changes.");
+            }
+
+            await _context.SaveChangesAsync();
+
+            // ── SignalR: Broadcast real-time update ──────────────────────
+            var broadcastPayload = new TransactionUpdatePayload(
+                transaction.Id,
+                transaction.InvoiceId,
+                transaction.Game?.Name ?? "Unknown",
+                transaction.Product?.Name ?? "Unknown",
+                transaction.TargetId,
+                transaction.TotalAmount,
+                transaction.PaymentStatus.ToString(),
+                transaction.OrderStatus.ToString(),
+                transaction.ProviderRef,
+                DateTime.UtcNow
+            );
+
+            // Notify all admin/owner dashboards
+            await NotificationBroadcaster.BroadcastTransactionUpdate(_hub, broadcastPayload);
+
+            // Notify the specific member who owns this transaction
+            if (!string.IsNullOrEmpty(transaction.UserId))
+            {
+                await NotificationBroadcaster.NotifyUserOrderUpdate(_hub, transaction.UserId, broadcastPayload);
+            }
+
+            return ApiResponse<string>.Ok("OK", "Webhook processed successfully.");
         }
-
-        await _context.SaveChangesAsync();
-
-        return ApiResponse<string>.Ok("OK", "Webhook processed successfully.");
+        finally
+        {
+            _semaphore.Release();
+        }
     }
 }

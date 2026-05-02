@@ -452,6 +452,25 @@ public class Transaction
     public DateTime? CompletedAt { get; set; }
 }
 
+public class RefundQueue
+{
+    [Key]
+    public string Id { get; set; } = Guid.NewGuid().ToString();
+
+    public string TransactionId { get; set; } = null!;
+
+    [ForeignKey(nameof(TransactionId))]
+    public Transaction Transaction { get; set; } = null!;
+
+    public string Reason { get; set; } = null!;
+
+    public bool IsProcessed { get; set; } = false;
+
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+
+    public DateTime? ProcessedAt { get; set; }
+}
+
 // ============================================================================
 // 7. SUPPORT
 // ============================================================================
