@@ -26,6 +26,7 @@ public class SassyGurlDbContext : DbContext
     public DbSet<SupportTicket> SupportTickets { get; set; } = null!;
     public DbSet<TicketMessage> TicketMessages { get; set; } = null!;
     public DbSet<SystemAudit> SystemAudits { get; set; } = null!;
+    public DbSet<SystemSetting> SystemSettings { get; set; } = null!;
     public DbSet<VerificationToken> VerificationTokens { get; set; } = null!;
 
 

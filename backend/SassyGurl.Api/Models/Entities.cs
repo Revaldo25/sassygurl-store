@@ -573,3 +573,23 @@ public class VerificationToken
 
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 }
+
+// ============================================================================
+// 10. SYSTEM SETTINGS (Smart Markup, Fees, Store Config)
+// ============================================================================
+
+public class SystemSetting
+{
+    [Key]
+    [MaxLength(100)]
+    public string Key { get; set; } = null!;
+
+    public string Value { get; set; } = null!;
+
+    [MaxLength(255)]
+    public string? Description { get; set; }
+
+    public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
+
+    public string? UpdatedBy { get; set; }
+}
