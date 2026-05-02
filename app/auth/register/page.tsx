@@ -9,6 +9,7 @@ import {
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { signIn } from "next-auth/react";
+import { processAuth } from "@/app/actions/auth";
 
 // Mengambil Ikon Sultan dari komponen yang baru kita buat
 import { 
@@ -52,15 +53,14 @@ export default function RegisterElitePage() {
 
     setLoading(true);
     try {
-      const res = await fetch("/api/auth/register", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
+      const res = await processAuth({
+        action: "register",
+        method: "email",
+        ...{
           name: formData.name, email: formData.email, phone: formData.phone, password: formData.password,
-        }),
+        },
       });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.message || "Registrasi ditolak sistem.");
+      if (!res.success) throw new Error(res.message || "Registrasi ditolak sistem.");
       router.push("/auth/login?registered=true");
     } catch (error: any) {
       setErrorMsg(error.message);

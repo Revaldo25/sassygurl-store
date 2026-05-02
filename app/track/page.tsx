@@ -1,11 +1,11 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { trackOrderAction } from "@/app/actions/track";
+import { trackOrderAction, TrackResult } from "@/app/actions/track";
 
 export default function TrackOrderPage() {
   const [query, setQuery] = useState("");
-  const [results, setResults] = useState<any[]>([]);
+  const [results, setResults] = useState<TrackResult[]>([]);
   const [message, setMessage] = useState("");
   const [isPending, startTransition] = useTransition();
 
@@ -16,7 +16,7 @@ export default function TrackOrderPage() {
     startTransition(async () => {
       const res = await trackOrderAction(query);
         if (res.success && res.data) {
-        setResults(res.data); // Tambahkan pengecekan res.data
+        setResults([res.data]); // TrackResult is an object, but state is array so wrap it
         setMessage("");
       } else {
         setResults([]);
@@ -60,7 +60,7 @@ export default function TrackOrderPage() {
           {message && <div style={{ textAlign: 'center', color: '#ef4444', fontWeight: 700, background: 'rgba(239,68,68,0.1)', padding: '15px', borderRadius: '16px' }}>{message}</div>}
           
           {results.map((trx) => (
-            <div key={trx.id} style={{ background: '#12121a', border: '1px solid rgba(255,255,255,0.05)', borderRadius: '24px', padding: '24px', position: 'relative', overflow: 'hidden' }}>
+            <div key={trx.invoiceId} style={{ background: '#12121a', border: '1px solid rgba(255,255,255,0.05)', borderRadius: '24px', padding: '24px', position: 'relative', overflow: 'hidden' }}>
               {/* INDIKATOR STATUS GLOWING */}
               <div style={{ position: 'absolute', top: 0, left: 0, width: '4px', height: '100%', backgroundColor: getStatusColor(trx.orderStatus) }} />
               
@@ -79,18 +79,18 @@ export default function TrackOrderPage() {
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', padding: '20px', background: 'rgba(255,255,255,0.02)', borderRadius: '16px', marginBottom: '20px' }}>
                 <div>
                   <div style={{ fontSize: '11px', color: '#475569', fontWeight: 800, marginBottom: '4px' }}>PRODUK</div>
-                  <div style={{ fontSize: '14px', fontWeight: 700 }}>{trx.product.game.name}</div>
-                  <div style={{ fontSize: '12px', color: '#94a3b8' }}>{trx.product.name}</div>
+                  <div style={{ fontSize: '14px', fontWeight: 700 }}>{trx.gameName}</div>
+                  <div style={{ fontSize: '12px', color: '#94a3b8' }}>{trx.productName}</div>
                 </div>
                 <div>
                   <div style={{ fontSize: '11px', color: '#475569', fontWeight: 800, marginBottom: '4px' }}>TARGET ID</div>
-                  <div style={{ fontSize: '14px', fontWeight: 700 }}>{trx.targetPlayerId}</div>
+                  <div style={{ fontSize: '14px', fontWeight: 700 }}>{trx.targetId} {trx.zoneId ? `(${trx.zoneId})` : ""}</div>
                 </div>
               </div>
 
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <div style={{ color: '#475569', fontSize: '12px' }}>{new Date(trx.createdAt).toLocaleString('id-ID')}</div>
-                <div style={{ fontSize: '18px', fontWeight: 900, color: '#fff' }}>Rp {Number(trx.amount).toLocaleString('id-ID')}</div>
+                <div style={{ fontSize: '18px', fontWeight: 900, color: '#fff' }}>Rp {Number(trx.totalAmount).toLocaleString('id-ID')}</div>
               </div>
             </div>
           ))}

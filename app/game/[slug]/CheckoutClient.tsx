@@ -59,10 +59,10 @@ export default function CheckoutClient({ game, products }: any) {
       waNotif
     });
 
-    if (result.success && result.token) {
+    if (result.success && result.paymentToken) {
       // Panggil Pop-Up Midtrans Snap
       // @ts-ignore (Abaikan warning TypeScript karena objek snap dari external script)
-      window.snap.pay(result.token, {
+      window.snap.pay(result.paymentToken, {
         onSuccess: function (result: any) {
           alert("Pembayaran Berhasil, Sultan! Proses Top-Up 1-3 detik.");
           setIsLoading(false);

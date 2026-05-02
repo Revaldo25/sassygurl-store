@@ -1,4 +1,4 @@
-export type ProductKind = "CURRENCY" | "PASS" | "BUNDLE" | "SKIN" | "SUBSCRIPTION" | "JOKI" | "OTHER";
+export type ProductKind = "CURRENCY" | "PASS" | "BUNDLE" | "SKIN" | "SUBSCRIPTION" | "JOKI" | "MAGIC_CHESS" | "OTHER";
 
 export type ProviderQuote = {
   digiflazz: number;
@@ -185,12 +185,12 @@ export const games: Game[] = [
   {
     slug: "mlbb",
     shortCode: "MLBB",
-    name: "Mobile Legends: Bang Bang",
-    subtitle: "Diamond, Weekly Pass, Starlight, Twilight Pass",
+    name: "MLBB & Magic Chess (Moonton)",
+    subtitle: "Diamond, Weekly Pass, Starlight, Magic Chess Coins",
     icon: "/images/games/mlbb_icon.jpeg",
     banner: "/images/hero/hero_anime_duo_action.webp",
     accent: "#FDB0C0",
-    description: "Top-up paling lengkap untuk MLBB dengan rasa premium, cepat, dan elegan.",
+    description: "Top-up paling lengkap untuk game Moonton dengan rasa premium, cepat, dan elegan.",
     isFeatured: true,
     stats: { online: "12.4K", sold: "106K", rating: "4.98" },
     products: [
@@ -203,6 +203,10 @@ export const games: Game[] = [
       passProduct({ sku: "MLBB-WDP", slug: "weekly-diamond-pass", name: "Weekly Diamond Pass", basePrice: 29000, image: "/images/items/mlbb/pass/weekly_diamond_pass.jpeg", label: "Daily Value", description: "Claim harian + bonus login." }),
       passProduct({ sku: "MLBB-STL", slug: "starlight-member", name: "Starlight Member", basePrice: 44900, image: "/images/items/mlbb/pass/starlight_card.jpeg", label: "Skin Route" }),
       passProduct({ sku: "MLBB-TWT", slug: "twilight-pass", name: "Twilight Pass", basePrice: 129000, image: "/images/items/mlbb/pass/twilight_pass.jpeg", label: "Premium Pass", isPopular: true }),
+      // MAGIC CHESS
+      currencyProduct({ sku: "MC-C-59", slug: "mc-coin-59", name: "59 Magic Coins", amount: 59, basePrice: 15000, image: "/images/items/mlbb/diamond/diamond_59.png", label: "Magic Chess", kind: "MAGIC_CHESS" }),
+      currencyProduct({ sku: "MC-C-170", slug: "mc-coin-170", name: "170 Magic Coins", amount: 170, basePrice: 42000, image: "/images/items/mlbb/diamond/diamond_170.png", label: "Magic Chess", kind: "MAGIC_CHESS" }),
+      passProduct({ sku: "MC-P-1", slug: "mc-pass-1", name: "Magic Chess Pass", basePrice: 150000, image: "/images/items/mlbb/pass/starlight_card.jpeg", label: "MC Pass", kind: "MAGIC_CHESS" }),
     ],
   },
   {

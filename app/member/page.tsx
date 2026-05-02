@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback, useTransition } from "react";
-import { processAuth, verifyOtpAction } from "@/app/actions/auth"; 
+import { getCurrentMemberAction, logoutAction, processAuth, verifyOtpAction } from "@/app/actions/auth"; 
 
 // --- PURE SVG ICONS ---
 const Icons = {
@@ -31,9 +31,14 @@ export default function MemberArea() {
   const [isPending, startTransition] = useTransition(); 
 
   useEffect(() => {
-    fetch("/api/member/me").then(res => res.json()).then(data => { 
-      if (data.success) { setMemberData(data.member); setStep("dashboard"); } 
-    }).catch(() => {});
+    getCurrentMemberAction()
+      .then((data) => {
+        if (data.success && data.member) {
+          setMemberData(data.member);
+          setStep("dashboard");
+        }
+      })
+      .catch(() => {});
   }, []);
 
   useEffect(() => {
@@ -89,7 +94,7 @@ export default function MemberArea() {
           <div style={{ width: '80px', height: '80px', background: 'rgba(34, 197, 94, 0.1)', borderRadius: '24px', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 24px', color: '#22c55e' }}><Icons.User /></div>
           <h1 style={{ fontSize: '24px', fontWeight: 900, color: '#fff', marginBottom: '8px' }}>Halo, {memberData.name}!</h1>
           <p style={{ color: '#64748b', fontSize: '14px', marginBottom: '32px' }}>Akses VIP SassyGurlStore Terverifikasi</p>
-          <button onClick={async () => { await fetch("/api/member/auth", {method:"POST", body:JSON.stringify({action:"logout"})}); window.location.reload(); }}
+          <button onClick={async () => { await logoutAction(); window.location.reload(); }}
             style={{ width: '100%', padding: '16px', borderRadius: '16px', border: '1px solid #ef4444', color: '#ef4444', background: 'transparent', fontWeight: 800, cursor: 'pointer', transition: '0.3s' }}>LOGOUT AKUN</button>
         </div>
       </div>

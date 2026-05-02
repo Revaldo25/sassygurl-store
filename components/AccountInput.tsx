@@ -11,6 +11,7 @@ type Props = {
   requiresZone?: boolean;
   mode?: "topup" | "joki";
   onResolved?: (payload: { id: string; zone?: string; username: string | null }) => void;
+  stepLabel?: string;
 };
 
 export default function AccountInput({
@@ -19,6 +20,7 @@ export default function AccountInput({
   requiresZone = true,
   mode = "topup",
   onResolved,
+  stepLabel = "STEP 01",
 }: Props) {
   const [id, setId] = useState("");
   const [zone, setZone] = useState("");
@@ -52,7 +54,7 @@ export default function AccountInput({
     <section className="rounded-[2rem] border border-white/10 bg-white/5 p-4 backdrop-blur-3xl md:p-6">
       <div className="mb-5 flex items-start justify-between gap-4">
         <div>
-          <p className="text-[10px] font-bold tracking-[0.4em] text-sakura/75">STEP 01</p>
+          <p className="text-[10px] font-bold tracking-[0.4em] text-sakura/75">{stepLabel}</p>
           <h3 className="mt-1 text-xl font-black text-white md:text-2xl">{mode === "joki" ? "Data Akun Joki" : `Input ID ${gameName}`}</h3>
           <p className="mt-2 text-sm text-white/60">
             Username akan divalidasi otomatis seperti API premium. Fokus pada keamanan, kecepatan, dan hasil yang rapi.

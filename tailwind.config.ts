@@ -14,10 +14,12 @@ const config: Config = {
           800: "#27272a", // Border & Input
         },
         sakura: {
-          DEFAULT: "#FDB0C0", // Pink Sakura yang Soft & Mewah
+          DEFAULT: "#FDB0C0",
           hover: "#F89BAE",
           dim: "rgba(253, 176, 192, 0.1)",
         },
+        "brand-cyan": "#22D3EE",
+        "brand-gold": "#F59E0B",
       },
       backgroundImage: {
         'sakura-glow': 'radial-gradient(circle at 50% -20%, rgba(253, 176, 192, 0.15), transparent 70%)',

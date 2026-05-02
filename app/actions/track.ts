@@ -1,30 +1,48 @@
 "use server";
 
-import { prisma } from "@/lib/prisma";
+import { fetchApi } from "@/lib/api-client";
+
+type ApiResponse<T> = {
+  success: boolean;
+  message: string;
+  data: T;
+};
+
+export type TrackResult = {
+  invoiceId: string;
+  gameName: string;
+  productName: string;
+  targetId: string;
+  zoneId?: string;
+  totalAmount: number;
+  paymentMethod: string;
+  paymentStatus: string;
+  orderStatus: string;
+  sn?: string;
+  createdAt: string;
+  paidAt?: string;
+  completedAt?: string;
+};
 
 export async function trackOrderAction(query: string) {
   try {
-    const transactions = await prisma.transaction.findMany({
-      where: {
-        OR: [
-          { invoiceId: query },
-          { whatsapp: query } // Jika Anda menyimpan nomor WA di tabel transaksi
-        ]
-      },
-      include: {
-        product: {
-          include: { game: true }
-        }
-      },
-      orderBy: { createdAt: 'desc' }
-    });
-
-    if (transactions.length === 0) {
-      return { success: false, message: "Pesanan tidak ditemukan. Cek kembali ID Invoice Anda." };
+    if (!query || query.trim().length < 3) {
+      return { success: false, message: "Masukkan Invoice ID atau No. WhatsApp untuk melacak pesanan." };
     }
 
-    return { success: true, data: transactions };
-  } catch (error) {
-    return { success: false, message: "Terjadi kesalahan sistem." };
+    const response = await fetchApi<ApiResponse<TrackResult>>(`/track/${encodeURIComponent(query.trim())}`);
+
+    if (!response.success) {
+      return { success: false, message: response.message };
+    }
+
+    return {
+      success: true,
+      message: "Pesanan ditemukan!",
+      data: response.data
+    };
+  } catch (error: any) {
+    console.error("[Track Action] Error:", error);
+    return { success: false, message: error.message || "Terjadi kesalahan saat melacak pesanan." };
   }
 }
