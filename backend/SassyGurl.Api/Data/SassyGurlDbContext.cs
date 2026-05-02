@@ -27,6 +27,7 @@ public class SassyGurlDbContext : DbContext
     public DbSet<TicketMessage> TicketMessages { get; set; } = null!;
     public DbSet<SystemAudit> SystemAudits { get; set; } = null!;
     public DbSet<SystemSetting> SystemSettings { get; set; } = null!;
+    public DbSet<DailyProfit> DailyProfits { get; set; } = null!;
     public DbSet<VerificationToken> VerificationTokens { get; set; } = null!;
 
 
@@ -123,6 +124,30 @@ public class SassyGurlDbContext : DbContext
 
         modelBuilder.Entity<VerificationToken>().HasIndex(v => v.Token).IsUnique();
         modelBuilder.Entity<VerificationToken>().HasIndex(v => new { v.Identifier, v.Token }).IsUnique();
+
+        // ── Performance indexes for Dashboard queries ────────────────────
+        // Admin live feed: filter by PaymentStatus + sort by CreatedAt
+        modelBuilder.Entity<Transaction>().HasIndex(t => new { t.PaymentStatus, t.CreatedAt })
+            .HasDatabaseName("IX_Transaction_PaymentStatus_CreatedAt");
+        // Owner profit: group by GameId on paid transactions
+        modelBuilder.Entity<Transaction>().HasIndex(t => new { t.GameId, t.PaymentStatus })
+            .HasDatabaseName("IX_Transaction_GameId_PaymentStatus");
+        // Member dashboard: filter by UserId + status
+        modelBuilder.Entity<Transaction>().HasIndex(t => new { t.UserId, t.PaymentStatus, t.CreatedAt })
+            .HasDatabaseName("IX_Transaction_UserId_Status_Date");
+
+        // DailyProfit: unique per date, fast lookup for Financial Radar
+        modelBuilder.Entity<DailyProfit>().ToTable("DailyProfit");
+        modelBuilder.Entity<DailyProfit>().HasIndex(d => d.Date).IsUnique()
+            .HasDatabaseName("IX_DailyProfit_Date");
+
+        // RefundQueue: admin dashboard red alerts
+        modelBuilder.Entity<RefundQueue>().ToTable("RefundQueue");
+        modelBuilder.Entity<RefundQueue>().HasIndex(r => r.IsProcessed)
+            .HasDatabaseName("IX_RefundQueue_IsProcessed");
+
+        // SystemSetting: key-value lookup
+        modelBuilder.Entity<SystemSetting>().ToTable("SystemSetting");
 
         modelBuilder.Entity<Account>().HasIndex(a => new { a.Provider, a.ProviderAccountId }).IsUnique();
 

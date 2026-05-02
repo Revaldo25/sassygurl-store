@@ -593,3 +593,35 @@ public class SystemSetting
 
     public string? UpdatedBy { get; set; }
 }
+
+// ============================================================================
+// 11. DAILY PROFITS (Financial Reconciliation)
+// ============================================================================
+
+public class DailyProfit
+{
+    [Key]
+    public string Id { get; set; } = Guid.NewGuid().ToString();
+
+    public DateTime Date { get; set; }
+
+    [Column(TypeName = "decimal(18,2)")]
+    public decimal TotalRevenue { get; set; }
+
+    [Column(TypeName = "decimal(18,2)")]
+    public decimal TotalProviderCost { get; set; }
+
+    [Column(TypeName = "decimal(18,2)")]
+    public decimal NetProfit { get; set; }
+
+    [Column(TypeName = "decimal(18,2)")]
+    public decimal TotalAdminFee { get; set; }
+
+    public int OrderCount { get; set; }
+
+    public int SuccessCount { get; set; }
+
+    public int FailedCount { get; set; }
+
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+}
