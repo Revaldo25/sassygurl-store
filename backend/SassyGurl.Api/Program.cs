@@ -65,6 +65,9 @@ builder.Services.AddScoped<IPaymentService, PaymentService>();
 builder.Services.AddScoped<IPromoService, PromoService>();
 builder.Services.AddScoped<IMidtransWebhookSecurity, MidtransWebhookSecurity>();
 builder.Services.AddScoped<IProviderService, ProviderService>();
+builder.Services.AddScoped<IAuditService, AuditService>();
+builder.Services.AddScoped<IWhatsAppService, WhatsAppService>();
+builder.Services.AddHostedService<ProviderHealthMonitor>();
 
 // Setup HttpClients for Providers
 builder.Services.AddHttpClient("Digiflazz", client =>

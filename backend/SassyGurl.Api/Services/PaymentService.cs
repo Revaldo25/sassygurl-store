@@ -22,6 +22,7 @@ public class PaymentService : IPaymentService
     private readonly IMidtransWebhookSecurity _webhookSecurity;
     private readonly IProviderService _providerService;
     private readonly IHubContext<NotificationHub> _hub;
+    private readonly IWhatsAppService _whatsApp;
     private static readonly SemaphoreSlim _semaphore = new SemaphoreSlim(1, 1);
 
     public PaymentService(
@@ -29,13 +30,15 @@ public class PaymentService : IPaymentService
         ILogger<PaymentService> logger,
         IMidtransWebhookSecurity webhookSecurity,
         IProviderService providerService,
-        IHubContext<NotificationHub> hub)
+        IHubContext<NotificationHub> hub,
+        IWhatsAppService whatsApp)
     {
         _context = context;
         _logger = logger;
         _webhookSecurity = webhookSecurity;
         _providerService = providerService;
         _hub = hub;
+        _whatsApp = whatsApp;
     }
 
     public async Task<ApiResponse<string>> ProcessMidtransWebhookAsync(JsonDocument payload, string sourceIp)
@@ -134,6 +137,14 @@ public class PaymentService : IPaymentService
                             transaction.OrderStatus = OrderStatus.SUCCESS;
                             transaction.ProviderRef = providerRes.ProviderRef;
                             transaction.Sn = providerRes.Sn;
+
+                            // WhatsApp: Notify member of success
+                            _ = _whatsApp.SendOrderSuccessAsync(
+                                transaction.User?.Phone ?? "",
+                                transaction.InvoiceId,
+                                transaction.Game?.Name ?? "",
+                                transaction.Product?.Name ?? "",
+                                providerRes.Sn);
                         }
                         else
                         {
@@ -148,6 +159,12 @@ public class PaymentService : IPaymentService
                             });
                             
                             _logger.LogCritical("Topup Failed for Paid Order {InvoiceId}. Added to RefundQueue. Reason: {Reason}", transaction.InvoiceId, providerRes.Message);
+
+                            // WhatsApp: Notify member of issue
+                            _ = _whatsApp.SendOrderFailedAsync(
+                                transaction.User?.Phone ?? "",
+                                transaction.InvoiceId,
+                                providerRes.Message ?? "Provider unavailable");
                         }
                     }
                     break;
