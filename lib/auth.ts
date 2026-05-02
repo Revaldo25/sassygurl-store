@@ -4,6 +4,7 @@ import Google from "next-auth/providers/google";
 import Facebook from "next-auth/providers/facebook";
 import Credentials from "next-auth/providers/credentials";
 import { fetchApi } from "./api-client";
+import { cookies } from "next/headers";
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   // No more Prisma Adapter - we rely entirely on ASP.NET Core for database operations
@@ -39,11 +40,20 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           });
 
           if (response.success && response.data) {
+            const cookieStore = await cookies();
+            cookieStore.set("auth_token", response.data.token, {
+              httpOnly: true,
+              secure: process.env.NODE_ENV === "production",
+              sameSite: "lax",
+              maxAge: 30 * 24 * 60 * 60
+            });
+
             return {
               id: response.data.userId,
               name: response.data.name,
               email: credentials.email,
               role: response.data.role, 
+              apiToken: response.data.token,
             };
           }
           return null;
@@ -59,6 +69,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       if (user) {
         token.sub = user.id;
         token.role = user.role || "MEMBER";
+        token.apiToken = user.apiToken;
         
         // For Google/Facebook (Social Logins)
         // In a real app, you would send this to C# API to sync the user
@@ -74,6 +85,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         session.user.id = token.sub;
         // @ts-ignore
         session.user.role = token.role;
+        // @ts-ignore
+        session.user.apiToken = token.apiToken;
       }
       return session;
     },

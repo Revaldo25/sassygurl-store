@@ -31,7 +31,7 @@ export default function GameCatalogClient({ games, accent = "#FDB0C0" }: Props) 
 
       // Tab filter (simulated logic since we lack strict category data in NormalizedGame)
       if (activeTab === "SEMUA") return true;
-      if (activeTab === "POPULER") return game.isFeatured;
+      if (activeTab === "POPULER") return game.isHot;
       
       // Simple heuristic for Mobile vs PC based on name/slug for demo purposes
       const isMobile = ["mlbb", "genshin-impact", "pubg-mobile", "free-fire"].includes(game.slug);
@@ -108,7 +108,7 @@ export default function GameCatalogClient({ games, accent = "#FDB0C0" }: Props) 
 
               {/* Badges */}
               <div className="absolute left-2 top-2 flex flex-col gap-1.5">
-                {game.isFeatured && (
+                {game.isHot && (
                   <span className="inline-flex items-center gap-1 rounded-lg bg-rose-500/90 px-2 py-1 text-[9px] font-black tracking-wider text-white backdrop-blur-md">
                     <Flame className="h-3 w-3" />
                     HOT
@@ -134,7 +134,7 @@ export default function GameCatalogClient({ games, accent = "#FDB0C0" }: Props) 
                 {game.name}
               </h3>
               <p className="mt-1 text-[10px] text-white/40">
-                {game.subtitle || "Top Up Instant"}
+                {game.currencyName || "Top Up Instant"}
               </p>
             </div>
           </Link>

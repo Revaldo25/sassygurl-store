@@ -37,7 +37,7 @@ type Props = {
 export default function AdminDashboardClient({ initialStats, initialTransactions, providerStatuses }: Props) {
   const [stats] = useState(initialStats);
   const [transactions, setTransactions] = useState(initialTransactions);
-  const [activeTab, setActiveTab] = useState<"overview" | "transactions" | "providers">("overview");
+  const [activeTab, setActiveTab] = useState<"overview" | "transactions" | "games" | "payments" | "providers">("overview");
   const [filter, setFilter] = useState("ALL");
   const [search, setSearch] = useState("");
   const [isPending, startTransition] = useTransition();
