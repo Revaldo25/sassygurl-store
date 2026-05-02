@@ -41,6 +41,30 @@ export type RecentTransaction = {
 
 export type AdminTransaction = RecentTransaction;
 
+export type DailyRevenue = {
+  date: string;
+  revenue: number;
+  profit: number;
+  orderCount: number;
+};
+
+export type OwnerStats = {
+  totalRevenue: number;
+  totalProviderCost: number;
+  netProfit: number;
+  todayRevenue: number;
+  todayProfit: number;
+  totalTransactions: number;
+  successTransactions: number;
+  pendingTransactions: number;
+  failedTransactions: number;
+  totalUsers: number;
+  totalGames: number;
+  totalProducts: number;
+  refundQueueCount: number;
+  dailyRevenue: DailyRevenue[];
+};
+
 // API ApiResponse matching C# wrapper
 type ApiResponse<T> = {
   success: boolean;
@@ -152,8 +176,44 @@ export async function updateTransactionStatus(
 }
 
 // --------------------------------------------------------------------------------
+// OWNER DASHBOARD ACTIONS (SUPERADMIN only)
+// --------------------------------------------------------------------------------
+
+export async function getOwnerStats(): Promise<OwnerStats> {
+  try {
+    const response = await fetchApi<ApiResponse<OwnerStats>>('/Dashboard/owner/stats');
+    if (response.success && response.data) {
+      return response.data;
+    }
+    return getDefaultOwnerStats();
+  } catch (error) {
+    console.error("Error getOwnerStats:", error);
+    return getDefaultOwnerStats();
+  }
+}
+
+// --------------------------------------------------------------------------------
 // FALLBACKS / DEFAULTS
 // --------------------------------------------------------------------------------
+
+function getDefaultOwnerStats(): OwnerStats {
+  return {
+    totalRevenue: 0,
+    totalProviderCost: 0,
+    netProfit: 0,
+    todayRevenue: 0,
+    todayProfit: 0,
+    totalTransactions: 0,
+    successTransactions: 0,
+    pendingTransactions: 0,
+    failedTransactions: 0,
+    totalUsers: 0,
+    totalGames: 0,
+    totalProducts: 0,
+    refundQueueCount: 0,
+    dailyRevenue: [],
+  };
+}
 
 function getDefaultMemberStats(): DashboardStats {
   return {

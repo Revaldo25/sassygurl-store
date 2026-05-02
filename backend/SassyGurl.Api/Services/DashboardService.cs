@@ -12,6 +12,7 @@ public interface IDashboardService
     Task<ApiResponse<PaginatedResponse<RecentTransactionDto>>> GetMemberTransactionsAsync(string userId, string filter, string search);
     Task<ApiResponse<AdminStatsDto>> GetAdminStatsAsync();
     Task<ApiResponse<PaginatedResponse<RecentTransactionDto>>> GetAdminTransactionsAsync(string filter, string search);
+    Task<ApiResponse<OwnerStatsDto>> GetOwnerStatsAsync();
 }
 
 public class DashboardService : IDashboardService
@@ -188,6 +189,71 @@ public class DashboardService : IDashboardService
             Page = 1,
             PerPage = 50
         });
+    }
+
+    public async Task<ApiResponse<OwnerStatsDto>> GetOwnerStatsAsync()
+    {
+        var paidQuery = _context.Transactions
+            .AsNoTracking()
+            .Where(t => t.PaymentStatus == PaymentStatus.PAID);
+
+        // Core financial metrics: Revenue = Sum(PriceSell), Cost = Sum(PriceModal)
+        var totalRevenue = await paidQuery.SumAsync(t => (decimal?)t.PriceSell) ?? 0m;
+        var totalCost = await paidQuery.SumAsync(t => (decimal?)t.PriceModal) ?? 0m;
+
+        // Today's snapshot
+        var todayUtc = DateTime.UtcNow.Date;
+        var todayQuery = paidQuery.Where(t => t.PaidAt != null && t.PaidAt.Value.Date == todayUtc);
+        var todayRevenue = await todayQuery.SumAsync(t => (decimal?)t.PriceSell) ?? 0m;
+        var todayCost = await todayQuery.SumAsync(t => (decimal?)t.PriceModal) ?? 0m;
+
+        // Transaction counters
+        var allTxQuery = _context.Transactions.AsNoTracking();
+        var totalTx = await allTxQuery.CountAsync();
+        var successTx = await allTxQuery.CountAsync(t => t.PaymentStatus == PaymentStatus.PAID);
+        var pendingTx = await allTxQuery.CountAsync(t => t.PaymentStatus == PaymentStatus.PENDING);
+        var failedTx = await allTxQuery.CountAsync(t => t.PaymentStatus == PaymentStatus.FAILED);
+
+        // Entity counts
+        var userCount = await _context.Users.AsNoTracking().CountAsync();
+        var gameCount = await _context.Games.AsNoTracking().CountAsync();
+        var productCount = await _context.Products.AsNoTracking().CountAsync(p => p.IsActive);
+        var refundCount = await _context.RefundQueues.AsNoTracking().CountAsync(r => !r.IsProcessed);
+
+        // Daily revenue for last 7 days (Financial Radar chart data)
+        var sevenDaysAgo = todayUtc.AddDays(-6);
+        var dailyData = await paidQuery
+            .Where(t => t.PaidAt != null && t.PaidAt.Value.Date >= sevenDaysAgo)
+            .GroupBy(t => t.PaidAt!.Value.Date)
+            .Select(g => new DailyRevenueDto
+            {
+                Date = g.Key.ToString("yyyy-MM-dd"),
+                Revenue = g.Sum(t => t.PriceSell),
+                Profit = g.Sum(t => t.PriceSell - t.PriceModal),
+                OrderCount = g.Count()
+            })
+            .OrderBy(d => d.Date)
+            .ToListAsync();
+
+        var stats = new OwnerStatsDto
+        {
+            TotalRevenue = totalRevenue,
+            TotalProviderCost = totalCost,
+            NetProfit = totalRevenue - totalCost,
+            TodayRevenue = todayRevenue,
+            TodayProfit = todayRevenue - todayCost,
+            TotalTransactions = totalTx,
+            SuccessTransactions = successTx,
+            PendingTransactions = pendingTx,
+            FailedTransactions = failedTx,
+            TotalUsers = userCount,
+            TotalGames = gameCount,
+            TotalProducts = productCount,
+            RefundQueueCount = refundCount,
+            DailyRevenue = dailyData
+        };
+
+        return ApiResponse<OwnerStatsDto>.Ok(stats);
     }
 
     private string GetLoyaltyLevel(decimal totalSpent)

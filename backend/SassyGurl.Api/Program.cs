@@ -12,6 +12,7 @@ using SassyGurl.Api.Middleware;
 using SassyGurl.Api.Services;
 using Microsoft.AspNetCore.RateLimiting;
 using System.Threading.RateLimiting;
+using SassyGurl.Api.Hubs;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -44,9 +45,12 @@ builder.Services.AddCors(options =>
                 "https://localhost:3000")
             .AllowAnyHeader()
             .AllowAnyMethod()
-            .AllowCredentials();
+            .AllowCredentials(); // Required for SignalR WebSocket
     });
 });
+
+// SignalR for real-time dashboard updates
+builder.Services.AddSignalR();
 
 // In-process cache — short TTL entries auto-expire, no size limit needed
 builder.Services.AddMemoryCache();
@@ -60,6 +64,21 @@ builder.Services.AddScoped<ITrackService, TrackService>();
 builder.Services.AddScoped<IPaymentService, PaymentService>();
 builder.Services.AddScoped<IPromoService, PromoService>();
 builder.Services.AddScoped<IMidtransWebhookSecurity, MidtransWebhookSecurity>();
+builder.Services.AddScoped<IProviderService, ProviderService>();
+
+// Setup HttpClients for Providers
+builder.Services.AddHttpClient("Digiflazz", client =>
+{
+    client.BaseAddress = new Uri("https://api.digiflazz.com/v1/");
+    client.DefaultRequestHeaders.Add("Accept", "application/json");
+});
+
+builder.Services.AddHttpClient("Antigravity", client =>
+{
+    client.BaseAddress = new Uri("https://api.antigravity.dev/");
+    client.DefaultRequestHeaders.Add("Accept", "application/json");
+});
+
 builder.Services.AddProviderClients(builder.Configuration);
 builder.Services.AddRateLimiter(options =>
 {
@@ -141,6 +160,7 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
+app.MapHub<NotificationHub>("/hubs/notifications");
 app.MapHealthChecks("/health");
 
 app.Run();

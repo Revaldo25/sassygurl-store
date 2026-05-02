@@ -131,6 +131,8 @@ export default function AdminDashboardClient({ initialStats, initialTransactions
           {[
             { id: "overview", label: "Ringkasan", icon: LayoutDashboard },
             { id: "transactions", label: "Transaksi", icon: History },
+            { id: "games", label: "Kelola Game", icon: Gamepad2 },
+            { id: "payments", label: "Payment Gateway", icon: DollarSign },
             { id: "providers", label: "Provider Status", icon: Megaphone },
           ].map((tab) => (
             <button
@@ -382,6 +384,58 @@ export default function AdminDashboardClient({ initialStats, initialTransactions
                     <p className="mt-4 text-xs font-black uppercase tracking-widest text-zinc-600">Tidak ada data</p>
                   </div>
                 )}
+              </div>
+            </motion.div>
+          )}
+
+          {/* ═══════════════ TAB: GAMES (CRUD) ═══════════════ */}
+          {activeTab === "games" && (
+            <motion.div
+              key="games"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              className="space-y-6"
+            >
+              <div className="flex items-center justify-between">
+                <h2 className="flex items-center gap-3 text-sm font-black uppercase tracking-[0.2em] text-white">
+                  <Gamepad2 className="h-5 w-5 text-sakura" /> Manajemen Game & Katalog
+                </h2>
+                <button className="rounded-xl bg-sakura px-4 py-2 text-xs font-bold text-zinc-950 transition hover:scale-105">
+                  + Tambah Game
+                </button>
+              </div>
+              <div className="rounded-[2rem] border border-white/5 bg-zinc-900/30 p-8 backdrop-blur-2xl">
+                <p className="text-sm text-zinc-400">
+                  Sistem menggunakan <strong className="text-sakura">Slug Strategy</strong>. 
+                  Jika Anda membuat game dengan slug <code className="rounded bg-black/50 px-1 text-white">valorant</code>, sistem otomatis memuat asset dari <code className="rounded bg-black/50 px-1 text-white">/images/games/valorant-banner.webp</code>.
+                </p>
+                <div className="mt-6 flex items-center justify-center rounded-xl border border-dashed border-white/10 p-12 text-zinc-600">
+                  <p>Tabel Manajemen Game akan dirender di sini via API.</p>
+                </div>
+              </div>
+            </motion.div>
+          )}
+
+          {/* ═══════════════ TAB: PAYMENTS ═══════════════ */}
+          {activeTab === "payments" && (
+            <motion.div
+              key="payments"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              className="space-y-6"
+            >
+              <h2 className="flex items-center gap-3 text-sm font-black uppercase tracking-[0.2em] text-white">
+                <DollarSign className="h-5 w-5 text-sakura" /> Payment Gateway Control
+              </h2>
+              <div className="rounded-[2rem] border border-white/5 bg-zinc-900/30 p-8 backdrop-blur-2xl">
+                <p className="text-sm text-zinc-400">
+                  Atur metode pembayaran (QRIS, E-Wallet, VA). Fee flat dan persentase dapat dikonfigurasi secara real-time.
+                </p>
+                <div className="mt-6 flex items-center justify-center rounded-xl border border-dashed border-white/10 p-12 text-zinc-600">
+                  <p>Tabel Metode Pembayaran akan dirender di sini via API.</p>
+                </div>
               </div>
             </motion.div>
           )}
