@@ -16,10 +16,12 @@ public interface ITransactionService
 public class TransactionService : ITransactionService
 {
     private readonly SassyGurlDbContext _context;
+    private readonly IWhatsAppService _whatsApp;
 
-    public TransactionService(SassyGurlDbContext context)
+    public TransactionService(SassyGurlDbContext context, IWhatsAppService whatsApp)
     {
         _context = context;
+        _whatsApp = whatsApp;
     }
 
     public async Task<ApiResponse<TransactionResponseDto>> CreateTransactionAsync(CreateTransactionDto request, string? userId)
@@ -80,6 +82,14 @@ public class TransactionService : ITransactionService
         transaction.PaymentRef = simulatedToken;
 
         await _context.SaveChangesAsync();
+
+        // WhatsApp: Notify "Pesanan Dibuat — Menunggu Pembayaran"
+        _ = _whatsApp.SendOrderCreatedAsync(
+            request.Whatsapp ?? "",
+            invoiceId,
+            product.Game?.Name ?? "",
+            product.Name,
+            totalAmount);
 
         return ApiResponse<TransactionResponseDto>.Ok(new TransactionResponseDto
         {

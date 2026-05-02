@@ -23,6 +23,7 @@ public class PaymentService : IPaymentService
     private readonly IProviderService _providerService;
     private readonly IHubContext<NotificationHub> _hub;
     private readonly IWhatsAppService _whatsApp;
+    private readonly IServiceScopeFactory _scopeFactory;
     private static readonly SemaphoreSlim _semaphore = new SemaphoreSlim(1, 1);
 
     public PaymentService(
@@ -31,7 +32,8 @@ public class PaymentService : IPaymentService
         IMidtransWebhookSecurity webhookSecurity,
         IProviderService providerService,
         IHubContext<NotificationHub> hub,
-        IWhatsAppService whatsApp)
+        IWhatsAppService whatsApp,
+        IServiceScopeFactory scopeFactory)
     {
         _context = context;
         _logger = logger;
@@ -39,6 +41,7 @@ public class PaymentService : IPaymentService
         _providerService = providerService;
         _hub = hub;
         _whatsApp = whatsApp;
+        _scopeFactory = scopeFactory;
     }
 
     public async Task<ApiResponse<string>> ProcessMidtransWebhookAsync(JsonDocument payload, string sourceIp)
@@ -124,48 +127,119 @@ public class PaymentService : IPaymentService
                         transaction.OrderStatus = OrderStatus.PROCESSING;
                         
                         await _context.SaveChangesAsync(); // Save Payment status first
+
+                        // WhatsApp: Notify "Pembayaran Diterima, Sedang Diproses"
+                        _ = _whatsApp.SendPaymentReceivedAsync(
+                            transaction.User?.Phone ?? "",
+                            transaction.InvoiceId,
+                            transaction.Game?.Name ?? "",
+                            transaction.Product?.Name ?? "");
                         
-                        // Fire to Provider
-                        var providerRes = await _providerService.PlaceOrderAsync(
-                            transaction.Product.Sku, 
-                            transaction.TargetId, 
-                            transaction.ZoneId ?? "", 
-                            transaction.InvoiceId);
-
-                        if (providerRes.IsSuccess)
+                        // Fire to Provider as Fire-and-Forget
+                        var transactionId = transaction.Id;
+                        _ = Task.Run(async () =>
                         {
-                            transaction.OrderStatus = OrderStatus.SUCCESS;
-                            transaction.ProviderRef = providerRes.ProviderRef;
-                            transaction.Sn = providerRes.Sn;
-
-                            // WhatsApp: Notify member of success
-                            _ = _whatsApp.SendOrderSuccessAsync(
-                                transaction.User?.Phone ?? "",
-                                transaction.InvoiceId,
-                                transaction.Game?.Name ?? "",
-                                transaction.Product?.Name ?? "",
-                                providerRes.Sn);
-                        }
-                        else
-                        {
-                            transaction.OrderStatus = OrderStatus.ERROR;
-                            
-                            // Add to RefundQueue because Paid but Failed to topup
-                            _context.RefundQueues.Add(new RefundQueue
+                            try
                             {
-                                TransactionId = transaction.Id,
-                                Reason = $"Provider Error: {providerRes.Message}",
-                                IsProcessed = false
-                            });
-                            
-                            _logger.LogCritical("Topup Failed for Paid Order {InvoiceId}. Added to RefundQueue. Reason: {Reason}", transaction.InvoiceId, providerRes.Message);
+                                using var scope = _scopeFactory.CreateScope();
+                                var dbContext = scope.ServiceProvider.GetRequiredService<SassyGurlDbContext>();
+                                var providerSvc = scope.ServiceProvider.GetRequiredService<IProviderService>();
+                                var whatsappSvc = scope.ServiceProvider.GetRequiredService<IWhatsAppService>();
+                                var hubCtx = scope.ServiceProvider.GetRequiredService<IHubContext<NotificationHub>>();
+                                var logger = scope.ServiceProvider.GetRequiredService<ILogger<PaymentService>>();
 
-                            // WhatsApp: Notify member of issue
-                            _ = _whatsApp.SendOrderFailedAsync(
-                                transaction.User?.Phone ?? "",
-                                transaction.InvoiceId,
-                                providerRes.Message ?? "Provider unavailable");
-                        }
+                                var tx = await dbContext.Transactions
+                                    .Include(t => t.User)
+                                    .Include(t => t.Game)
+                                    .Include(t => t.Product)
+                                    .FirstOrDefaultAsync(t => t.Id == transactionId);
+                                    
+                                if (tx == null) return;
+
+                                var providerRes = await providerSvc.PlaceOrderAsync(
+                                    tx.Product.Sku, 
+                                    tx.TargetId, 
+                                    tx.ZoneId ?? "", 
+                                    tx.InvoiceId);
+
+                                if (providerRes.IsSuccess)
+                                {
+                                    tx.OrderStatus = OrderStatus.SUCCESS;
+                                    tx.ProviderRef = providerRes.ProviderRef;
+                                    tx.Sn = providerRes.Sn;
+
+                                    // ── Profit Tracking: Record to DailyProfits ──────
+                                    var todayDate = DateTime.UtcNow.Date;
+                                    var dailyProfit = await dbContext.DailyProfits
+                                        .FirstOrDefaultAsync(d => d.Date == todayDate);
+
+                                    if (dailyProfit == null)
+                                    {
+                                        dailyProfit = new DailyProfit { Date = todayDate };
+                                        dbContext.DailyProfits.Add(dailyProfit);
+                                    }
+
+                                    dailyProfit.TotalRevenue += tx.PriceSell;
+                                    dailyProfit.TotalProviderCost += tx.PriceModal;
+                                    dailyProfit.NetProfit += (tx.PriceSell - tx.PriceModal);
+                                    dailyProfit.OrderCount++;
+                                    dailyProfit.SuccessCount++;
+
+                                    // WhatsApp: Notify member of success
+                                    _ = whatsappSvc.SendOrderSuccessAsync(
+                                        tx.User?.Phone ?? "",
+                                        tx.InvoiceId,
+                                        tx.Game?.Name ?? "",
+                                        tx.Product?.Name ?? "",
+                                        providerRes.Sn);
+                                }
+                                else
+                                {
+                                    tx.OrderStatus = OrderStatus.ERROR;
+                                    
+                                    // Add to RefundQueue because Paid but Failed to topup
+                                    dbContext.RefundQueues.Add(new RefundQueue
+                                    {
+                                        TransactionId = tx.Id,
+                                        Reason = $"Provider Error: {providerRes.Message}",
+                                        IsProcessed = false
+                                    });
+                                    
+                                    logger.LogCritical("Topup Failed for Paid Order {InvoiceId}. Added to RefundQueue. Reason: {Reason}", tx.InvoiceId, providerRes.Message);
+
+                                    // WhatsApp: Notify member of issue
+                                    _ = whatsappSvc.SendOrderFailedAsync(
+                                        tx.User?.Phone ?? "",
+                                        tx.InvoiceId,
+                                        providerRes.Message ?? "Provider unavailable");
+                                }
+
+                                await dbContext.SaveChangesAsync();
+
+                                // SignalR Update
+                                var payload = new TransactionUpdatePayload(
+                                    tx.Id,
+                                    tx.InvoiceId,
+                                    tx.Game?.Name ?? "Unknown",
+                                    tx.Product?.Name ?? "Unknown",
+                                    tx.TargetId,
+                                    tx.TotalAmount,
+                                    tx.PaymentStatus.ToString(),
+                                    tx.OrderStatus.ToString(),
+                                    tx.ProviderRef,
+                                    DateTime.UtcNow
+                                );
+                                await NotificationBroadcaster.BroadcastTransactionUpdate(hubCtx, payload);
+                                if (!string.IsNullOrEmpty(tx.UserId))
+                                {
+                                    await NotificationBroadcaster.NotifyUserOrderUpdate(hubCtx, tx.UserId, payload);
+                                }
+                            }
+                            catch (Exception ex)
+                            {
+                                // Log unexpected errors from background task
+                            }
+                        });
                     }
                     break;
 

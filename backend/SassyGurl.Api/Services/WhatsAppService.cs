@@ -9,6 +9,8 @@ namespace SassyGurl.Api.Services;
 /// </summary>
 public interface IWhatsAppService
 {
+    Task<bool> SendOrderCreatedAsync(string phone, string invoiceId, string gameName, string productName, decimal amount);
+    Task<bool> SendPaymentReceivedAsync(string phone, string invoiceId, string gameName, string productName);
     Task<bool> SendOrderSuccessAsync(string phone, string invoiceId, string gameName, string productName, string? sn);
     Task<bool> SendOrderFailedAsync(string phone, string invoiceId, string reason);
 }
@@ -27,6 +29,44 @@ public class WhatsAppService : IWhatsAppService
         _httpClientFactory = httpClientFactory;
         _configuration = configuration;
         _logger = logger;
+    }
+
+    public async Task<bool> SendOrderCreatedAsync(string phone, string invoiceId, string gameName, string productName, decimal amount)
+    {
+        var message = $"""
+        🛒 *Pesanan Dibuat — Menunggu Pembayaran*
+
+        🎮 Game: {gameName}
+        📦 Produk: {productName}
+        💰 Total: Rp {amount:N0}
+        🧾 Invoice: {invoiceId}
+
+        Silakan selesaikan pembayaran Anda.
+        Link Invoice: https://sassygurl.store/invoice/{invoiceId}
+
+        *SassyGurl Store* 💖
+        """;
+
+        return await SendMessageAsync(phone, message.Trim());
+    }
+
+    public async Task<bool> SendPaymentReceivedAsync(string phone, string invoiceId, string gameName, string productName)
+    {
+        var message = $"""
+        💳 *Pembayaran Diterima!*
+
+        🎮 Game: {gameName}
+        📦 Produk: {productName}
+        🧾 Invoice: {invoiceId}
+        ⏳ Status: Sedang Diproses
+
+        Top-up Anda sedang diproses oleh provider.
+        Anda akan menerima konfirmasi dalam beberapa menit.
+
+        *SassyGurl Store* 💖
+        """;
+
+        return await SendMessageAsync(phone, message.Trim());
     }
 
     public async Task<bool> SendOrderSuccessAsync(string phone, string invoiceId, string gameName, string productName, string? sn)
