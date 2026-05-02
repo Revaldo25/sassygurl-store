@@ -1,0 +1,6 @@
+@SassyGurl.Api_HostAddress = http://localhost:5009
+
+GET {{SassyGurl.Api_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

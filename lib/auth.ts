@@ -3,12 +3,10 @@ import NextAuth from "next-auth";
 import Google from "next-auth/providers/google";
 import Facebook from "next-auth/providers/facebook";
 import Credentials from "next-auth/providers/credentials";
-import { PrismaAdapter } from "@auth/prisma-adapter";
-import { prisma } from "@/lib/prisma";
-import bcrypt from "bcryptjs";
+import { fetchApi } from "./api-client";
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
-  adapter: PrismaAdapter(prisma),
+  // No more Prisma Adapter - we rely entirely on ASP.NET Core for database operations
   session: { strategy: "jwt" }, 
   providers: [
     Google({
@@ -25,42 +23,52 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         email: { label: "Email", type: "email" },
         password: { label: "Password", type: "password" },
       },
-      // KITA TAMBAHKAN : any DI SINI AGAR TYPESCRIPT TUTUP MULUT
       async authorize(credentials: any) {
         if (!credentials?.email || !credentials?.password) return null;
 
-        const user = await prisma.user.findUnique({
-          where: { email: credentials.email },
-        });
+        try {
+          // Call ASP.NET Core API for login
+          const response = await fetchApi<any>('/auth/login', {
+            method: 'POST',
+            body: JSON.stringify({
+              action: "login",
+              method: "email",
+              email: credentials.email,
+              password: credentials.password
+            })
+          });
 
-        if (!user || !user.password) return null;
-
-        const isValid = await bcrypt.compare(
-          credentials.password,
-          user.password
-        );
-
-        if (!isValid) return null;
-
-        return {
-          id: user.id,
-          name: user.name,
-          email: user.email,
-          role: user.role, 
-        };
+          if (response.success && response.data) {
+            return {
+              id: response.data.userId,
+              name: response.data.name,
+              email: credentials.email,
+              role: response.data.role, 
+            };
+          }
+          return null;
+        } catch (error) {
+          console.error("NextAuth Authorize Error:", error);
+          return null;
+        }
       },
     }),
   ],
   callbacks: {
-    // KITA TAMBAHKAN : any DI SINI
-    async jwt({ token, user }: any) {
+    async jwt({ token, user, account }: any) {
       if (user) {
         token.sub = user.id;
-        token.role = user.role;
+        token.role = user.role || "MEMBER";
+        
+        // For Google/Facebook (Social Logins)
+        // In a real app, you would send this to C# API to sync the user
+        if (account?.provider === "google" || account?.provider === "facebook") {
+            // Simulated role for social logins
+            token.role = "MEMBER";
+        }
       }
       return token;
     },
-    // KITA TAMBAHKAN : any DI SINI
     async session({ session, token }: any) {
       if (token.sub && session.user) {
         session.user.id = token.sub;

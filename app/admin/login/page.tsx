@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { processAuth } from "@/app/actions/auth";
 
 export default function AdminLogin() {
   const [username, setUsername] = useState("");
@@ -16,20 +17,18 @@ export default function AdminLogin() {
     setError("");
 
     try {
-      const res = await fetch("/api/auth/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username, password }),
+      const result = await processAuth({
+        action: "login",
+        method: "email",
+        email: username,
+        password,
       });
-
-      const data = await res.json();
-
-      if (data.success) {
+      if (result.success) {
         // Jika sukses, arahkan ke Brankas Utama (Dashboard Admin)
         router.push("/admin");
         router.refresh(); // Refresh halaman agar middleware mengenali tiket baru
       } else {
-        setError(data.error);
+        setError(result.message || "Login gagal.");
       }
     } catch (err) {
       setError("Gagal menghubungi server.");

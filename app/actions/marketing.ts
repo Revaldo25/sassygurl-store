@@ -1,17 +1,41 @@
 "use server";
 
-import { prisma } from "@/lib/prisma";
+import { fetchApi } from "@/lib/api-client";
 
-// FUNGSI UNTUK CEK KODE PROMO (DISKON SULTAN)
+type ApiResponse<T> = {
+  success: boolean;
+  message: string;
+  data: T;
+};
+
+type PromoResult = {
+  code: string;
+  discount: number;
+  description: string;
+};
+
 export async function validatePromoCode(code: string, amount: number) {
   try {
-    // Nanti simpan daftar promo di tabel database Promo
-    if (code === "SASSYNEW") {
-      const discount = amount * 0.1; // Diskon 10%
-      return { success: true, discount, message: "Kode Promo Berhasil Digunakan! Kamu hemat Rp " + discount.toLocaleString('id-ID') };
+    if (!code || code.trim().length < 3) {
+      return { success: false, message: "Masukkan kode promo yang valid." };
     }
-    return { success: false, message: "Kode promo tidak valid atau sudah kadaluarsa." };
-  } catch (error) {
-    return { success: false, message: "Error sistem promo." };
+
+    const response = await fetchApi<ApiResponse<PromoResult>>("/promos/validate", {
+      method: "POST",
+      body: JSON.stringify({ code: code.trim().toUpperCase(), amount }),
+    });
+
+    if (!response.success) {
+      return { success: false, message: response.message };
+    }
+
+    return {
+      success: true,
+      discount: response.data.discount,
+      message: response.data.description,
+    };
+  } catch (error: any) {
+    console.error("[Promo Action] Error:", error);
+    return { success: false, message: error.message || "Error sistem promo." };
   }
 }

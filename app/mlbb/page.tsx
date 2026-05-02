@@ -1,9 +1,6 @@
-import { getGameBySlug } from "@/lib/catalog";
-import GameExperienceClient from "@/components/GameExperienceClient";
-import { notFound } from "next/navigation";
+import { redirect } from "next/navigation";
 
+// Legacy MLBB page — redirect to dynamic game route
 export default function MLBBPage() {
-  const game = getGameBySlug("mlbb");
-  if (!game) return notFound();
-  return <GameExperienceClient game={game} />;
+  redirect("/game/mlbb");
 }

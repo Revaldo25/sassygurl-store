@@ -1,30 +1,36 @@
-# SassyGurl Store Ultra
+# SassyGurl Store
 
-Premium top-up storefront built with Next.js App Router, TypeScript, Tailwind CSS, Prisma, animated glassmorphism UI, and local assets.
+Premium gaming top-up platform with Next.js frontend and ASP.NET Core backend API.
 
-## What is included
+## Architecture
 
-- `app/page.tsx` — luxury home experience
-- `app/mlbb/page.tsx` — full MLBB checkout journey
-- `components/` — reusable modular UI blocks
-- `lib/catalog.ts` — single source of truth for games, products, pricing routes, and payment methods
-- `prisma/seed.ts` — Prisma seed powered by the catalog
-- `public/images/` — merged game assets and UI assets
-- `public/media/` — hero loop video and click sound
+- Frontend: `Next.js 16` (`app/`, `components/`, `app/actions/*`)
+- Backend: `.NET 10 Web API` (`backend/SassyGurl.Api`)
+- Database: `PostgreSQL` via `Entity Framework Core`
+- Auth: JWT via backend API, stored in `auth_token` cookie by server actions
 
-## Data flow
+## Run backend
 
-`lib/catalog.ts` → UI components → API routes → Prisma seed
+1. Copy env keys from `backend/SassyGurl.Api/.env.example` into your environment.
+2. Set at minimum:
+   - `ConnectionStrings__DefaultConnection`
+   - `Jwt__Key`
+   - `Jwt__Issuer`
+   - `Jwt__Audience`
+3. Start API:
+   - `dotnet run --project backend/SassyGurl.Api/SassyGurl.Api.csproj`
 
-## Asset structure
+Health endpoint:
+- `GET /health`
 
-- `public/images/hero`
-- `public/images/games`
-- `public/images/items`
-- `public/images/ui`
+## Run frontend
 
-## Notes
+1. Set `NEXT_PUBLIC_API_URL` to backend base API URL (default expected: `http://localhost:5000/api`).
+2. Run:
+   - `npm install`
+   - `npm run dev`
 
-- MLBB is the primary polished experience.
-- Smart provider routing is simulated in the catalog and persisted through seed data.
-- Add new items by appending products to `lib/catalog.ts` and reseeding Prisma.
+## Migration note
+
+Legacy Next.js API routes and Prisma-centric flow have been migrated toward backend `.NET API` + server actions.
+See `MIGRATION_PLAN.md` for phased status and remaining hardening tasks.

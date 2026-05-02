@@ -53,3 +53,29 @@
     text-wrap: balance;
   }
 }
+
+@keyframes logo-shimmer {
+  0% { background-position: -200% center; }
+  100% { background-position: 200% center; }
+}
+
+.logo-shimmer {
+  background: linear-gradient(
+    90deg,
+    #F59E0B 0%,
+    #FDB0C0 25%,
+    #22D3EE 50%,
+    #FDB0C0 75%,
+    #F59E0B 100%
+  );
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: logo-shimmer 3s linear infinite;
+}
+
+@keyframes tab-glow {
+  0%, 100% { box-shadow: 0 0 8px rgba(253, 176, 192, 0.15); }
+  50% { box-shadow: 0 0 20px rgba(253, 176, 192, 0.3); }
+}
