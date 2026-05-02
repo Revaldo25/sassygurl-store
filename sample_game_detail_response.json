@@ -1,0 +1,61 @@
+{
+  "id": 1,
+  "name": "Mobile Legends",
+  "slug": "mobile-legends",
+  "iconUrl": "/assets/icons/mobile-legends.webp",
+  "bannerUrl": "/assets/banners/mobile-legends.webp",
+  "description": "Mobile Legends: Bang Bang is a mobile multiplayer online battle arena (MOBA) game developed and published by Moonton.",
+  "products": [
+    {
+      "id": 1,
+      "name": "Mobile Legends",
+      "slug": "mobile-legends",
+      "description": "Top up Mobile Legends Diamonds",
+      "categories": [
+        {
+          "id": 1,
+          "name": "Weekly Diamond Pass",
+          "slug": "weekly-diamond-pass",
+          "displayOrder": 1,
+          "items": [
+            {
+              "id": 1,
+              "name": "Weekly Diamond Pass",
+              "priceIDR": 30145.00,
+              "originalPriceIDR": null,
+              "priceRM": 6.91,
+              "originalPriceRM": null,
+              "bonusInfo": null
+            }
+          ]
+        },
+        {
+          "id": 2,
+          "name": "Diamonds",
+          "slug": "diamonds",
+          "displayOrder": 2,
+          "items": [
+            {
+              "id": 2,
+              "name": "5 Diamonds (5 + 0 Bonus)",
+              "priceIDR": 1571.00,
+              "originalPriceIDR": null,
+              "priceRM": 0.36,
+              "originalPriceRM": null,
+              "bonusInfo": "(5 + 0 Bonus)"
+            },
+            {
+              "id": 3,
+              "name": "10 Diamonds (10 + 0 Bonus)",
+              "priceIDR": 3144.00,
+              "originalPriceIDR": null,
+              "priceRM": 0.72,
+              "originalPriceRM": null,
+              "bonusInfo": "(10 + 0 Bonus)"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
