@@ -67,6 +67,7 @@ builder.Services.AddScoped<IMidtransWebhookSecurity, MidtransWebhookSecurity>();
 builder.Services.AddScoped<IProviderService, ProviderService>();
 builder.Services.AddScoped<IAuditService, AuditService>();
 builder.Services.AddScoped<IWhatsAppService, WhatsAppService>();
+builder.Services.AddScoped<ISettingsService, SettingsService>();
 builder.Services.AddHostedService<ProviderHealthMonitor>();
 
 // Setup HttpClients for Providers
