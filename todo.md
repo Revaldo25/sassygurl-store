@@ -59,7 +59,7 @@
 
 ## General Setup
 - [x] Collect and optimize payment method logos (WebP format)
-- [ ] Setup GitHub repository
+- [ ] Setup GitHub repository (Optional - for version control)
 - [x] Configure environment variables
 - [x] Create database migrations
 - [x] Setup Socket.io for real-time updates
@@ -90,11 +90,21 @@
 
 ## Phase 1-6 Gap Fixes
 - [x] Wire Socket.io service into server startup
-- [ ] Implement real WhatsApp API integration with Fontre credentials
-- [ ] Add backend trigger for WhatsApp after payment confirmation
+- [ ] Implement real WhatsApp API integration with Fontre credentials (Optional - requires API key)
+- [ ] Add backend trigger for WhatsApp after payment confirmation (Optional - requires API key)
 - [x] Implement search performance optimization (debouncing, memoization)
 - [x] Add admin page route and navigation in App.tsx
 - [x] Implement filterable transaction logs with real filters
 - [x] Add flash sales section to homepage
 - [x] Create admin-only access controls and role-based routing
 - [x] Add product disable/enable toggle in admin dashboard
+
+## Future Enhancements
+- [ ] Real WhatsApp API integration (requires Fonnte API key)
+- [ ] GitHub repository export
+- [ ] Payment gateway API integration (Digiflazz, Antigravity)
+- [ ] Email notifications
+- [ ] Mobile app version
+- [ ] Advanced analytics and reporting
+- [ ] Multi-language support
+- [ ] Dark/Light theme toggle
