@@ -31,6 +31,14 @@ export default function Home() {
           </motion.div>
 
           <div className="flex items-center gap-4">
+            <Button
+              onClick={() => (window.location.href = "/products")}
+              variant="ghost"
+              size="sm"
+              className="text-white/80 hover:text-white hover:bg-white/10"
+            >
+              Produk
+            </Button>
             {isAuthenticated && user ? (
               <>
                 <span className="text-white/80 text-sm">

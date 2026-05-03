@@ -20,6 +20,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { TrendingUp, Users, ShoppingCart, DollarSign } from "lucide-react";
 import { TransactionLogs, Transaction } from "./TransactionLogs";
+import { ProductToggleBulk } from "./ProductToggle";
 
 // Sample data for charts
 const revenueData = [
