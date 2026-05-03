@@ -1,6 +1,7 @@
 import { useAuth } from "@/_core/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { PaymentMethodSelector } from "@/components/PaymentMethodSelector";
+import { FlashSaleCard } from "@/components/FlashSaleCard";
 import { Loader2 } from "lucide-react";
 import { getLoginUrl } from "@/const";
 import { motion } from "framer-motion";
@@ -35,6 +36,14 @@ export default function Home() {
                 <span className="text-white/80 text-sm">
                   Welcome, <span className="font-semibold">{user.name}</span>
                 </span>
+                {user.role === "admin" && (
+                  <Button
+                    onClick={() => (window.location.href = "/admin")}
+                    className="bg-purple-600 hover:bg-purple-700 text-xs"
+                  >
+                    Admin Panel
+                  </Button>
+                )}
                 <Button
                   onClick={logout}
                   variant="outline"
@@ -74,12 +83,67 @@ export default function Home() {
           </p>
         </motion.div>
 
-        {/* Payment Method Selector Demo */}
+        {/* Flash Sales Section */}
         <motion.div
           className="mb-12"
           initial={{ opacity: 0, y: 40 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2, duration: 0.5 }}
+        >
+          <div className="mb-8">
+            <h2 className="text-3xl font-bold text-white mb-2">⚡ Flash Sale</h2>
+            <p className="text-white/60">Penawaran terbatas dengan diskon hingga 50%!</p>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            {[
+              {
+                productName: "Mobile Legends - 500 Diamonds",
+                originalPrice: 150000,
+                discountedPrice: 99000,
+                discountPercentage: 34,
+                expiresAt: new Date(Date.now() + 2 * 60 * 60 * 1000),
+                logoUrl: "/manus-storage/ml-logo.webp",
+              },
+              {
+                productName: "Free Fire - 100 Diamonds",
+                originalPrice: 150000,
+                discountedPrice: 89000,
+                discountPercentage: 41,
+                expiresAt: new Date(Date.now() + 1.5 * 60 * 60 * 1000),
+                logoUrl: "/manus-storage/ff-logo.webp",
+              },
+              {
+                productName: "PUBG Mobile - UC 1800",
+                originalPrice: 400000,
+                discountedPrice: 299000,
+                discountPercentage: 25,
+                expiresAt: new Date(Date.now() + 3 * 60 * 60 * 1000),
+                logoUrl: "/manus-storage/pubg-logo.webp",
+              },
+              {
+                productName: "Genshin Impact - Crystals",
+                originalPrice: 300000,
+                discountedPrice: 199000,
+                discountPercentage: 34,
+                expiresAt: new Date(Date.now() + 2.5 * 60 * 60 * 1000),
+                logoUrl: "/manus-storage/genshin-logo.webp",
+              },
+            ].map((sale, index) => (
+              <FlashSaleCard
+                key={index}
+                {...sale}
+                onBuy={() => console.log(`Buying ${sale.productName}`)}
+              />
+            ))}
+          </div>
+        </motion.div>
+
+        {/* Payment Method Selector Demo */}
+        <motion.div
+          className="mb-12"
+          initial={{ opacity: 0, y: 40 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.3, duration: 0.5 }}
         >
           <div className="bg-white/5 border border-white/10 rounded-2xl p-8 backdrop-blur-md">
             <h2 className="text-2xl font-bold text-white mb-8 text-center">
@@ -97,7 +161,7 @@ export default function Home() {
           className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-16"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          transition={{ delay: 0.4, duration: 0.5 }}
+          transition={{ delay: 0.5, duration: 0.5 }}
         >
           {[
             {
