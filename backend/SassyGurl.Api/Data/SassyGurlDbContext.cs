@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using SassyGurl.Api.Models;
 using SassyGurl.Api.Models.Enums;
+using SassyGurl.Domain.Entities;
 using Npgsql;
 
 namespace SassyGurl.Api.Data;
@@ -30,6 +31,12 @@ public class SassyGurlDbContext : DbContext
     public DbSet<DailyProfit> DailyProfits { get; set; } = null!;
     public DbSet<VerificationToken> VerificationTokens { get; set; } = null!;
 
+    // Phase 1 — Auditable Transaction with JSONB Audit Trail
+    public DbSet<AuditableTransaction> AuditableTransactions { get; set; } = null!;
+
+    // Phase 4 — Provider Health Monitoring
+    public DbSet<ProviderHealthLog> ProviderHealthLogs { get; set; } = null!;
+
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -45,6 +52,7 @@ public class SassyGurlDbContext : DbContext
         modelBuilder.HasPostgresEnum<MutationType>("MutationType");
         modelBuilder.HasPostgresEnum<PromoType>("PromoType");
         modelBuilder.HasPostgresEnum<PaymentType>("PaymentType");
+        modelBuilder.HasPostgresEnum<ProviderSource>("ProviderSource");
 
         // Set table names to exact Prisma model names (PascalCase)
         modelBuilder.Entity<User>().ToTable("User");
@@ -124,6 +132,31 @@ public class SassyGurlDbContext : DbContext
 
         modelBuilder.Entity<VerificationToken>().HasIndex(v => v.Token).IsUnique();
         modelBuilder.Entity<VerificationToken>().HasIndex(v => new { v.Identifier, v.Token }).IsUnique();
+
+        // ── AuditableTransaction Configuration ──────────────────────────
+        modelBuilder.Entity<AuditableTransaction>(entity =>
+        {
+            entity.ToTable("AuditableTransaction");
+            entity.HasKey(e => e.Id);
+            entity.HasIndex(e => e.OrderNumber).IsUnique();
+            entity.HasIndex(e => e.Status);
+            entity.HasIndex(e => e.CreatedAt).IsDescending();
+
+            // JSONB column for the audit trail array
+            entity.Property(e => e.AuditLog)
+                .HasColumnType("jsonb")
+                .HasDefaultValue("[]");
+
+            // Map column names to camelCase to match existing convention
+            entity.Property(e => e.Id).HasColumnName("id");
+            entity.Property(e => e.OrderNumber).HasColumnName("orderNumber");
+            entity.Property(e => e.Status).HasColumnName("status");
+            entity.Property(e => e.Amount).HasColumnName("amount");
+            entity.Property(e => e.AuditLog).HasColumnName("auditLog");
+            entity.Property(e => e.OriginalTransactionId).HasColumnName("originalTransactionId");
+            entity.Property(e => e.CreatedAt).HasColumnName("createdAt");
+            entity.Property(e => e.UpdatedAt).HasColumnName("updatedAt");
+        });
 
         // ── Performance indexes for Dashboard queries ────────────────────
         // Admin live feed: filter by PaymentStatus + sort by CreatedAt

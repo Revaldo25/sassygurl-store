@@ -43,14 +43,38 @@ public class AuthService : IAuthService
         if (!isMatch) return ApiResponse<AuthResponseDto>.Fail("Password salah!");
 
         var token = GenerateJwtToken(user);
+        var refreshToken = GenerateRefreshToken();
+
+        // Save refresh token
+        var account = await _context.Accounts.FirstOrDefaultAsync(a => a.UserId == user.Id && a.Provider == "local") 
+                      ?? new Account { Id = Guid.NewGuid().ToString(), UserId = user.Id, Type = "credentials", Provider = "local", ProviderAccountId = user.Id };
+
+        account.RefreshToken = refreshToken;
+        account.ExpiresAt = (int)DateTimeOffset.UtcNow.AddDays(7).ToUnixTimeSeconds();
+        
+        if (!_context.Accounts.Local.Contains(account) && _context.Entry(account).State == EntityState.Detached) 
+        {
+            _context.Accounts.Add(account);
+        }
+
+        await _context.SaveChangesAsync();
 
         return ApiResponse<AuthResponseDto>.Ok(new AuthResponseDto
         {
             Token = token,
+            RefreshToken = refreshToken,
             UserId = user.Id,
             Name = user.Name ?? "Member",
             Role = user.Role.ToString()
         }, "Login Berhasil!");
+    }
+
+    private string GenerateRefreshToken()
+    {
+        var randomNumber = new byte[32];
+        using var rng = System.Security.Cryptography.RandomNumberGenerator.Create();
+        rng.GetBytes(randomNumber);
+        return Convert.ToBase64String(randomNumber);
     }
 
     public async Task<ApiResponse<string>> RegisterAsync(RegisterRequestDto request)

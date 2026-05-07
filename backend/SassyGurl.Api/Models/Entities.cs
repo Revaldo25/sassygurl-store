@@ -46,6 +46,9 @@ public class User
     [Column(TypeName = "decimal(15,2)")]
     public decimal Balance { get; set; } = 0;
 
+    [ConcurrencyCheck]
+    public Guid Version { get; set; } = Guid.NewGuid();
+
     public int Points { get; set; } = 0;
 
     public string ReferralCode { get; set; } = Guid.NewGuid().ToString();
@@ -246,6 +249,24 @@ public class Provider
     public ICollection<Product> Products { get; set; } = [];
 }
 
+public class ProviderHealthLog
+{
+    [Key]
+    public string Id { get; set; } = Guid.NewGuid().ToString();
+
+    public string ProviderId { get; set; } = null!;
+
+    [ForeignKey(nameof(ProviderId))]
+    public Provider Provider { get; set; } = null!;
+
+    public string EventType { get; set; } = null!; // e.g., Timeout, CircuitBroken, Recovered
+
+    [Column(TypeName = "text")]
+    public string? Message { get; set; }
+
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+}
+
 public class Product
 {
     [Key]
@@ -266,6 +287,16 @@ public class Product
     public string Name { get; set; } = null!;
 
     public string? Description { get; set; }
+
+    /// <summary>Provider source enum for smart failover routing.</summary>
+    public ProviderSource Source { get; set; } = ProviderSource.VIP;
+
+    /// <summary>Cloudinary CDN URL for the product icon/image.</summary>
+    public string? ImageUrl { get; set; }
+
+    /// <summary>JSONB metadata — e.g. { "needsZoneId": true, "serverList": [...] }</summary>
+    [Column(TypeName = "jsonb")]
+    public string? Metadata { get; set; }
 
     [Column(TypeName = "decimal(10,2)")]
     public decimal PriceModal { get; set; }
@@ -290,6 +321,8 @@ public class Product
     public bool IsFlashSale { get; set; } = false;
 
     public int Stock { get; set; } = 99999;
+
+    public DateTime? LastSyncedAt { get; set; }
 
     public ICollection<Transaction> Transactions { get; set; } = [];
 }

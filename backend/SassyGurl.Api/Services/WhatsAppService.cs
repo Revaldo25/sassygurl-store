@@ -11,7 +11,7 @@ public interface IWhatsAppService
 {
     Task<bool> SendOrderCreatedAsync(string phone, string invoiceId, string gameName, string productName, decimal amount);
     Task<bool> SendPaymentReceivedAsync(string phone, string invoiceId, string gameName, string productName);
-    Task<bool> SendOrderSuccessAsync(string phone, string invoiceId, string gameName, string productName, string? sn);
+    Task<bool> SendOrderSuccessAsync(string phone, string invoiceId, string gameName, string productName, string? sn, decimal savings = 0);
     Task<bool> SendOrderFailedAsync(string phone, string invoiceId, string reason);
 }
 
@@ -69,15 +69,16 @@ public class WhatsAppService : IWhatsAppService
         return await SendMessageAsync(phone, message.Trim());
     }
 
-    public async Task<bool> SendOrderSuccessAsync(string phone, string invoiceId, string gameName, string productName, string? sn)
+    public async Task<bool> SendOrderSuccessAsync(string phone, string invoiceId, string gameName, string productName, string? sn, decimal savings = 0)
     {
+        string savingsText = savings > 0 ? $"\n🎉 *Hemat*: Rp {savings:N0} (Voucher)" : "";
         var message = $"""
         ✅ *Top-Up Berhasil!*
 
         🎮 Game: {gameName}
         📦 Produk: {productName}
         🧾 Invoice: {invoiceId}
-        {(sn != null ? $"🔑 SN: {sn}" : "")}
+        {(sn != null ? $"🔑 SN: {sn}" : "")}{savingsText}
 
         Terima kasih sudah belanja di *SassyGurl Store*! 💖
         Butuh bantuan? Hubungi CS kami.
