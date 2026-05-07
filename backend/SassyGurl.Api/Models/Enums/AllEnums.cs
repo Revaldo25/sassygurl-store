@@ -80,3 +80,9 @@ public enum PaymentType
     VIRTUAL_ACCOUNT,
     RETAIL
 }
+
+public enum ProviderSource
+{
+    VIP,
+    DIGIFLAZZ
+}

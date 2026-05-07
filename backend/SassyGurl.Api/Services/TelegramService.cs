@@ -1,0 +1,90 @@
+using System.Text;
+using System.Text.Json;
+
+namespace SassyGurl.Api.Services;
+
+/// <summary>
+/// Telegram Bot notification service.
+/// Sends real-time transaction reports to the admin chat.
+/// </summary>
+public interface ITelegramService
+{
+    Task<bool> SendAdminReportAsync(string gameName, string productName, decimal margin, string providerStatus, string invoiceId);
+    Task<bool> SendMessageAsync(string message);
+}
+
+public class TelegramService : ITelegramService
+{
+    private readonly IHttpClientFactory _httpClientFactory;
+    private readonly IConfiguration _config;
+    private readonly ILogger<TelegramService> _logger;
+
+    public TelegramService(
+        IHttpClientFactory httpClientFactory,
+        IConfiguration config,
+        ILogger<TelegramService> logger)
+    {
+        _httpClientFactory = httpClientFactory;
+        _config = config;
+        _logger = logger;
+    }
+
+    public async Task<bool> SendAdminReportAsync(
+        string gameName, string productName, decimal margin, 
+        string providerStatus, string invoiceId)
+    {
+        var message = $"""
+        📊 *Laporan Transaksi — SassyGurl Store*
+        
+        🧾 Invoice: `{invoiceId}`
+        🎮 Game: {gameName}
+        📦 Produk: {productName}
+        💰 Margin Keuntungan: Rp {margin:N0}
+        🔌 Status Provider: {providerStatus}
+        🕐 Waktu: {DateTime.Now:dd/MM/yyyy HH:mm:ss}
+        """;
+
+        return await SendMessageAsync(message.Trim());
+    }
+
+    public async Task<bool> SendMessageAsync(string message)
+    {
+        var botToken = _config["Telegram:BotToken"];
+        var chatId = _config["Telegram:AdminChatId"] ?? "7448250558";
+
+        if (string.IsNullOrEmpty(botToken))
+        {
+            _logger.LogWarning("Telegram BotToken not configured. Skipping notification.");
+            return false;
+        }
+
+        try
+        {
+            var client = _httpClientFactory.CreateClient();
+            var url = $"https://api.telegram.org/bot{botToken}/sendMessage";
+
+            var payload = new
+            {
+                chat_id = chatId,
+                text = message,
+                parse_mode = "Markdown"
+            };
+
+            var jsonContent = new StringContent(
+                JsonSerializer.Serialize(payload),
+                Encoding.UTF8,
+                "application/json");
+
+            var response = await client.PostAsync(url, jsonContent);
+            var body = await response.Content.ReadAsStringAsync();
+
+            _logger.LogInformation("Telegram notification sent: {StatusCode}", response.StatusCode);
+            return response.IsSuccessStatusCode;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to send Telegram notification.");
+            return false;
+        }
+    }
+}
