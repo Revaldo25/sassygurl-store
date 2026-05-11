@@ -175,18 +175,6 @@ try
     })
     .AddStandardResilienceHandler(); // Standard retry + CB
 
-    // ── HttpClients for Providers ────────────────────────────────────────
-    builder.Services.AddHttpClient("Digiflazz", client =>
-    {
-        client.BaseAddress = new Uri("https://api.digiflazz.com/v1/");
-        client.DefaultRequestHeaders.Add("Accept", "application/json");
-    });
-
-    builder.Services.AddHttpClient("Antigravity", client =>
-    {
-        client.BaseAddress = new Uri("https://api.antigravity.dev/");
-        client.DefaultRequestHeaders.Add("Accept", "application/json");
-    });
 
     builder.Services.AddProviderClients(builder.Configuration);
 

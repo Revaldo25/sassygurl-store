@@ -55,13 +55,13 @@ public class SettingsController : ControllerBase
     }
 
     /// <summary>
-    /// Quick switch active provider (Digiflazz / Antigravity).
+    /// Quick switch active provider (Digiflazz / VipReseller).
     /// </summary>
     [HttpPatch("provider/{providerName}")]
     public async Task<ActionResult<ApiResponse<SettingDto>>> SwitchProvider(string providerName)
     {
-        if (providerName is not ("Digiflazz" or "Antigravity"))
-            return BadRequest(ApiResponse<SettingDto>.Fail("Invalid provider. Use 'Digiflazz' or 'Antigravity'."));
+        if (providerName is not ("Digiflazz" or "VipReseller"))
+            return BadRequest(ApiResponse<SettingDto>.Fail("Invalid provider. Use 'Digiflazz' or 'VipReseller'."));
 
         var adminId = GetUserId();
         var result = await _settingsService.UpsertAsync(SettingKeys.ActiveProvider, providerName, adminId,

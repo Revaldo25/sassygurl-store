@@ -5,7 +5,7 @@ using System.Diagnostics;
 namespace SassyGurl.Api.Services;
 
 /// <summary>
-/// Background service that pings Digiflazz and Antigravity APIs every 5 minutes
+/// Background service that pings Digiflazz and VIP Reseller APIs every 5 minutes
 /// and broadcasts latency/status via SignalR to Owner dashboards.
 /// Memory-efficient: runs on a single TimerPeriodic, no heap pressure.
 /// </summary>
@@ -41,7 +41,7 @@ public class ProviderHealthMonitor : BackgroundService
             try
             {
                 await PingProviderAsync("Digiflazz", "https://api.digiflazz.com/v1/", stoppingToken);
-                await PingProviderAsync("Antigravity", "https://api.antigravity.dev/", stoppingToken);
+                await PingProviderAsync("VIP Reseller", "https://vipreseller.co.id/api/", stoppingToken);
             }
             catch (Exception ex)
             {

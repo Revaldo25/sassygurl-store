@@ -563,9 +563,5 @@ temp/
 # Webdev artifacts (checkpoint zips, migrations, etc.)
 .webdev/
 
-# Manus version file (auto-generated, not part of source)
-client/public/__manus__/version.json
->>>>>>> manus/main
-
 # Abaikan cloudflared di dalam folder tools
 tools/cloudflared.exe
