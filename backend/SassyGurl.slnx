@@ -1,0 +1,6 @@
+<Solution>
+  <Project Path="SassyGurl.Api/SassyGurl.Api.csproj" />
+  <Project Path="SassyGurl.Application/SassyGurl.Application.csproj" />
+  <Project Path="SassyGurl.Domain/SassyGurl.Domain.csproj" />
+  <Project Path="SassyGurl.Infrastructure/SassyGurl.Infrastructure.csproj" />
+</Solution>

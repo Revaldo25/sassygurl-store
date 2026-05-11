@@ -237,7 +237,7 @@ public class PaymentService : IPaymentService
                             }
                             catch (Exception ex)
                             {
-                                // Log unexpected errors from background task
+                                _logger.LogError(ex, "Background task failed while processing order {TransactionId}", transactionId);
                             }
                         });
                     }

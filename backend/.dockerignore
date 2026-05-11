@@ -1,0 +1,21 @@
+# Docker
+docker-compose.override.yml
+.env
+
+# .NET Build artifacts
+**/bin/
+**/obj/
+**/out/
+**/.vs/
+
+# User secrets
+**/appsettings.*.local.json
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+*.swp
+*.swo

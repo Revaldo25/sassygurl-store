@@ -1,0 +1,119 @@
+# ============================================================================
+# Docker Compose — SassyGurl Store Full Stack
+#
+# Services:
+#   1. api       — .NET 10 Web API (the backend)
+#   2. postgres  — PostgreSQL 16 (primary database)
+#   3. redis     — Redis Stack (caching + distributed locks)
+#   4. pgadmin   — pgAdmin 4 (database management UI)
+#
+# Usage:
+#   docker-compose up -d          # Start all services
+#   docker-compose up -d --build  # Rebuild API and start
+#   docker-compose logs -f api    # Follow API logs
+#   docker-compose down -v        # Stop and remove volumes
+# ============================================================================
+
+services:
+  # ── Backend API ──────────────────────────────────────────────────────────
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: sassygurl-api
+    restart: unless-stopped
+    ports:
+      - "5000:8080"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+      - ConnectionStrings__DefaultConnection=Host=postgres;Port=5432;Database=sassygurl;Username=sassygurl_user;Password=SassyGurl_Str0ng_P@ss!;Maximum Pool Size=20;Minimum Pool Size=2;Timeout=15;Command Timeout=30
+      - ConnectionStrings__Redis=redis:6379
+      - Jwt__Key=${JWT_SECRET_KEY:-Ut5ajelYP0Vlb8usezCTa7x3W9jRnWM8AJFVofrG4xk=}
+      - Jwt__Issuer=SassyGurlStoreApi
+      - Jwt__Audience=SassyGurlStoreClients
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - sassygurl-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+
+  # ── PostgreSQL 16 ───────────────────────────────────────────────────────
+  postgres:
+    image: postgres:16-alpine
+    container_name: sassygurl-postgres
+    restart: unless-stopped
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_DB: sassygurl
+      POSTGRES_USER: sassygurl_user
+      POSTGRES_PASSWORD: SassyGurl_Str0ng_P@ss!
+      # Performance tuning for development
+      POSTGRES_INITDB_ARGS: "--encoding=UTF-8 --lc-collate=C --lc-ctype=C"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./scripts/init-db.sql:/docker-entrypoint-initdb.d/01-init.sql:ro
+    networks:
+      - sassygurl-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U sassygurl_user -d sassygurl"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ── Redis Stack (Redis + RedisInsight + JSON/Search modules) ────────────
+  redis:
+    image: redis/redis-stack:latest
+    container_name: sassygurl-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"   # Redis server
+      - "8001:8001"   # RedisInsight web UI
+    volumes:
+      - redis_data:/data
+    networks:
+      - sassygurl-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ── pgAdmin 4 (Database Management UI) ─────────────────────────────────
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: sassygurl-pgadmin
+    restart: unless-stopped
+    ports:
+      - "5050:80"
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@sassygurl.store
+      PGADMIN_DEFAULT_PASSWORD: SassyAdmin123!
+      PGADMIN_CONFIG_SERVER_MODE: "False"
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - sassygurl-network
+
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+  pgadmin_data:
+    driver: local
+
+networks:
+  sassygurl-network:
+    driver: bridge
