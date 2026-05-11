@@ -55,6 +55,25 @@ public class SyncEngine : ISyncEngine
         "honkai-star-rail", "honkai star rail"
     };
 
+    // ── Phase 2: Category Classification Dictionary ──────────────────
+    // Maps Digiflazz category strings to our internal category slugs
+    private static readonly Dictionary<string, string> CategoryMap = new(StringComparer.OrdinalIgnoreCase)
+    {
+        // Games
+        { "Games", "games" }, { "Voucher", "games" },
+        // Pulsa & Data
+        { "Pulsa", "pulsa" }, { "Data", "pulsa" }, { "SMS & Telepon", "pulsa" },
+        // E-Wallet & Bill
+        { "E-Money", "e-wallet" }, { "PLN", "e-wallet" }, { "BPJS", "e-wallet" },
+        { "Pascabayar", "e-wallet" }, { "TV", "e-wallet" }, { "Streaming", "e-wallet" }
+    };
+
+    private static string ResolveCategorySlug(string? category)
+    {
+        if (string.IsNullOrWhiteSpace(category)) return "games";
+        return CategoryMap.TryGetValue(category, out var slug) ? slug : "games";
+    }
+
     public SyncEngine(
         IHttpClientFactory httpClientFactory,
         SassyGurlDbContext db,
@@ -118,6 +137,7 @@ public class SyncEngine : ISyncEngine
                         sku: item.Code ?? "",
                         name: item.Name ?? "",
                         gameName: item.Game ?? "Unknown",
+                        categorySlug: "games", // VIP Reseller is game-only provider
                         basePrice: item.Price?.Basic ?? 0,
                         source: ProviderSource.VIP,
                         isActive: item.Status == "available",
@@ -184,10 +204,13 @@ public class SyncEngine : ISyncEngine
                 try
                 {
                     bool isActive = item.SellerProductStatus && item.BuyerProductStatus;
+                    var categorySlug = ResolveCategorySlug(item.Category);
+
                     await UpsertProductAsync(
                         sku: item.BuyerSkuCode ?? "",
                         name: item.ProductName ?? "",
                         gameName: item.Brand ?? "Unknown",
+                        categorySlug: categorySlug,
                         basePrice: item.Price,
                         source: ProviderSource.DIGIFLAZZ,
                         isActive: isActive,
@@ -232,30 +255,40 @@ public class SyncEngine : ISyncEngine
     // ====================================================================
     // CORE: UPSERT LOGIC + PRICE ENGINE + ASSET MANAGER
     // ====================================================================
+    // ── Category display name mapping ────────────────────────────────
+    private static readonly Dictionary<string, string> CategoryDisplayNames = new()
+    {
+        { "games", "Games" },
+        { "pulsa", "Pulsa & Data" },
+        { "e-wallet", "E-Wallet & Tagihan" }
+    };
+
     private async Task UpsertProductAsync(
         string sku, string name, string gameName,
+        string categorySlug,
         decimal basePrice, ProviderSource source, bool isActive,
         SyncResult result)
     {
         if (string.IsNullOrWhiteSpace(sku)) return;
 
+        // ── Phase 2: Resolve or create Category (Games / Pulsa / E-Wallet) ─
+        var category = await _db.Categories.FirstOrDefaultAsync(c => c.Slug == categorySlug);
+        if (category == null)
+        {
+            var displayName = CategoryDisplayNames.GetValueOrDefault(categorySlug, "Games");
+            category = new Category { Name = displayName, Slug = categorySlug };
+            _db.Categories.Add(category);
+            await _db.SaveChangesAsync();
+        }
+
         // ── Resolve or create Game entity ──────────────────────────────
         var game = await _db.Games.FirstOrDefaultAsync(g => g.Name.ToLower() == gameName.ToLower());
         if (game == null)
         {
-            // Ensure default category exists
-            var defaultCategory = await _db.Categories.FirstOrDefaultAsync(c => c.Slug == "game");
-            if (defaultCategory == null)
-            {
-                defaultCategory = new Category { Name = "Game", Slug = "game" };
-                _db.Categories.Add(defaultCategory);
-                await _db.SaveChangesAsync();
-            }
-
             bool needsZone = GamesRequiringZoneId.Contains(gameName);
             game = new Game
             {
-                CategoryId = defaultCategory.Id,
+                CategoryId = category.Id,
                 Name = gameName,
                 Slug = gameName.ToLower().Replace(" ", "-").Replace(".", ""),
                 HasServerId = needsZone
@@ -369,7 +402,9 @@ public class SyncEngine : ISyncEngine
     {
         [JsonPropertyName("buyer_sku_code")] public string? BuyerSkuCode { get; set; }
         [JsonPropertyName("product_name")] public string? ProductName { get; set; }
+        [JsonPropertyName("category")] public string? Category { get; set; }
         [JsonPropertyName("brand")] public string? Brand { get; set; }
+        [JsonPropertyName("type")] public string? Type { get; set; }
         [JsonPropertyName("price")] public decimal Price { get; set; }
         [JsonPropertyName("seller_product_status")] public bool SellerProductStatus { get; set; }
         [JsonPropertyName("buyer_product_status")] public bool BuyerProductStatus { get; set; }

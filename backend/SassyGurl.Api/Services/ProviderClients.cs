@@ -8,8 +8,8 @@ public sealed class ProviderApiOptions
 {
     public string DigiflazzBaseUrl { get; set; } = "https://api.digiflazz.com/v1/";
     public string DigiflazzApiKey { get; set; } = string.Empty;
-    public string AntigravityBaseUrl { get; set; } = "https://api.antigravity.id/v1/";
-    public string AntigravityApiKey { get; set; } = string.Empty;
+    public string VipResellerBaseUrl { get; set; } = "https://vipreseller.co.id/api/";
+    public string VipResellerApiKey { get; set; } = string.Empty;
 }
 
 public interface IDigiflazzClient
@@ -17,7 +17,7 @@ public interface IDigiflazzClient
     Task<HttpResponseMessage> PostAsync(string relativePath, HttpContent content, CancellationToken cancellationToken = default);
 }
 
-public interface IAntigravityClient
+public interface IVipResellerClient
 {
     Task<HttpResponseMessage> PostAsync(string relativePath, HttpContent content, CancellationToken cancellationToken = default);
 }
@@ -37,11 +37,11 @@ public sealed class DigiflazzClient : IDigiflazzClient
     }
 }
 
-public sealed class AntigravityClient : IAntigravityClient
+public sealed class VipResellerClient : IVipResellerClient
 {
     private readonly HttpClient _httpClient;
 
-    public AntigravityClient(HttpClient httpClient)
+    public VipResellerClient(HttpClient httpClient)
     {
         _httpClient = httpClient;
     }
@@ -75,13 +75,13 @@ public static class ProviderClientRegistration
         .AddPolicyHandler(resiliencePolicy)
         .AddTransientHttpErrorPolicy(policy => policy.CircuitBreakerAsync(5, TimeSpan.FromSeconds(30)));
 
-        services.AddHttpClient<IAntigravityClient, AntigravityClient>(client =>
+        services.AddHttpClient<IVipResellerClient, VipResellerClient>(client =>
         {
-            client.BaseAddress = new Uri(options.AntigravityBaseUrl);
+            client.BaseAddress = new Uri(options.VipResellerBaseUrl);
             client.Timeout = TimeSpan.FromSeconds(8);
-            if (!string.IsNullOrWhiteSpace(options.AntigravityApiKey))
+            if (!string.IsNullOrWhiteSpace(options.VipResellerApiKey))
             {
-                client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", options.AntigravityApiKey);
+                client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", options.VipResellerApiKey);
             }
         })
         .AddPolicyHandler(resiliencePolicy)

@@ -35,6 +35,18 @@ public class ProviderService : IProviderService
     {
         _logger.LogInformation("Processing order {RefId} for SKU {Sku}", refId, sku);
 
+        // ── Phase 3: Balance check before transaction ──────────────────
+        var balanceCheck = await GetDigiflazzBalanceAsync();
+        if (balanceCheck.IsSuccess)
+        {
+            _logger.LogInformation("Digiflazz saldo saat ini: Rp {Balance:N0}", balanceCheck.Balance);
+            if (balanceCheck.Balance < 1000)
+            {
+                _logger.LogCritical("Saldo Digiflazz terlalu rendah ({Balance}). Menolak order {RefId}.", balanceCheck.Balance, refId);
+                return new ProviderOrderResponse { IsSuccess = false, Message = "Saldo provider tidak mencukupi. Hubungi admin." };
+            }
+        }
+
         // Attempt 1: Digiflazz (Primary Provider)
         var digiflazzResult = await OrderViaDigiflazzAsync(sku, targetId, zoneId, refId);
         
@@ -43,21 +55,26 @@ public class ProviderService : IProviderService
             return digiflazzResult;
         }
 
-        _logger.LogWarning("Digiflazz failed for {RefId}: {Error}. Attempting fallback to Antigravity API...", refId, digiflazzResult.Message);
+        _logger.LogWarning("Digiflazz failed for {RefId}: {Error}. Attempting fallback to VIP Reseller...", refId, digiflazzResult.Message);
 
-        // Auto Fallback Logic: Attempt 2: Antigravity API
-        var antigravityResult = await OrderViaAntigravityAsync(sku, targetId, zoneId, refId);
+        // Auto Fallback Logic: Attempt 2: VIP Reseller
+        var vipResult = await OrderViaVipResellerAsync(sku, targetId, zoneId, refId);
         
-        return antigravityResult;
+        return vipResult;
     }
 
     public async Task<ProviderBalanceResponse> GetDigiflazzBalanceAsync()
     {
-        var username = _configuration["Digiflazz:Username"] ?? throw new InvalidOperationException("Digiflazz Username missing");
-        var apiKey = _configuration["Digiflazz:ApiKey"] ?? throw new InvalidOperationException("Digiflazz ApiKey missing");
-        var sign = CreateMD5($"{username}{apiKey}depo");
+        var username = _configuration["Digiflazz:Username"];
+        var apiKey = _configuration["Digiflazz:ApiKey"];
+        
+        if (string.IsNullOrEmpty(username) || string.IsNullOrEmpty(apiKey))
+        {
+            return new ProviderBalanceResponse { IsSuccess = false, Message = "Digiflazz credentials not configured." };
+        }
 
-        var client = _httpClientFactory.CreateClient("Digiflazz");
+        var sign = CreateMD5($"{username}{apiKey}depo");
+        var client = _httpClientFactory.CreateClient("DigiflazzClient");
         
         var payload = new
         {
@@ -98,7 +115,7 @@ public class ProviderService : IProviderService
         }
 
         var sign = CreateMD5($"{username}{apiKey}{refId}");
-        var client = _httpClientFactory.CreateClient("Digiflazz");
+        var client = _httpClientFactory.CreateClient("DigiflazzClient");
 
         var payload = new
         {
@@ -133,7 +150,6 @@ public class ProviderService : IProviderService
                     };
                 }
                 
-                // Return failed so it triggers fallback
                 return new ProviderOrderResponse { IsSuccess = false, Message = message ?? "Gagal dari provider." };
             }
             
@@ -146,49 +162,61 @@ public class ProviderService : IProviderService
         }
     }
 
-    private async Task<ProviderOrderResponse> OrderViaAntigravityAsync(string sku, string targetId, string zoneId, string refId)
+    /// <summary>
+    /// Phase 3 Fallback: Order via VIP Reseller when Digiflazz fails.
+    /// </summary>
+    private async Task<ProviderOrderResponse> OrderViaVipResellerAsync(string sku, string targetId, string zoneId, string refId)
     {
-        var apiKey = _configuration["Antigravity:ApiKey"];
-        if (string.IsNullOrEmpty(apiKey))
+        var apiKey = _configuration["VipReseller:ApiKey"];
+        var apiId = _configuration["VipReseller:ApiId"];
+        
+        if (string.IsNullOrEmpty(apiKey) || string.IsNullOrEmpty(apiId))
         {
-            return new ProviderOrderResponse { IsSuccess = false, Message = "Antigravity API Key not configured." };
+            return new ProviderOrderResponse { IsSuccess = false, Message = "VIP Reseller credentials not configured." };
         }
 
-        var client = _httpClientFactory.CreateClient("Antigravity");
-        client.DefaultRequestHeaders.Add("Authorization", $"Bearer {apiKey}");
+        var sign = CreateMD5($"{apiId}{apiKey}order");
+        var client = _httpClientFactory.CreateClient("VipResellerClient");
 
-        var payload = new
+        var formData = new FormUrlEncodedContent(new[]
         {
-            sku = sku,
-            userId = targetId,
-            zoneId = zoneId,
-            transactionId = refId
-        };
+            new KeyValuePair<string, string>("key", apiKey),
+            new KeyValuePair<string, string>("sign", sign),
+            new KeyValuePair<string, string>("type", "order"),
+            new KeyValuePair<string, string>("service", sku),
+            new KeyValuePair<string, string>("data_no", string.IsNullOrEmpty(zoneId) ? targetId : $"{targetId}|{zoneId}"),
+            new KeyValuePair<string, string>("data_ref", refId)
+        });
 
         try
         {
-            var response = await client.PostAsJsonAsync("v1/order", payload);
+            var response = await client.PostAsync("game-feature", formData);
             var contentStr = await response.Content.ReadAsStringAsync();
             var content = JsonSerializer.Deserialize<JsonElement>(contentStr);
 
-            if (response.IsSuccessStatusCode && content.GetProperty("success").GetBoolean())
+            if (content.TryGetProperty("result", out var resultProp) && resultProp.GetBoolean())
             {
                 var data = content.GetProperty("data");
-                return new ProviderOrderResponse 
-                { 
-                    IsSuccess = true, 
-                    ProviderName = "Antigravity",
-                    ProviderRef = data.GetProperty("orderId").GetString(),
-                    Message = "Success" 
+                var trxId = data.TryGetProperty("trxid", out var trxProp) ? trxProp.GetString() : refId;
+                var sn = data.TryGetProperty("sn", out var snProp) ? snProp.GetString() : null;
+
+                return new ProviderOrderResponse
+                {
+                    IsSuccess = true,
+                    ProviderName = "VIP Reseller",
+                    ProviderRef = trxId,
+                    Sn = sn,
+                    Message = "Success via VIP Reseller fallback."
                 };
             }
 
-            return new ProviderOrderResponse { IsSuccess = false, Message = "Failed at Antigravity API." };
+            var errorMsg = content.TryGetProperty("message", out var msgProp) ? msgProp.GetString() : "Unknown error from VIP Reseller";
+            return new ProviderOrderResponse { IsSuccess = false, Message = errorMsg };
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Antigravity API Exception");
-            return new ProviderOrderResponse { IsSuccess = false, Message = "Connection to Antigravity failed." };
+            _logger.LogError(ex, "VIP Reseller API Exception");
+            return new ProviderOrderResponse { IsSuccess = false, Message = "Connection to VIP Reseller failed." };
         }
     }
 
