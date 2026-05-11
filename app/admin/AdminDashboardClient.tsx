@@ -21,15 +21,16 @@ import {
 } from "lucide-react";
 import { formatIDR } from "@/lib/catalog";
 import {
-  type AdminStats,
+  type OwnerStats,
   type AdminTransaction,
   getAdminTransactions,
   updateTransactionStatus,
+  triggerCatalogSync,
 } from "@/app/actions/dashboard";
 import { ProviderStatus } from "@/lib/api-adapter";
 
 type Props = {
-  initialStats: AdminStats;
+  initialStats: OwnerStats;
   initialTransactions: AdminTransaction[];
   providerStatuses: ProviderStatus[];
 };
@@ -107,12 +108,18 @@ export default function AdminDashboardClient({ initialStats, initialTransactions
           </div>
           <div className="flex flex-col gap-3 sm:flex-row">
             <button
-              onClick={() => {
-                alert("Sinkronisasi katalog berjalan di background. Ini akan memakan waktu beberapa menit.");
+              onClick={async () => {
+                if (confirm("Mulai sinkronisasi katalog dari Digiflazz & VIP?")) {
+                  startTransition(async () => {
+                    const res = await triggerCatalogSync();
+                    alert(res.message);
+                  });
+                }
               }}
-              className="inline-flex items-center justify-center gap-2 rounded-2xl border border-white/10 bg-zinc-900/50 px-6 py-3 text-sm font-black text-white backdrop-blur-xl transition hover:bg-white/5"
+              disabled={isPending}
+              className="inline-flex items-center justify-center gap-2 rounded-2xl border border-white/10 bg-zinc-900/50 px-6 py-3 text-sm font-black text-white backdrop-blur-xl transition hover:bg-white/5 disabled:opacity-50"
             >
-              <RefreshCw className="h-4 w-4 text-cyan-400" />
+              <RefreshCw className={`h-4 w-4 text-cyan-400 ${isPending ? "animate-spin" : ""}`} />
               Sync API
             </button>
             <button
@@ -163,11 +170,11 @@ export default function AdminDashboardClient({ initialStats, initialTransactions
               {/* Stats Grid */}
               <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                 {[
-                  { label: "Total Omzet", value: formatIDR(stats.totalOmzet), icon: DollarSign, color: "text-white", accent: "border-sakura/20 bg-sakura/5" },
-                  { label: "Laba Bersih", value: formatIDR(stats.totalProfit), icon: TrendingUp, color: "text-emerald-400", accent: "border-emerald-500/20 bg-emerald-500/5" },
-                  { label: "Transaksi Sukses", value: stats.successTransactions.toLocaleString("id-ID"), icon: CheckCircle2, color: "text-brand-cyan", accent: "border-brand-cyan/20 bg-brand-cyan/5" },
-                  { label: "Total Member", value: stats.totalUsers.toLocaleString("id-ID"), icon: Users, color: "text-violet-400", accent: "border-violet-500/20 bg-violet-500/5" },
-                  { label: "Game Aktif", value: String(stats.totalGames), icon: Gamepad2, color: "text-amber-400", accent: "border-amber-500/20 bg-amber-500/5" },
+                  { label: "Total Omzet", value: formatIDR(stats.totalRevenue), icon: DollarSign, color: "text-white", accent: "border-sakura/20 bg-sakura/5" },
+                  { label: "Laba Bersih", value: formatIDR(stats.netProfit), icon: TrendingUp, color: "text-emerald-400", accent: "border-emerald-500/20 bg-emerald-500/5" },
+                  { label: "Omzet Hari Ini", value: formatIDR(stats.todayRevenue), icon: Clock, color: "text-brand-cyan", accent: "border-brand-cyan/20 bg-brand-cyan/5" },
+                  { label: "Laba Hari Ini", value: formatIDR(stats.todayProfit), icon: ArrowUpRight, color: "text-violet-400", accent: "border-violet-500/20 bg-violet-500/5" },
+                  { label: "Total Member", value: stats.totalUsers.toLocaleString("id-ID"), icon: Users, color: "text-amber-400", accent: "border-amber-500/20 bg-amber-500/5" },
                   { label: "Produk Aktif", value: String(stats.totalProducts), icon: Package, color: "text-pink-400", accent: "border-pink-500/20 bg-pink-500/5" },
                 ].map((stat, i) => (
                   <motion.div
@@ -193,14 +200,8 @@ export default function AdminDashboardClient({ initialStats, initialTransactions
                 <div className="h-[300px] w-full">
                   <ResponsiveContainer width="100%" height="100%">
                     <AreaChart
-                      data={[
-                        { name: "Senin", total: 4000000 },
-                        { name: "Selasa", total: 3000000 },
-                        { name: "Rabu", total: 5000000 },
-                        { name: "Kamis", total: 4500000 },
-                        { name: "Jumat", total: 6000000 },
-                        { name: "Sabtu", total: 8000000 },
-                        { name: "Minggu", total: 12000000 },
+                      data={stats.dailyRevenue.length > 0 ? stats.dailyRevenue : [
+                        { date: "N/A", revenue: 0, profit: 0 }
                       ]}
                       margin={{ top: 10, right: 10, left: 0, bottom: 0 }}
                     >
@@ -211,25 +212,30 @@ export default function AdminDashboardClient({ initialStats, initialTransactions
                         </linearGradient>
                       </defs>
                       <XAxis 
-                        dataKey="name" 
+                        dataKey="date" 
                         stroke="#71717a" 
                         fontSize={10} 
                         tickLine={false}
                         axisLine={false}
+                        tickFormatter={(val) => val.split('-').slice(1).join('/')}
                       />
                       <YAxis 
                         stroke="#71717a" 
                         fontSize={10} 
                         tickLine={false}
                         axisLine={false}
-                        tickFormatter={(value) => `Rp ${(value / 1000000)}M`}
+                        tickFormatter={(value) => `Rp ${(value / 1000).toLocaleString()}k`}
                       />
                       <Tooltip 
                         contentStyle={{ backgroundColor: '#09090b', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px', fontSize: '12px' }}
                         itemStyle={{ color: '#FDB0C0', fontWeight: 'bold' }}
-                        formatter={(value: any) => [`Rp ${Number(value).toLocaleString("id-ID")}`, "Pendapatan"]}
+                        formatter={(value: any, name: string) => [
+                          `Rp ${Number(value).toLocaleString("id-ID")}`, 
+                          name === "revenue" ? "Omzet" : "Laba"
+                        ]}
                       />
-                      <Area type="monotone" dataKey="total" stroke="#FDB0C0" strokeWidth={3} fillOpacity={1} fill="url(#colorTotal)" />
+                      <Area type="monotone" dataKey="revenue" stroke="#FDB0C0" strokeWidth={3} fillOpacity={1} fill="url(#colorTotal)" />
+                      <Area type="monotone" dataKey="profit" stroke="#34D399" strokeWidth={2} fillOpacity={0.1} fill="#34D399" />
                     </AreaChart>
                   </ResponsiveContainer>
                 </div>

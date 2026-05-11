@@ -183,21 +183,38 @@ public class SyncEngine : ISyncEngine
                 return result;
             }
 
+            _logger.LogInformation("Digiflazz sync: Using Username={User}, ApiKey={Key}",
+                username, apiKey?[..Math.Min(8, apiKey.Length)] + "***");
+
             var sign = CreateMD5($"{username}{apiKey}pricelist");
             var client = _httpClientFactory.CreateClient("DigiflazzClient");
 
             var payload = new { cmd = "prepaid", username, sign };
-            var response = await client.PostAsJsonAsync("price-list", payload);
-            response.EnsureSuccessStatusCode();
+            _logger.LogInformation("Digiflazz request payload: cmd=prepaid, username={User}, sign={Sign}", username, sign);
 
-            var json = await response.Content.ReadFromJsonAsync<DigiflazzPriceListResponse>();
+            var response = await client.PostAsJsonAsync("price-list", payload);
+
+            // ── LOG RAW RESPONSE (critical for debugging Invalid Key / IP errors) ──
+            var rawBody = await response.Content.ReadAsStringAsync();
+            _logger.LogInformation("Digiflazz raw response (HTTP {StatusCode}): {Body}",
+                (int)response.StatusCode, rawBody.Length > 2000 ? rawBody[..2000] + "... (truncated)" : rawBody);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                _logger.LogError("Digiflazz returned HTTP {StatusCode}. Body: {Body}", (int)response.StatusCode, rawBody);
+                result.Errors++;
+                return result;
+            }
+
+            var json = System.Text.Json.JsonSerializer.Deserialize<DigiflazzPriceListResponse>(rawBody);
             if (json?.Data == null)
             {
-                _logger.LogWarning("Digiflazz returned empty response.");
+                _logger.LogWarning("Digiflazz returned empty/null data. Full body: {Body}", rawBody);
                 return result;
             }
 
             _logger.LogInformation("Fetched {Count} products from Digiflazz.", json.Data.Count);
+
 
             foreach (var item in json.Data)
             {

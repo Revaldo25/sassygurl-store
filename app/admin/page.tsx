@@ -1,4 +1,4 @@
-import { getAdminStats, getAdminTransactions } from "@/app/actions/dashboard";
+import { getOwnerStats, getAdminTransactions } from "@/app/actions/dashboard";
 import { getProviderStatuses } from "@/lib/api-adapter";
 import SiteHeader from "@/components/SiteHeader";
 import AdminDashboardClient from "./AdminDashboardClient";
@@ -10,7 +10,7 @@ export const metadata = {
 
 export default async function AdminPage() {
   const [stats, { transactions }, providerStatuses] = await Promise.all([
-    getAdminStats(),
+    getOwnerStats(),
     getAdminTransactions("ALL", "", 1, 15),
     getProviderStatuses(),
   ]);
