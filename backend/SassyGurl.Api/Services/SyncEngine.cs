@@ -74,6 +74,36 @@ public class SyncEngine : ISyncEngine
         return CategoryMap.TryGetValue(category, out var slug) ? slug : "games";
     }
 
+    // ── Brand Normalizer (Maps Provider Game/Brand to DB Slug) ──────
+    private static string? NormalizeBrandToSlug(string brand)
+    {
+        if (string.IsNullOrWhiteSpace(brand)) return null;
+        
+        var normalized = brand.ToLowerInvariant().Replace(" ", "");
+        return normalized switch
+        {
+            "mobilelegends" => "mlbb",
+            "mobilelegendsbangbang" => "mlbb",
+            "freefire" => "ff",
+            "genshinimpact" => "genshin",
+            "honkaistarrail" => "hsr",
+            "zenlesszonezero" => "zzz",
+            "wutheringwaves" => "wuwa",
+            "pubgmobile" => "pubg",
+            "valorant" => "valorant",
+            "honorofkings" => "hok",
+            "goddessofvictorynikke" => "nikke",
+            "nikke" => "nikke",
+            "leagueoflegends" => "lol",
+            "wildrift" => "wr",
+            "leagueoflegendswildrift" => "wr",
+            "roblox" => "roblox",
+            "aethergazer" => "aether",
+            "magicchess" => "mccg",
+            _ => null
+        };
+    }
+
     public SyncEngine(
         IHttpClientFactory httpClientFactory,
         SassyGurlDbContext db,
@@ -133,10 +163,18 @@ public class SyncEngine : ISyncEngine
             {
                 try
                 {
+                    var brand = item.Game ?? "";
+                    var targetGameSlug = NormalizeBrandToSlug(brand);
+                    if (targetGameSlug == null)
+                    {
+                        _logger.LogWarning("Category for brand [{Brand}] not found (VIP Reseller)", brand);
+                        continue;
+                    }
+
                     await UpsertProductAsync(
                         sku: item.Code ?? "",
                         name: item.Name ?? "",
-                        gameName: item.Game ?? "Unknown",
+                        gameSlug: targetGameSlug,
                         categorySlug: "games", // VIP Reseller is game-only provider
                         basePrice: item.Price?.Basic ?? 0,
                         source: ProviderSource.VIP,
@@ -170,6 +208,7 @@ public class SyncEngine : ISyncEngine
     // ====================================================================
     public async Task<SyncResult> SyncFromDigiflazzAsync()
     {
+        _logger.LogInformation("Mulai Sync...");
         var sw = System.Diagnostics.Stopwatch.StartNew();
         var result = new SyncResult { Provider = "Digiflazz" };
 
@@ -183,8 +222,7 @@ public class SyncEngine : ISyncEngine
                 return result;
             }
 
-            _logger.LogInformation("Digiflazz sync: Using Username={User}, ApiKey={Key}",
-                username, apiKey?[..Math.Min(8, apiKey.Length)] + "***");
+            _logger.LogInformation("Kunci ditemukan: {User}", username);
 
             var sign = CreateMD5($"{username}{apiKey}pricelist");
             var client = _httpClientFactory.CreateClient("DigiflazzClient");
@@ -192,6 +230,8 @@ public class SyncEngine : ISyncEngine
             var payload = new { cmd = "prepaid", username, sign };
             _logger.LogInformation("Digiflazz request payload: cmd=prepaid, username={User}, sign={Sign}", username, sign);
 
+            _logger.LogInformation("Mulai panggil HttpClient...");
+            // POST to price-list
             var response = await client.PostAsJsonAsync("price-list", payload);
 
             // ── LOG RAW RESPONSE (critical for debugging Invalid Key / IP errors) ──
@@ -222,11 +262,19 @@ public class SyncEngine : ISyncEngine
                 {
                     bool isActive = item.SellerProductStatus && item.BuyerProductStatus;
                     var categorySlug = ResolveCategorySlug(item.Category);
+                    var brand = item.Brand ?? "";
+                    
+                    var targetGameSlug = NormalizeBrandToSlug(brand);
+                    if (targetGameSlug == null)
+                    {
+                        _logger.LogWarning("Category for brand [{Brand}] not found", brand);
+                        continue;
+                    }
 
                     await UpsertProductAsync(
                         sku: item.BuyerSkuCode ?? "",
                         name: item.ProductName ?? "",
-                        gameName: item.Brand ?? "Unknown",
+                        gameSlug: targetGameSlug,
                         categorySlug: categorySlug,
                         basePrice: item.Price,
                         source: ProviderSource.DIGIFLAZZ,
@@ -281,14 +329,14 @@ public class SyncEngine : ISyncEngine
     };
 
     private async Task UpsertProductAsync(
-        string sku, string name, string gameName,
+        string sku, string name, string gameSlug,
         string categorySlug,
         decimal basePrice, ProviderSource source, bool isActive,
         SyncResult result)
     {
         if (string.IsNullOrWhiteSpace(sku)) return;
 
-        // ── Phase 2: Resolve or create Category (Games / Pulsa / E-Wallet) ─
+        // ── Phase 2: Resolve Category (Games / Pulsa / E-Wallet) ─
         var category = await _db.Categories.FirstOrDefaultAsync(c => c.Slug == categorySlug);
         if (category == null)
         {
@@ -298,20 +346,12 @@ public class SyncEngine : ISyncEngine
             await _db.SaveChangesAsync();
         }
 
-        // ── Resolve or create Game entity ──────────────────────────────
-        var game = await _db.Games.FirstOrDefaultAsync(g => g.Name.ToLower() == gameName.ToLower());
+        // ── Resolve Game entity (Strict match by Slug) ─────────────────────────
+        var game = await _db.Games.FirstOrDefaultAsync(g => g.Slug == gameSlug);
         if (game == null)
         {
-            bool needsZone = GamesRequiringZoneId.Contains(gameName);
-            game = new Game
-            {
-                CategoryId = category.Id,
-                Name = gameName,
-                Slug = gameName.ToLower().Replace(" ", "-").Replace(".", ""),
-                HasServerId = needsZone
-            };
-            _db.Games.Add(game);
-            await _db.SaveChangesAsync();
+            _logger.LogWarning("Game with slug {Slug} not found in DB. Skipping product {Sku}.", gameSlug, sku);
+            return;
         }
 
         // ── Resolve or create Provider entity ──────────────────────────
@@ -352,10 +392,12 @@ public class SyncEngine : ISyncEngine
         else
         {
             // CREATE: new product
+            // We use the game slug to fetch the placeholder image name, 
+            // since we removed `gameName` parameter.
             string? imageUrl = null;
             try
             {
-                imageUrl = await _cloudinary.UploadPlaceholderAsync(gameName, sku);
+                imageUrl = await _cloudinary.UploadPlaceholderAsync(game.Name, sku);
             }
             catch (Exception ex)
             {
@@ -387,7 +429,7 @@ public class SyncEngine : ISyncEngine
     private static string CreateMD5(string input)
     {
         using var md5 = MD5.Create();
-        byte[] hash = md5.ComputeHash(Encoding.ASCII.GetBytes(input));
+        byte[] hash = md5.ComputeHash(Encoding.UTF8.GetBytes(input));
         return Convert.ToHexString(hash).ToLowerInvariant();
     }
 

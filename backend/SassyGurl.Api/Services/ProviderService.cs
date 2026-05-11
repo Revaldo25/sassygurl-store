@@ -223,9 +223,9 @@ public class ProviderService : IProviderService
     private static string CreateMD5(string input)
     {
         using var md5 = MD5.Create();
-        var inputBytes = Encoding.ASCII.GetBytes(input);
+        var inputBytes = Encoding.UTF8.GetBytes(input);
         var hashBytes = md5.ComputeHash(inputBytes);
-        return Convert.ToHexString(hashBytes).ToLower();
+        return Convert.ToHexString(hashBytes).ToLowerInvariant();
     }
 }
 
