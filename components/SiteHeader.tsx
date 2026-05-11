@@ -9,10 +9,10 @@ import SassyLogo from "@/components/SassyLogo";
 const navItems = [
   { href: "/", label: "Home" },
   { href: "/game/mlbb", label: "MLBB" },
-  { href: "/game/genshin-impact", label: "Genshin" },
-  { href: "/game/honkai-star-rail", label: "HSR" },
-  { href: "/game/zenless-zone-zero", label: "ZZZ" },
-  { href: "/dashboard", label: "Dashboard" },
+  { href: "/game/genshin", label: "Genshin" },
+  { href: "/game/hsr", label: "HSR" },
+  { href: "/game/zzz", label: "ZZZ" },
+  { href: "/game/ff", label: "Free Fire" },
 ];
 
 export default function SiteHeader() {

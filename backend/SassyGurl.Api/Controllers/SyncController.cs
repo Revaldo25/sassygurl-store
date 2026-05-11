@@ -1,14 +1,16 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using SassyGurl.Api.Services;
+using System.ComponentModel.DataAnnotations;
 
 namespace SassyGurl.Api.Controllers;
 
 /// <summary>
-/// Phase 2: Dedicated Sync Controller with webhook-style secret protection.
-/// Endpoint: POST /api/sync/digiflazz — Protected by X-Webhook-Secret header.
+/// Phase 2: Dedicated Sync Controller with webhook-style secret protection and Swagger support.
 /// </summary>
 [ApiController]
 [Route("api/[controller]")]
+[Authorize(Roles = "SUPERADMIN,ADMIN")]
 public class SyncController : ControllerBase
 {
     private readonly ISyncEngine _syncEngine;
@@ -35,16 +37,20 @@ public class SyncController : ControllerBase
     /// Triggers Digiflazz-only product synchronization.
     /// Protected by X-Webhook-Secret header.
     /// </summary>
+    /// <param name="webhookSecret">The secret key for authorization.</param>
+    /// <param name="idempotencyKey">Optional idempotency key for safe retries.</param>
     [HttpPost("digiflazz")]
-    public async Task<IActionResult> SyncDigiflazz()
+    public async Task<IActionResult> SyncDigiflazz(
+        [FromHeader(Name = "X-Webhook-Secret")][Required] string webhookSecret,
+        [FromHeader(Name = "X-Idempotency-Key")] string? idempotencyKey = null)
     {
-        if (!ValidateSecret())
+        if (webhookSecret != WEBHOOK_SECRET)
         {
-            _logger.LogWarning("Unauthorized sync attempt from {IP}", HttpContext.Connection.RemoteIpAddress);
-            return Unauthorized(new { success = false, message = "Invalid or missing X-Webhook-Secret header." });
+            _logger.LogWarning("Unauthorized sync attempt with invalid secret from {IP}", HttpContext.Connection.RemoteIpAddress);
+            return Unauthorized(new { success = false, message = "Invalid X-Webhook-Secret header." });
         }
 
-        _logger.LogInformation("Authorized Digiflazz sync triggered.");
+        _logger.LogInformation("Authorized Digiflazz sync triggered. IdempotencyKey: {Key}", idempotencyKey ?? "N/A");
         var result = await _syncEngine.SyncFromDigiflazzAsync();
 
         return Ok(new
@@ -61,14 +67,14 @@ public class SyncController : ControllerBase
     /// <summary>
     /// POST /api/sync/vip
     /// Triggers VIP Reseller-only product synchronization.
-    /// Protected by X-Webhook-Secret header.
     /// </summary>
     [HttpPost("vip")]
-    public async Task<IActionResult> SyncVip()
+    public async Task<IActionResult> SyncVip(
+        [FromHeader(Name = "X-Webhook-Secret")][Required] string webhookSecret)
     {
-        if (!ValidateSecret())
+        if (webhookSecret != WEBHOOK_SECRET)
         {
-            return Unauthorized(new { success = false, message = "Invalid or missing X-Webhook-Secret header." });
+            return Unauthorized(new { success = false, message = "Invalid X-Webhook-Secret header." });
         }
 
         _logger.LogInformation("Authorized VIP Reseller sync triggered.");
@@ -88,14 +94,14 @@ public class SyncController : ControllerBase
     /// <summary>
     /// POST /api/sync/all
     /// Triggers full sync (both Digiflazz + VIP Reseller).
-    /// Protected by X-Webhook-Secret header.
     /// </summary>
     [HttpPost("all")]
-    public async Task<IActionResult> SyncAll()
+    public async Task<IActionResult> SyncAll(
+        [FromHeader(Name = "X-Webhook-Secret")][Required] string webhookSecret)
     {
-        if (!ValidateSecret())
+        if (webhookSecret != WEBHOOK_SECRET)
         {
-            return Unauthorized(new { success = false, message = "Invalid or missing X-Webhook-Secret header." });
+            return Unauthorized(new { success = false, message = "Invalid X-Webhook-Secret header." });
         }
 
         _logger.LogInformation("Authorized FULL sync triggered (Digiflazz + VIP).");
@@ -114,14 +120,15 @@ public class SyncController : ControllerBase
 
     /// <summary>
     /// GET /api/sync/balance
-    /// Check Digiflazz deposit balance. Protected.
+    /// Check Digiflazz deposit balance.
     /// </summary>
     [HttpGet("balance")]
-    public async Task<IActionResult> GetBalance()
+    public async Task<IActionResult> GetBalance(
+        [FromHeader(Name = "X-Webhook-Secret")][Required] string webhookSecret)
     {
-        if (!ValidateSecret())
+        if (webhookSecret != WEBHOOK_SECRET)
         {
-            return Unauthorized(new { success = false, message = "Invalid or missing X-Webhook-Secret header." });
+            return Unauthorized(new { success = false, message = "Invalid X-Webhook-Secret header." });
         }
 
         var balance = await _providerService.GetDigiflazzBalanceAsync();
@@ -131,11 +138,5 @@ public class SyncController : ControllerBase
             balance = balance.Balance,
             message = balance.Message
         });
-    }
-
-    private bool ValidateSecret()
-    {
-        return Request.Headers.TryGetValue("X-Webhook-Secret", out var secretToken)
-               && secretToken == WEBHOOK_SECRET;
     }
 }

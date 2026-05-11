@@ -203,7 +203,8 @@ public class DashboardService : IDashboardService
 
         // Today's snapshot
         var todayUtc = DateTime.UtcNow.Date;
-        var todayQuery = paidQuery.Where(t => t.PaidAt != null && t.PaidAt.Value.Date == todayUtc);
+        var tomorrowUtc = todayUtc.AddDays(1);
+        var todayQuery = paidQuery.Where(t => t.PaidAt != null && t.PaidAt.Value >= todayUtc && t.PaidAt.Value < tomorrowUtc);
         var todayRevenue = await todayQuery.SumAsync(t => (decimal?)t.PriceSell) ?? 0m;
         var todayCost = await todayQuery.SumAsync(t => (decimal?)t.PriceModal) ?? 0m;
 
@@ -221,19 +222,30 @@ public class DashboardService : IDashboardService
         var refundCount = await _context.RefundQueues.AsNoTracking().CountAsync(r => !r.IsProcessed);
 
         // Daily revenue for last 7 days (Financial Radar chart data)
+        // Step 1: Aggregate on DB side (no ToString — EF can't translate it)
         var sevenDaysAgo = todayUtc.AddDays(-6);
-        var dailyData = await paidQuery
-            .Where(t => t.PaidAt != null && t.PaidAt.Value.Date >= sevenDaysAgo)
+        var dailyRaw = await paidQuery
+            .Where(t => t.PaidAt != null && t.PaidAt.Value >= sevenDaysAgo)
             .GroupBy(t => t.PaidAt!.Value.Date)
-            .Select(g => new DailyRevenueDto
+            .Select(g => new
             {
-                Date = g.Key.ToString("yyyy-MM-dd"),
+                DateKey = g.Key,
                 Revenue = g.Sum(t => t.PriceSell),
                 Profit = g.Sum(t => t.PriceSell - t.PriceModal),
                 OrderCount = g.Count()
             })
-            .OrderBy(d => d.Date)
+            .OrderBy(d => d.DateKey)
             .ToListAsync();
+
+        // Step 2: Format dates in C# memory (safe — no LINQ translation needed)
+        var dailyData = dailyRaw.Select(d => new DailyRevenueDto
+        {
+            Date = d.DateKey.ToString("yyyy-MM-dd"),
+            Revenue = d.Revenue,
+            Profit = d.Profit,
+            OrderCount = d.OrderCount
+        }).ToList();
+
 
         var stats = new OwnerStatsDto
         {

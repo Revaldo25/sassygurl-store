@@ -31,20 +31,17 @@ public class ProductService : IProductService
             // This utilizes the underlying SyncEngine which already has robust HttpClientFactory
             var result = await _syncEngine.SyncAllAsync();
             
-            // If the provider returned a 400 Bad Request, or credentials are empty, trigger Mock logic
-            if (result.Errors > 0 || (result.Created == 0 && result.Updated == 0))
+            if (result.Errors > 0)
             {
-                _logger.LogWarning("Provider API returned errors or credentials empty. Triggering Fall-back/Mock Data.");
-                await InjectMockDataAsync();
+                _logger.LogWarning("Provider API returned errors during synchronization.");
             }
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "API exception occurred (e.g., 500/400). Executing Fall-back/Mock Data logic gracefully.");
-            await InjectMockDataAsync();
+            _logger.LogError(ex, "API exception occurred during synchronization.");
+            return false;
         }
 
-        // Target: POST /api/products/sync must return "200 OK" even if the provider APIs are down.
         return true; 
     }
 

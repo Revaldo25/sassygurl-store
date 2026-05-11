@@ -211,7 +211,9 @@ try
                 ValidIssuer = builder.Configuration["Jwt:Issuer"],
                 ValidateAudience = true,
                 ValidAudience = builder.Configuration["Jwt:Audience"],
-                ValidateLifetime = true
+                ValidateLifetime = true,
+                RoleClaimType = System.Security.Claims.ClaimTypes.Role,
+                NameClaimType = System.Security.Claims.ClaimTypes.Name
             };
         });
 
@@ -266,7 +268,8 @@ try
         options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
         {
             Name = "Authorization",
-            Description = "JWT Bearer token. Enter: Bearer {your-token}",
+            Description = "JWT Authorization header using the Bearer scheme. \r\n\r\n " +
+                          "Input ONLY your token in the text box below. (Swagger will add 'Bearer ' prefix automatically).",
             In = ParameterLocation.Header,
             Type = SecuritySchemeType.Http,
             Scheme = "bearer",

@@ -34,7 +34,7 @@ export default function GameCatalogClient({ games, accent = "#FDB0C0" }: Props) 
       if (activeTab === "POPULER") return game.isHot;
       
       // Simple heuristic for Mobile vs PC based on name/slug for demo purposes
-      const isMobile = ["mlbb", "genshin-impact", "pubg-mobile", "free-fire"].includes(game.slug);
+      const isMobile = ["mlbb", "genshin", "pubg", "ff", "hsr", "zzz", "wuwa", "hok", "mccg"].includes(game.slug);
       if (activeTab === "MOBILE") return isMobile;
       if (activeTab === "PC") return !isMobile;
 

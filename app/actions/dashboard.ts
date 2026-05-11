@@ -192,6 +192,23 @@ export async function getOwnerStats(): Promise<OwnerStats> {
   }
 }
 
+export async function triggerCatalogSync(): Promise<{ success: boolean; message: string }> {
+  try {
+    const response = await fetchApi<ApiResponse<any>>('/Sync/all', {
+      method: 'POST',
+      headers: {
+        'X-Webhook-Secret': 'SASSY_ELITE_SECURE_2026'
+      }
+    });
+    
+    revalidatePath("/admin");
+    return { success: response.success, message: response.message || "Sync triggered successfully" };
+  } catch (error: any) {
+    console.error("Error triggerCatalogSync:", error);
+    return { success: false, message: error.message || "Gagal sinkronisasi katalog" };
+  }
+}
+
 // --------------------------------------------------------------------------------
 // FALLBACKS / DEFAULTS
 // --------------------------------------------------------------------------------

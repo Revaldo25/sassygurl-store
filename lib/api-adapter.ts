@@ -93,23 +93,38 @@ type ApiResponse<T> = {
 // ── Game accent colors (slug → hex) ─────────────────────────────────────────
 const GAME_ACCENTS: Record<string, string> = {
   mlbb:       "#FDB0C0",   // sakura pink
-  "free-fire": "#FF6B35",  // orange
+  ff:         "#FF6B35",   // orange
   pubg:       "#F0C040",   // gold
   genshin:    "#A8E6CF",   // mint
-  "star-rail":  "#7EC8E3", // sky blue
+  hsr:        "#7EC8E3",   // sky blue
   zzz:        "#C084FC",   // purple
   valorant:   "#FF4655",   // red
-  "magic-chess": "#60A5FA", // blue
+  wuwa:       "#60A5FA",   // blue
+  hok:        "#F59E0B",   // amber
+  nikke:      "#F472B6",   // pink
+  lol:        "#C4B454",   // gold
+  lolwr:      "#22D3EE",   // cyan
+  roblox:     "#E11D48",   // rose
+  akef:       "#A78BFA",   // violet
+  mccg:       "#60A5FA",   // blue
 };
 
 const GAME_DESCRIPTIONS: Record<string, string> = {
   mlbb:       "Top up Mobile Legends Diamond termurah, teraman, dan terpercaya! Proses instan.",
-  "free-fire": "Top up Diamond Free Fire (FF) dengan harga terbaik dan proses super cepat.",
+  ff:         "Top up Diamond Free Fire (FF) dengan harga terbaik dan proses super cepat.",
   pubg:       "Top up UC PUBG Mobile paling murah. Diproses otomatis dalam hitungan detik.",
-  genshin:    "Top up Primogem Genshin Impact tanpa ribet. Harga bersaing, aman, dan instan.",
-  "star-rail": "Top up Stellar Jade Honkai: Star Rail tercepat dan termurah di Indonesia.",
-  zzz:        "Top up Polychrome Zenless Zone Zero harga terbaik, langsung masuk akun.",
+  genshin:    "Top up Genesis Crystal & Welkin Moon Genshin Impact tanpa ribet. Harga bersaing.",
+  hsr:        "Top up Oneiric Shard Honkai: Star Rail tercepat dan termurah di Indonesia.",
+  zzz:        "Top up Monochrome Zenless Zone Zero harga terbaik, langsung masuk akun.",
   valorant:   "Top up Valorant Points (VP) resmi dan aman. Pengiriman instan ke akun kamu.",
+  wuwa:       "Top up Lunite Wuthering Waves murah dan cepat. Proses otomatis 24 jam.",
+  hok:        "Top up Token Honor of Kings harga termurah. Langsung masuk ke akun.",
+  nikke:      "Top up Gem NIKKE: Goddess of Victory harga spesial dan proses instan.",
+  lol:        "Top up Riot Points League of Legends resmi. Harga kompetitif.",
+  lolwr:      "Top up Wild Core LoL: Wild Rift cepat dan aman. Harga terbaik.",
+  roblox:     "Top up Robux Roblox murah dan terpercaya. Proses otomatis.",
+  akef:       "Top up Origeometry Aether Gazer harga spesial dan proses instan.",
+  mccg:       "Top up Magic Chess: Go Go Weekly Pass dan item lainnya.",
 };
 
 // ── Map raw API product to NormalizedProduct ─────────────────────────────────
@@ -137,45 +152,31 @@ function mapProduct(p: any, gameSlug: string): NormalizedProduct {
 }
 
 // ============================================================================
-// REAL IMAGE OVERRIDES (FOR UI PREVIEW)
+// LOCAL ASSET MAPPING (from public/images/games/ and public/images/hero/)
 // ============================================================================
-const REAL_ASSETS: Record<string, { icon: string, banner: string, cover: string }> = {
-  "mlbb": {
-    icon: "https://play-lh.googleusercontent.com/f02oN8_y3m28N8x4uC_32uHwGqT6VjB6x7X6ZfM2_5pS_P2b-wP9U5uFpXJ98L5sA",
-    banner: "https://esports.id/img/article/5753/2021/09/16/mobile-legends-bang-bang-hadirkan-project-next-dengan-grafis-dan-ui-baru-661132.jpg",
-    cover: "https://i.pinimg.com/736x/8b/66/8f/8b668f4e2f9d5051a8f94e9f7831d044.jpg"
-  },
-  "genshin-impact": {
-    icon: "https://play-lh.googleusercontent.com/k2H99-hW_Q0L-bQW6R2XU3k-0MvXjEaOQ_e-UqD-a-m-u6F3G0sX-vVpQO6A_8mHQQ",
-    banner: "https://images.hdqwalls.com/download/genshin-impact-4k-2020-0a-1280x400.jpg",
-    cover: "https://i.pinimg.com/736x/7d/cc/43/7dcc43c17800c732fc016ba84c424076.jpg"
-  },
-  "pubg-mobile": {
-    icon: "https://play-lh.googleusercontent.com/JRd05pyBH41qjgsJuWduRJpDeZG0Hnb0yO2PUENXmR1Q2XwYJ2R9H3tVwXnOaO9pX0E",
-    banner: "https://images.hdqwalls.com/download/pubg-mobile-4k-2020-8v-1280x400.jpg",
-    cover: "https://i.pinimg.com/736x/8f/c9/76/8fc976ab94ea26402ecf048d2d667c13.jpg"
-  },
-  "valorant": {
-    icon: "https://upload.wikimedia.org/wikipedia/commons/f/fc/Valorant_logo_-_pink_color_version.svg",
-    banner: "https://images.hdqwalls.com/download/valorant-game-2020-4k-pf-1280x400.jpg",
-    cover: "https://i.pinimg.com/736x/01/f9/ba/01f9ba010b9eb020ab1609121a5cfb07.jpg"
-  },
-  "honkai-star-rail": {
-    icon: "https://play-lh.googleusercontent.com/rN9k4T3nL1rD9P3Q8b7dJp4x9657-pD_XvE-Oq1A1x3w3fMvQ9-0-pT8WpQ8cI6r1w",
-    banner: "https://images.hdqwalls.com/download/honkai-star-rail-8k-t2-1280x400.jpg",
-    cover: "https://i.pinimg.com/736x/a6/50/35/a650352518f8ab621ec68c34dc4c3821.jpg"
-  },
-  "zenless-zone-zero": {
-    icon: "https://play-lh.googleusercontent.com/YgW1N1zVvKxGZ0Xn3V1E1A3J8oR5O2y-1S1nK8vP3N9F1oG4M5tX8_1N3yC0Z8vT7w",
-    banner: "https://images.hdqwalls.com/download/zenless-zone-zero-4k-gq-1280x400.jpg",
-    cover: "https://i.pinimg.com/736x/5f/c7/27/5fc7270b22a611c0ed923f59cd3e84cd.jpg"
-  }
+const LOCAL_ASSETS: Record<string, { icon: string, banner: string }> = {
+  "mlbb":     { icon: "/images/games/mlbb_icon.jpeg",     banner: "/images/hero/hero_anime_duo_action.webp" },
+  "ff":       { icon: "/images/games/ff_icon.jpeg",        banner: "/images/hero/hero_topup_bundle_03.jpg" },
+  "genshin":  { icon: "/images/games/gi_icon.jpeg",        banner: "/images/hero/hero_genshin_fantasy_battle.webp" },
+  "hsr":      { icon: "/images/games/hsr_icon.webp",       banner: "/images/hero/hero_sci_fi_team_banner.webp" },
+  "zzz":      { icon: "/images/games/zzz_icon.webp",       banner: "/images/hero/hero_anime_duo_action.webp" },
+  "wuwa":     { icon: "/images/games/wuwa_icon.webp",      banner: "/images/hero/hero_genshin_fantasy_battle.webp" },
+  "pubg":     { icon: "/images/games/pubg_icon.svg",       banner: "/images/hero/hero_topup_bundle_03.jpg" },
+  "valorant": { icon: "/images/games/valorant_icon.jpeg",  banner: "/images/hero/hero_sci_fi_team_banner.webp" },
+  "hok":      { icon: "/images/games/hok_icon.jpeg",       banner: "/images/hero/hero_anime_duo_action.webp" },
+  "nikke":    { icon: "/images/games/nikke_icon.jpeg",     banner: "/images/hero/hero_sci_fi_team_banner.webp" },
+  "lol":      { icon: "/images/games/lol_icon.jpeg",       banner: "/images/hero/hero_topup_bundle_03.jpg" },
+  "lolwr":    { icon: "/images/games/lolwr_icon.jpeg",     banner: "/images/hero/hero_anime_duo_action.webp" },
+  "roblox":   { icon: "/images/games/rbx_icon.png",        banner: "/images/hero/hero_topup_bundle_03.jpg" },
+  "akef":     { icon: "/images/games/akef_icon.jpeg",      banner: "/images/hero/hero_genshin_fantasy_battle.webp" },
+  "mccg":     { icon: "/images/games/mccg_icon.jpeg",      banner: "/images/hero/hero_anime_duo_action.webp" },
 };
+
 
 // ── Map raw API game to NormalizedGame ───────────────────────────────────────
 function mapGame(gameData: any): NormalizedGame {
   const slug = gameData.slug;
-  const assets = REAL_ASSETS[slug];
+  const assets = LOCAL_ASSETS[slug];
   const rawProducts: any[] = gameData.products ?? [];
   const rawGrouped: any[]  = gameData.groupedProducts ?? [];
 
@@ -209,7 +210,7 @@ function mapGame(gameData: any): NormalizedGame {
     currencyName:   gameData.currencyName ?? "Item",
     icon:           assets?.icon ?? gameData.thumbnail ?? `/images/games/${slug}-icon.webp`,
     banner:         assets?.banner ?? gameData.banner    ?? `/images/games/${slug}-banner.webp`,
-    coverImage:     assets?.cover ?? gameData.banner     ?? `/images/games/${slug}-banner.webp`,
+    coverImage:     assets?.banner ?? gameData.banner    ?? `/images/games/${slug}-banner.webp`,
     guideImage:     gameData.guideImage,
     accent:         GAME_ACCENTS[slug] ?? "#FDB0C0",
     description:    GAME_DESCRIPTIONS[slug] ?? "Top up game terpercaya dan termurah!",
@@ -237,7 +238,7 @@ export async function getAllGamesNormalized(): Promise<NormalizedGame[]> {
     if (!response.success) return [];
 
     return response.data.map(g => {
-      const assets = REAL_ASSETS[g.slug];
+      const assets = LOCAL_ASSETS[g.slug];
       return {
         id:             g.id,
         slug:           g.slug,
@@ -246,7 +247,7 @@ export async function getAllGamesNormalized(): Promise<NormalizedGame[]> {
         currencyName:   g.currencyName ?? "Item",
         icon:           assets?.icon ?? g.thumbnail ?? `/images/games/${g.slug}-icon.webp`,
         banner:         assets?.banner ?? g.banner    ?? `/images/games/${g.slug}-banner.webp`,
-        coverImage:     assets?.cover ?? g.banner     ?? `/images/games/${g.slug}-banner.webp`,
+        coverImage:     assets?.banner ?? g.banner    ?? `/images/games/${g.slug}-banner.webp`,
         guideImage:     g.guideImage,
         accent:         GAME_ACCENTS[g.slug] ?? "#FDB0C0",
         description:    GAME_DESCRIPTIONS[g.slug] ?? "Top up game terpercaya dan termurah!",
