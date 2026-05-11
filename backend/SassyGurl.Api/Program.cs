@@ -171,7 +171,7 @@ try
 
     builder.Services.AddHttpClient("DigiflazzClient", client =>
     {
-        client.BaseAddress = new Uri(builder.Configuration["ProviderApis:DigiflazzBaseUrl"] ?? "https://api.digiflazz.com/v1/");
+        client.BaseAddress = new Uri(builder.Configuration["Digiflazz:BaseUrl"] ?? "https://api.digiflazz.com/v1/");
     })
     .AddStandardResilienceHandler(); // Standard retry + CB
 
