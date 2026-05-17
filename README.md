@@ -1,36 +1,42 @@
-# SassyGurl Store
+# 💎 SassyGurl Store - Premium Game Top-up System
 
-Premium gaming top-up platform with Next.js frontend and ASP.NET Core backend API.
+![SassyGurl Banner](https://img.shields.io/badge/Status-Production--Ready-brightgreen)
+![Tech Stack](https://img.shields.io/badge/Stack-.NET%2010%20%7C%20Next.js%20%7C%20PostgreSQL-blue)
 
-## Architecture
+**SassyGurl Store** adalah platform top-up game otomatis dengan standar kualitas tinggi yang menggabungkan kecepatan transaksi instan dengan pengalaman pengguna yang mewah. Dibangun menggunakan arsitektur modern untuk menangani ribuan transaksi dengan sinkronisasi harga real-time.
 
-- Frontend: `Next.js 16` (`app/`, `components/`, `app/actions/*`)
-- Backend: `.NET 10 Web API` (`backend/SassyGurl.Api`)
-- Database: `PostgreSQL` via `Entity Framework Core`
-- Auth: JWT via backend API, stored in `auth_token` cookie by server actions
+## ✨ Core Features (Enterprise-Grade)
 
-## Run backend
+- 🚀 **Automated SyncEngine**: Logika pembersihan nama produk otomatis (Regex Sanitizer) dan sistem pembanding harga termurah antar provider secara real-time.
+- 💎 **Sultan Pricing Logic**: Margin dinamis dan pembulatan otomatis untuk memastikan keuntungan maksimal bagi Owner.
+- 🔔 **SignalR Real-time Updates**: Status transaksi berubah secara otomatis di dashboard tanpa perlu refresh halaman.
+- 🎨 **Luxury Glassmorphism UI**: Antarmuka modern dengan estetika Neon Pink dan Dark Mode yang responsif (Mobile-first).
+- 🔐 **Role-Based Access Control**: Pemisahan fitur yang ketat antara **Owner** (Analitik & Profit), **Admin** (Katalog), dan **Member** (History & Loyalty).
+- 🤖 **Bot Integration**: Notifikasi otomatis via Telegram/WhatsApp untuk laporan saldo dan sukses transaksi.
 
-1. Copy env keys from `backend/SassyGurl.Api/.env.example` into your environment.
-2. Set at minimum:
-   - `ConnectionStrings__DefaultConnection`
-   - `Jwt__Key`
-   - `Jwt__Issuer`
-   - `Jwt__Audience`
-3. Start API:
-   - `dotnet run --project backend/SassyGurl.Api/SassyGurl.Api.csproj`
+## 🛠 Tech Stack
 
-Health endpoint:
-- `GET /health`
+- **Backend**: .NET 10 (ASP.NET Core API)
+- **Frontend**: Next.js 15 (App Router), Tailwind CSS, Shadcn UI
+- **Database**: PostgreSQL with Entity Framework Core
+- **Real-time**: SignalR
+- **Tunneling**: Ngrok (for Local Webhook Testing)
+- **Architecture**: Clean Architecture / Repository Pattern
 
-## Run frontend
+## 📖 HCI (IMK) Principles Applied
+Proyek ini dikembangkan dengan mematuhi **8 Golden Rules Shneiderman**:
+- **Consistency**: Tema warna dan tipografi seragam di seluruh dashboard.
+- **Informative Feedback**: Fitur *Check Nickname* sebelum pembayaran.
+- **Error Prevention**: Validasi input ID dan Zone secara ketat.
 
-1. Set `NEXT_PUBLIC_API_URL` to backend base API URL (default expected: `http://localhost:5000/api`).
-2. Run:
-   - `npm install`
-   - `npm run dev`
+## 🚀 Getting Started
 
-## Migration note
+### Prerequisites
+- .NET 10 SDK
+- Node.js (Latest LTS)
+- PostgreSQL Instance
 
-Legacy Next.js API routes and Prisma-centric flow have been migrated toward backend `.NET API` + server actions.
-See `MIGRATION_PLAN.md` for phased status and remaining hardening tasks.
+### Installation
+1. Clone the repository:
+   ```bash
+   git clone [https://github.com/username/sassygurl-store.git](https://github.com/username/sassygurl-store.git)

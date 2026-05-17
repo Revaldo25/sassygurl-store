@@ -13,8 +13,6 @@ public class MemberStatsDto
 
 public class AdminStatsDto
 {
-    public decimal TotalOmzet { get; set; }
-    public decimal TotalProfit { get; set; }
     public int TotalTransactions { get; set; }
     public int SuccessTransactions { get; set; }
     public int PendingTransactions { get; set; }

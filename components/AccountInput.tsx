@@ -36,8 +36,6 @@ export default function AccountInput({
   const [touched, setTouched] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
-  const resolved = useMemo(() => simulateUsername(gameSlug, id, zone), [gameSlug, id, zone]);
-
   useEffect(() => {
     const validation = accountSchema.safeParse({ id, zone: requiresZone ? zone : undefined });
     
@@ -53,14 +51,45 @@ export default function AccountInput({
 
     setErrorMsg(null);
     setLoading(true);
-    const timer = setTimeout(() => {
-      setUsername(resolved);
-      setLoading(false);
-      onResolved?.({ id, zone, username: resolved });
-    }, 720);
 
-    return () => clearTimeout(timer);
-  }, [id, zone, resolved, onResolved]);
+    const controller = new AbortController();
+
+    const fetchNickname = async () => {
+      try {
+        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/game/validate`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ gameCode: gameSlug, targetId: id, zoneId: zone }),
+          signal: controller.signal
+        });
+        const data = await res.json();
+        
+        if (data.success && data.data && data.data.nickname) {
+          setUsername(data.data.nickname);
+          onResolved?.({ id, zone, username: data.data.nickname });
+        } else {
+          setUsername(null);
+          setErrorMsg(data.message || "Nickname tidak ditemukan");
+          onResolved?.({ id, zone, username: null });
+        }
+      } catch (err: any) {
+        if (err.name === 'AbortError') return;
+        setUsername(null);
+        setErrorMsg("Gagal memvalidasi ID");
+        onResolved?.({ id, zone, username: null });
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    // Debounce the API call slightly
+    const timer = setTimeout(fetchNickname, 720);
+
+    return () => {
+      clearTimeout(timer);
+      controller.abort();
+    };
+  }, [id, zone, gameSlug, onResolved, requiresZone, touched]);
 
   const valid = Boolean(username);
 
@@ -71,7 +100,7 @@ export default function AccountInput({
           <p className="text-[10px] font-bold tracking-[0.4em] text-sakura/75">{stepLabel}</p>
           <h3 className="mt-1 text-xl font-black text-white md:text-2xl">{mode === "joki" ? "Data Akun Joki" : `Input ID ${gameName}`}</h3>
           <p className="mt-2 text-sm text-white/60">
-            Username akan divalidasi otomatis seperti API premium. Fokus pada keamanan, kecepatan, dan hasil yang rapi.
+            Nickname akan divalidasi otomatis seperti API premium. Fokus pada keamanan, kecepatan, dan hasil yang rapi.
           </p>
         </div>
         <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-zinc-950/60 px-4 py-2 text-xs font-semibold text-white/70">
@@ -127,7 +156,7 @@ export default function AccountInput({
       <div className="mt-4 rounded-2xl border border-white/8 bg-black/20 p-4">
         <div className="flex items-center justify-between gap-4">
           <div>
-            <p className="text-xs uppercase tracking-[0.28em] text-white/40">Simulasi Username</p>
+            <p className="text-xs uppercase tracking-[0.28em] text-white/40">Nickname</p>
             <p className="mt-1 text-base font-bold text-white">
               {loading ? "Memverifikasi..." : valid ? username : "Menunggu input valid"}
             </p>
@@ -148,7 +177,7 @@ export default function AccountInput({
         </div>
 
         <p className="mt-3 text-xs leading-6 text-white/50">
-          Username tidak disimpan di browser. Komponen ini hanya meniru respons API supaya alur checkout terasa real-time.
+          Nickname tidak disimpan di browser. Komponen ini menampilkan validasi real-time dari CheckNickname.
         </p>
       </div>
     </section>

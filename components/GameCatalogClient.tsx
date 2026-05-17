@@ -24,8 +24,8 @@ export default function GameCatalogClient({ games, accent = "#FDB0C0" }: Props) 
   const filteredGames = useMemo(() => {
     return games.filter((game) => {
       // Search filter
-      const matchesSearch = game.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                            game.shortCode.toLowerCase().includes(searchQuery.toLowerCase());
+      const matchesSearch = (game.name?.toLowerCase() || "").includes(searchQuery.toLowerCase()) || 
+                            (game.shortCode?.toLowerCase() || "").includes(searchQuery.toLowerCase());
       
       if (!matchesSearch) return false;
 

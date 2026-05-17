@@ -15,7 +15,7 @@ public class ProviderHealthMonitor : BackgroundService
     private readonly IHubContext<NotificationHub> _hub;
     private readonly IHttpClientFactory _httpClientFactory;
     private readonly ILogger<ProviderHealthMonitor> _logger;
-    private static readonly TimeSpan _interval = TimeSpan.FromMinutes(5);
+    private static readonly TimeSpan _interval = TimeSpan.FromMinutes(15);
 
     public ProviderHealthMonitor(
         IServiceScopeFactory scopeFactory,
@@ -40,8 +40,33 @@ public class ProviderHealthMonitor : BackgroundService
         {
             try
             {
-                await PingProviderAsync("Digiflazz", "https://api.digiflazz.com/v1/", stoppingToken);
-                await PingProviderAsync("VIP Reseller", "https://vipreseller.co.id/api/", stoppingToken);
+                using var scope = _scopeFactory.CreateScope();
+                var db = scope.ServiceProvider.GetRequiredService<SassyGurl.Api.Data.SassyGurlDbContext>();
+                var telegram = scope.ServiceProvider.GetRequiredService<ITelegramService>();
+                var config = scope.ServiceProvider.GetRequiredService<IConfiguration>();
+                var adminPhone = config["WhatsApp:AdminPhone"];
+
+                var providers = db.Providers.ToList();
+                foreach (var provider in providers)
+                {
+                    // For Digiflazz, VIP, etc.
+                    string baseUrl = provider.Name.ToLower().Contains("digi") ? "https://api.digiflazz.com/v1/" : "https://vipreseller.co.id/api/";
+                    await PingProviderAsync(provider.Name, baseUrl, stoppingToken);
+
+                    if (provider.Balance < 500000)
+                    {
+                        var msg = $"⚠️ ALERT: Saldo {provider.Name} menipis! Sisa saldo: Rp {provider.Balance:N0}";
+                        _logger.LogWarning(msg);
+                        _ = telegram.SendLowBalanceAlertAsync(provider.Name, provider.Balance, 500000);
+                        
+                        if (!string.IsNullOrEmpty(adminPhone))
+                        {
+                            var wa = scope.ServiceProvider.GetRequiredService<IWhatsAppService>();
+                            // Sending as a generic alert to admin
+                            _ = wa.SendOrderFailedAsync(adminPhone, "SYS-ALERT", msg);
+                        }
+                    }
+                }
             }
             catch (Exception ex)
             {
@@ -66,10 +91,29 @@ public class ProviderHealthMonitor : BackgroundService
             // Any response (even 4xx) means the server is alive
             isActive = true;
         }
-        catch
+        catch (Exception ex)
         {
             sw.Stop();
             isActive = false;
+            _logger.LogError(ex, "Provider {Name} is DOWN or returned error.", name);
+
+            try 
+            {
+                using var scope = _scopeFactory.CreateScope();
+                var telegram = scope.ServiceProvider.GetRequiredService<ITelegramService>();
+                var config = scope.ServiceProvider.GetRequiredService<IConfiguration>();
+                var adminPhone = config["WhatsApp:AdminPhone"];
+
+                var msg = $"🚨 API ERROR: Provider {name} is DOWN atau Timeout!";
+                _ = telegram.SendSystemErrorAlertAsync("Provider Offline", msg);
+
+                if (!string.IsNullOrEmpty(adminPhone))
+                {
+                    var wa = scope.ServiceProvider.GetRequiredService<IWhatsAppService>();
+                    _ = wa.SendOrderFailedAsync(adminPhone, "SYS-ALERT", msg);
+                }
+            } 
+            catch { /* fail silently on alert failure */ }
         }
 
         var payload = new ProviderStatusPayload(

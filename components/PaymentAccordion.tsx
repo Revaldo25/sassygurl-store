@@ -81,6 +81,19 @@ export default function PaymentAccordion({
     }
   };
 
+  const resolvePaymentIcon = (code: string, originalLogo?: string) => {
+    if (originalLogo && originalLogo !== "/images/payments/default.webp") {
+      return originalLogo; // Use Digiflazz/provider logo if valid
+    }
+    const c = code.toUpperCase();
+    if (c.includes("QRIS")) return "/images/ui/payment-qris.svg";
+    if (c.includes("BCA") || c.includes("MANDIRI") || c.includes("BNI") || c.includes("BRI") || c.includes("BSI") || c.includes("CIMB") || c.includes("PERMATA") || c.includes("DANAMON")) return "/images/ui/payment-bca.svg"; // Fallback to a bank icon
+    if (c.includes("GOPAY") || c.includes("OVO") || c.includes("DANA") || c.includes("LINKAJA") || c.includes("SHOPEEPAY")) return "/images/ui/payment-dana.svg"; // Fallback to e-wallet
+    if (c.includes("ALFAMART") || c.includes("INDOMARET")) return "/images/ui/payment-retail.svg";
+    
+    return "/images/payments/default.webp";
+  };
+
   return (
     <div>
       {/* ── Accordion groups ─────────────────────────────────────── */}
@@ -155,7 +168,7 @@ export default function PaymentAccordion({
                           >
                             <div className="relative h-8 w-14">
                               <Image
-                                src={method.logo || "/images/payments/default.webp"}
+                                src={resolvePaymentIcon(method.code, method.logo)}
                                 alt={method.name}
                                 fill
                                 className="object-contain"

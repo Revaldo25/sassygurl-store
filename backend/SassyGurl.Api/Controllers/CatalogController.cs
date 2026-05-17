@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
 using SassyGurl.Api.DTOs.Catalog;
 using SassyGurl.Api.DTOs.Common;
 using SassyGurl.Api.Services;
@@ -68,6 +69,35 @@ public class CatalogController : ControllerBase
     public async Task<ActionResult<ApiResponse<List<ProviderStatusDto>>>> GetProviderStatus()
     {
         var result = await _catalogService.GetProviderStatusesAsync();
+        return Ok(result);
+    }
+
+    // ── ADMIN CRUD ────────────────────────────────────────────────────────
+    
+    [Authorize(Roles = "SUPERADMIN,OWNER")]
+    [HttpPost("games")]
+    public async Task<ActionResult<ApiResponse<GameDto>>> CreateGame([FromBody] GameCreateDto dto)
+    {
+        var result = await _catalogService.CreateGameAsync(dto);
+        if (!result.Success) return BadRequest(result);
+        return Ok(result);
+    }
+
+    [Authorize(Roles = "SUPERADMIN,OWNER")]
+    [HttpPut("games/{id}")]
+    public async Task<ActionResult<ApiResponse<GameDto>>> UpdateGame(string id, [FromBody] GameUpdateDto dto)
+    {
+        var result = await _catalogService.UpdateGameAsync(id, dto);
+        if (!result.Success) return BadRequest(result);
+        return Ok(result);
+    }
+
+    [Authorize(Roles = "SUPERADMIN,OWNER")]
+    [HttpDelete("games/{id}")]
+    public async Task<ActionResult<ApiResponse<bool>>> DeleteGame(string id)
+    {
+        var result = await _catalogService.DeleteGameAsync(id);
+        if (!result.Success) return BadRequest(result);
         return Ok(result);
     }
 }

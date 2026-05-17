@@ -14,6 +14,11 @@ public interface ICatalogService
     Task<ApiResponse<List<PaymentMethodDto>>> GetActivePaymentMethodsAsync();
     Task<ApiResponse<List<PaymentGroupDto>>> GetGroupedPaymentMethodsAsync();
     Task<ApiResponse<List<ProviderStatusDto>>> GetProviderStatusesAsync();
+    
+    // Admin CRUD
+    Task<ApiResponse<GameDto>> CreateGameAsync(GameCreateDto dto);
+    Task<ApiResponse<GameDto>> UpdateGameAsync(string id, GameUpdateDto dto);
+    Task<ApiResponse<bool>> DeleteGameAsync(string id);
 }
 
 public class CatalogService : ICatalogService
@@ -83,6 +88,9 @@ public class CatalogService : ICatalogService
 
         if (game is null)
             return ApiResponse<GameDetailDto>.Fail("Game tidak ditemukan.");
+
+        // Safe null check for Products
+        var productsList = game.Products ?? new List<Product>();
 
         // Map products → DTOs with category detection
         var productDtos = game.Products
@@ -228,11 +236,97 @@ public class CatalogService : ICatalogService
                 IsActive    = p.IsActive,
                 SuccessRate = p.SuccessRate,
                 AvgLatency  = p.AvgLatencyMs,
-                LastChecked = DateTime.UtcNow
+                LastChecked = DateTime.UtcNow,
+                Balance     = p.Balance
             })
             .ToListAsync();
 
         return ApiResponse<List<ProviderStatusDto>>.Ok(providers);
+    }
+
+    // ════════════════════════════════════════════════════════
+    // ADMIN CRUD — GAME
+    // ════════════════════════════════════════════════════════
+
+    public async Task<ApiResponse<GameDto>> CreateGameAsync(GameCreateDto dto)
+    {
+        var slugExists = await _context.Games.AnyAsync(g => g.Slug == dto.Slug);
+        if (slugExists) return ApiResponse<GameDto>.Fail("Slug sudah digunakan.");
+
+        var category = await _context.Categories.FirstOrDefaultAsync(c => c.Id == dto.CategoryId);
+        if (category == null && string.IsNullOrEmpty(dto.CategoryId))
+        {
+            category = await _context.Categories.OrderBy(c => c.SortOrder).FirstOrDefaultAsync();
+        }
+
+        if (category == null) return ApiResponse<GameDto>.Fail("Kategori tidak tersedia. Silakan buat kategori terlebih dahulu.");
+
+        var game = new Game
+        {
+            Name          = dto.Name,
+            Slug          = dto.Slug,
+            Publisher     = dto.Publisher,
+            CategoryId    = category.Id,
+            HasServerId   = dto.HasServerId,
+            ServerOptions = dto.ServerOptions,
+            CurrencyName  = dto.CurrencyName,
+            IsActive      = dto.IsActive,
+            IsHot         = dto.IsHot,
+            SortOrder     = 0
+        };
+
+        _context.Games.Add(game);
+        await _context.SaveChangesAsync();
+
+        _cache.Remove("catalog:games");
+        return ApiResponse<GameDto>.Ok(MapGameDto(game));
+    }
+
+    public async Task<ApiResponse<GameDto>> UpdateGameAsync(string id, GameUpdateDto dto)
+    {
+        var game = await _context.Games.FindAsync(id);
+        if (game == null) return ApiResponse<GameDto>.Fail("Game tidak ditemukan.");
+
+        var slugExists = await _context.Games.AnyAsync(g => g.Slug == dto.Slug && g.Id != id);
+        if (slugExists) return ApiResponse<GameDto>.Fail("Slug sudah digunakan oleh game lain.");
+
+        game.Name          = dto.Name;
+        game.Slug          = dto.Slug;
+        game.Publisher     = dto.Publisher;
+        game.CategoryId    = dto.CategoryId ?? game.CategoryId;
+        game.HasServerId   = dto.HasServerId;
+        game.ServerOptions = dto.ServerOptions;
+        game.CurrencyName  = dto.CurrencyName;
+        game.IsActive      = dto.IsActive;
+        game.IsHot         = dto.IsHot;
+
+        _context.Update(game);
+        await _context.SaveChangesAsync();
+
+        _cache.Remove("catalog:games");
+        _cache.Remove($"catalog:game:{dto.Slug}:MEMBER");
+        _cache.Remove($"catalog:game:{dto.Slug}:RESELLER");
+        _cache.Remove($"catalog:game:{dto.Slug}:VIP");
+        _cache.Remove($"catalog:game:{dto.Slug}:SUPERADMIN");
+
+        return ApiResponse<GameDto>.Ok(MapGameDto(game));
+    }
+
+    public async Task<ApiResponse<bool>> DeleteGameAsync(string id)
+    {
+        var game = await _context.Games.FindAsync(id);
+        if (game == null) return ApiResponse<bool>.Fail("Game tidak ditemukan.");
+
+        _context.Games.Remove(game);
+        await _context.SaveChangesAsync();
+
+        _cache.Remove("catalog:games");
+        _cache.Remove($"catalog:game:{game.Slug}:MEMBER");
+        _cache.Remove($"catalog:game:{game.Slug}:RESELLER");
+        _cache.Remove($"catalog:game:{game.Slug}:VIP");
+        _cache.Remove($"catalog:game:{game.Slug}:SUPERADMIN");
+
+        return ApiResponse<bool>.Ok(true);
     }
 
     // ════════════════════════════════════════════════════════
@@ -249,6 +343,21 @@ public class CatalogService : ICatalogService
         FeeFlat    = p.FeeFlat,
         FeePercent = p.FeePercent,
         SortOrder  = p.SortOrder
+    };
+
+    private static GameDto MapGameDto(Game g) => new()
+    {
+        Id            = g.Id,
+        Name          = g.Name,
+        Slug          = g.Slug,
+        Publisher     = g.Publisher,
+        Thumbnail     = ResolveAsset(g.Thumbnail, g.Slug, "icon"),
+        Banner        = ResolveAsset(g.Banner,    g.Slug, "banner"),
+        GuideImage    = g.GuideImage,
+        HasServerId   = g.HasServerId,
+        ServerOptions = g.ServerOptions,
+        IsHot         = g.IsHot,
+        CurrencyName  = g.CurrencyName ?? "Item"
     };
 
     /// <summary>
@@ -278,8 +387,9 @@ public class CatalogService : ICatalogService
     /// Infer the in-game currency name from game name.
     /// Generic fallback so ANY new game works automatically.
     /// </summary>
-    private static string InferCurrencyName(string gameName)
+    private static string InferCurrencyName(string? gameName)
     {
+        if (string.IsNullOrWhiteSpace(gameName)) return "Item";
         var n = gameName.ToLowerInvariant();
         if (n.Contains("mobile legends") || n.Contains("mlbb")) return "Diamonds";
         if (n.Contains("pubg"))                                   return "UC";
@@ -303,31 +413,12 @@ public class CatalogService : ICatalogService
         var n = name.ToLowerInvariant();
 
         // ── Weekly / Battle Pass ──────────────────────────────────────────
-        if (n.Contains("weekly diamond") || n.Contains("weekly pass"))
-            return ("WEEKLY_PASS", "Weekly Diamond Pass", "🎫", 10);
-
-        if (n.Contains("twilight pass"))
-            return ("TWILIGHT", "Twilight Pass", "🌙", 20);
-
-        if (n.Contains("battle pass") || n.Contains("royale pass"))
-            return ("BATTLE_PASS", "Battle Pass", "🏆", 15);
-
-        // ── Subscriptions / Membership ────────────────────────────────────
-        if (n.Contains("starlight") || n.Contains("membership"))
-            return ("SUBSCRIPTION", "Starlight Member", "⭐", 25);
-
-        if (n.Contains("express supply pass") || n.Contains("supply pass"))
-            return ("SUBSCRIPTION", "Supply Pass", "📦", 26);
+        if (n.Contains("weekly diamond") || n.Contains("weekly pass") || n.Contains("twilight pass") || n.Contains("battle pass") || n.Contains("royale pass") || n.Contains("starlight") || n.Contains("membership") || n.Contains("express supply pass") || n.Contains("supply pass"))
+            return ("PASS_MEMBERSHIP", "PASS / MEMBERSHIP", "🎫", 10);
 
         // ── Bundles / Packs ───────────────────────────────────────────────
-        if (n.Contains("elite bundle") || n.Contains("elite pass"))
-            return ("BUNDLE", "Elite Bundle", "💎", 30);
-
-        if (n.Contains("limited") || n.Contains("value pack") || n.Contains("special"))
-            return ("BUNDLE", "Limited Time Value Pack", "🎁", 35);
-
-        if (n.Contains("bundle") || n.Contains("pack"))
-            return ("BUNDLE", "Bundle", "📦", 36);
+        if (n.Contains("elite bundle") || n.Contains("elite pass") || n.Contains("limited") || n.Contains("value pack") || n.Contains("special") || n.Contains("bundle") || n.Contains("pack"))
+            return ("SPECIALS", "SPECIALS", "🎁", 35);
 
         // ── Skins / Cosmetics ─────────────────────────────────────────────
         if (n.Contains("skin") || n.Contains("costume") || n.Contains("outfit"))
@@ -341,8 +432,8 @@ public class CatalogService : ICatalogService
         if (n.Contains("diamond") || n.Contains("crystal") || n.Contains("gems") ||
             n.Contains("uc") || n.Contains("primogem") || n.Contains("stellar jade") ||
             n.Contains("polychrome") || n.Contains("oneiric") || n.Contains("vp") ||
-            n.Contains("credit") || n.Contains("zeny") || n.Contains("coin"))
-            return ("CURRENCY", "Diamonds", "💎", 5);
+            n.Contains("credit") || n.Contains("zeny") || n.Contains("coin") || n.Contains("token"))
+            return ("CURRENCY", "DIAMONDS", "💎", 5);
 
         // ── Description fallback ──────────────────────────────────────────
         if (!string.IsNullOrWhiteSpace(description) && description != "General")
@@ -353,15 +444,12 @@ public class CatalogService : ICatalogService
 
     private static int CategorySortOrder(string slug) => slug switch
     {
-        "WEEKLY_PASS"  => 10,
-        "BATTLE_PASS"  => 15,
-        "TWILIGHT"     => 20,
-        "SUBSCRIPTION" => 25,
-        "BUNDLE"       => 30,
-        "CURRENCY"     => 5,
-        "SKIN"         => 40,
-        "GROUP_BUY"    => 50,
-        _              => 90
+        "CURRENCY"        => 5,
+        "PASS_MEMBERSHIP" => 10,
+        "SPECIALS"        => 35,
+        "SKIN"            => 40,
+        "GROUP_BUY"       => 50,
+        _                 => 90
     };
 
     private static int PaymentGroupSortOrder(string key) => key switch

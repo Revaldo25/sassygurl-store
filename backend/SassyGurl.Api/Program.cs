@@ -20,6 +20,7 @@ using SassyGurl.Infrastructure;
 using SassyGurl.Infrastructure.Interceptors;
 using Microsoft.OpenApi;
 using NpgsqlTypes;
+using Microsoft.AspNetCore.HttpOverrides;
 
 // ============================================================================
 // Serilog Bootstrap — captures startup/shutdown logs before DI is available
@@ -98,18 +99,29 @@ try
             options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
         });
 
-    // ── CORS Policy — Allow Next.js Frontend ────────────────────────────
+    // ── CORS Policy — Allow Next.js Frontend & Ngrok ─────────────────────
     builder.Services.AddCors(options =>
     {
         options.AddPolicy("NextJsFrontend", policy =>
         {
-            policy.WithOrigins(
-                    "http://localhost:3000",
-                    "https://localhost:3000")
-                .AllowAnyHeader()
-                .AllowAnyMethod()
-                .AllowCredentials(); // Required for SignalR WebSocket
+            policy.SetIsOriginAllowed(origin => 
+                origin.Contains("localhost") || 
+                origin.EndsWith(".ngrok-free.app") || 
+                origin.EndsWith(".ngrok.io") ||
+                origin.EndsWith(".ngrok-free.dev")
+            )
+            .AllowAnyHeader()
+            .AllowAnyMethod()
+            .AllowCredentials(); // Required for SignalR WebSocket
         });
+    });
+
+    // ── Proxy Forwarding (Trust All Proxies like Ngrok) ──────────────────
+    builder.Services.Configure<ForwardedHeadersOptions>(options =>
+    {
+        options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
+        options.KnownIPNetworks.Clear();
+        options.KnownProxies.Clear();
     });
 
     // SignalR for real-time dashboard updates
@@ -297,6 +309,9 @@ try
     // Build & Configure Pipeline
     // ========================================================================
     var app = builder.Build();
+
+    // ── Standard Proxy Forwarding ────────────────────────────────────────
+    app.UseForwardedHeaders();
 
     // ── Global Exception Handling (must be first in pipeline) ────────────
     app.UseExceptionMiddleware();

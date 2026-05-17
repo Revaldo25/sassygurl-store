@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using SassyGurl.Api.Data;
 using SassyGurl.Api.DTOs.Common;
@@ -17,11 +18,16 @@ public class TransactionService : ITransactionService
 {
     private readonly SassyGurlDbContext _context;
     private readonly IWhatsAppService _whatsApp;
+    private readonly IHubContext<SassyGurl.Api.Hubs.NotificationHub> _hub;
 
-    public TransactionService(SassyGurlDbContext context, IWhatsAppService whatsApp)
+    public TransactionService(
+        SassyGurlDbContext context, 
+        IWhatsAppService whatsApp,
+        IHubContext<SassyGurl.Api.Hubs.NotificationHub> hub)
     {
         _context = context;
         _whatsApp = whatsApp;
+        _hub = hub;
     }
 
     public async Task<ApiResponse<TransactionResponseDto>> CreateTransactionAsync(CreateTransactionDto request, string? userId)
@@ -107,14 +113,33 @@ public class TransactionService : ITransactionService
         if (transaction == null) return ApiResponse<string>.Fail("Transaksi tidak ditemukan.");
 
         transaction.OrderStatus = newStatus;
+        bool isJustSuccess = false;
         if (newStatus == OrderStatus.SUCCESS && transaction.PaymentStatus != PaymentStatus.PAID)
         {
             transaction.PaymentStatus = PaymentStatus.PAID; // Admin forced success
             transaction.PaidAt = DateTime.UtcNow;
             transaction.CompletedAt = DateTime.UtcNow;
+            isJustSuccess = true;
         }
 
         await _context.SaveChangesAsync();
+
+        if (isJustSuccess || newStatus == OrderStatus.SUCCESS)
+        {
+            var game = await _context.Games.FindAsync(transaction.GameId);
+            var phone = transaction.Whatsapp ?? "";
+            var masked = string.IsNullOrEmpty(phone) ? "User" : phone.Substring(0, Math.Min(4, phone.Length)) + "***";
+            
+            await SassyGurl.Api.Hubs.NotificationBroadcaster.BroadcastPublicTransaction(
+                _hub,
+                new SassyGurl.Api.Hubs.PublicTransactionPayload(
+                    MaskedTarget: masked,
+                    GameName: game?.Name ?? "Game",
+                    ProductName: transaction.DenomName ?? "Item",
+                    Timestamp: DateTime.UtcNow
+                )
+            );
+        }
 
         return ApiResponse<string>.Ok("Status berhasil diubah", $"Status berhasil diubah ke {newStatus}");
     }

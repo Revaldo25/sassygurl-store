@@ -14,6 +14,8 @@ import type {
   PaymentGroup,
   PaymentMethod
 } from "@/lib/api-adapter";
+import AccountInput from "@/components/AccountInput";
+import PaymentAccordion from "@/components/PaymentAccordion";
 
 type Props = {
   game: NormalizedGame;
@@ -39,6 +41,10 @@ export default function CheckoutClient({ game, groupedByCategory, paymentGroups 
   const [isCheckingOut, setIsCheckingOut] = useState(false);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
 
+  // Filter & Tabs
+  const [activeTab, setActiveTab] = useState<string>("ALL");
+  const [searchFilter, setSearchFilter] = useState("");
+
   // ── Computed ──────────────────────────────────────────────────────────────
   const calcFinal = (base: number, pm: PaymentMethod) =>
     base + pm.feeFlat + (base * (pm.feePercent / 100));
@@ -48,6 +54,16 @@ export default function CheckoutClient({ game, groupedByCategory, paymentGroups 
     : null;
 
   const canCheckout = !!userId && !!selectedProduct && !!selectedPayment && !!whatsapp;
+
+  const filteredGroups = groupedByCategory
+    .filter(g => activeTab === "ALL" || g.category.label.toUpperCase() === activeTab)
+    .map(g => ({
+      ...g,
+      items: g.items.filter(item => 
+        item.name.toLowerCase().includes(searchFilter.toLowerCase())
+      )
+    }))
+    .filter(g => g.items.length > 0);
 
   // ── Handlers ──────────────────────────────────────────────────────────────
   const handleValidate = async () => {
@@ -105,11 +121,19 @@ export default function CheckoutClient({ game, groupedByCategory, paymentGroups 
 
   // ── Step Header Component ────────────────────────────────────────────────
   const StepHeader = ({ num, title, done }: { num: number; title: string; done?: boolean }) => (
-    <div className="flex items-center gap-3 mb-5">
-      <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold transition-colors ${done ? "bg-emerald-500 text-white" : "bg-sakura/20 text-sakura"}`}>
-        {done ? <CheckCircle2 className="w-4 h-4" /> : num}
+    <div className="flex items-center gap-4 mb-8">
+      <div className={`relative w-10 h-10 rounded-2xl flex items-center justify-center text-sm font-black transition-all duration-500 ${
+        done 
+          ? "bg-emerald-500 text-white shadow-[0_0_20px_rgba(16,185,129,0.4)]" 
+          : "bg-sakura/10 text-sakura border border-sakura/20 shadow-[0_0_20px_rgba(253,176,192,0.1)]"
+      }`}>
+        {done ? <CheckCircle2 className="w-5 h-5" /> : num}
+        {!done && <div className="absolute inset-0 rounded-2xl bg-sakura/20 animate-ping opacity-20" />}
       </div>
-      <h2 className="text-base font-bold text-white tracking-tight">{title}</h2>
+      <div>
+        <h2 className="text-lg font-black text-white tracking-tight leading-none mb-1">{title}</h2>
+        <p className="text-[10px] font-bold text-white/30 uppercase tracking-[0.2em]">Step {num < 10 ? `0${num}` : num}</p>
+      </div>
     </div>
   );
 
@@ -123,309 +147,272 @@ export default function CheckoutClient({ game, groupedByCategory, paymentGroups 
         {/* ──────────────────────────────────────────────────────────────────
             STEP 1: MASUKKAN DATA AKUN
             ────────────────────────────────────────────────────────────────── */}
-        <section className="rounded-2xl border border-white/5 bg-white/[0.02] backdrop-blur-sm p-5">
-          <StepHeader num={1} title="Masukkan Data Akun" done={!!validatedName} />
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div>
-              <label className="text-[11px] font-semibold text-white/40 uppercase tracking-wider mb-1.5 block">User ID</label>
-              <div className="relative">
-                <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/20" />
-                <input
-                  type="text"
-                  value={userId}
-                  onChange={e => setUserId(e.target.value)}
-                  placeholder="Masukkan User ID"
-                  className="w-full bg-white/[0.03] border border-white/10 rounded-xl pl-9 pr-4 py-3 text-sm text-white focus:outline-none focus:ring-2 focus:ring-sakura/50 focus:border-sakura/30 transition-all placeholder:text-white/20"
-                />
-              </div>
-            </div>
-            {game.hasServerId && (
-              <div>
-                <label className="text-[11px] font-semibold text-white/40 uppercase tracking-wider mb-1.5 block">Zone ID</label>
-                <input
-                  type="text"
-                  value={zoneId}
-                  onChange={e => setZoneId(e.target.value)}
-                  placeholder="Zone ID"
-                  className="w-full bg-white/[0.03] border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:ring-2 focus:ring-sakura/50 focus:border-sakura/30 transition-all placeholder:text-white/20"
-                />
-              </div>
-            )}
-          </div>
-
-          {/* Validate button + result */}
-          <div className="mt-4 flex flex-wrap items-center gap-3">
-            <button
-              onClick={handleValidate}
-              disabled={!userId || isValidating}
-              className="inline-flex items-center gap-2 px-4 py-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl text-xs font-semibold text-white/70 transition-all disabled:opacity-40"
-            >
-              {isValidating ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Search className="w-3.5 h-3.5" />}
-              Cek Nickname
-            </button>
-
-            <AnimatePresence mode="wait">
-              {validatedName && (
-                <motion.div
-                  initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0 }}
-                  className="flex items-center gap-1.5 text-emerald-400 bg-emerald-500/10 px-3 py-1.5 rounded-lg border border-emerald-500/20 text-xs font-medium"
-                >
-                  <CheckCircle2 className="w-3.5 h-3.5" /> {validatedName}
-                </motion.div>
-              )}
-              {validationError && (
-                <motion.div
-                  initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0 }}
-                  className="flex items-center gap-1.5 text-rose-400 bg-rose-500/10 px-3 py-1.5 rounded-lg border border-rose-500/20 text-xs font-medium"
-                >
-                  <AlertCircle className="w-3.5 h-3.5" /> {validationError}
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </div>
-        </section>
+        <AccountInput 
+          gameSlug={game.slug}
+          gameName={game.name}
+          requiresZone={game.hasServerId}
+          onResolved={(payload) => {
+            setUserId(payload.id);
+            setZoneId(payload.zone || "");
+            setValidatedName(payload.username);
+          }}
+          stepLabel="STEP 01"
+        />
 
         {/* ──────────────────────────────────────────────────────────────────
             STEP 2: PILIH NOMINAL
             ────────────────────────────────────────────────────────────────── */}
-        <section className="rounded-2xl border border-white/5 bg-white/[0.02] backdrop-blur-sm p-5">
-          <StepHeader num={2} title="Pilih Nominal" done={!!selectedProduct} />
-
-          {groupedByCategory.length > 0 ? (
-            groupedByCategory.map((group, idx) => (
-              <div key={idx} className="mb-6 last:mb-0">
-                <h3 className="flex items-center gap-2 text-sm font-semibold text-white/60 mb-3">
-                  <span className="text-lg">{group.category.icon}</span>
-                  {group.category.label}
-                  <span className="ml-auto text-[10px] text-white/30">{group.items.length} item</span>
-                </h3>
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
-                  {group.items.map(product => {
-                    const active = selectedProduct?.id === product.id;
-                    return (
-                      <button
-                        key={product.id}
-                        onClick={() => setSelectedProduct(product)}
-                        className={`group relative flex flex-col justify-between p-3.5 rounded-xl border text-left transition-all duration-200 h-[100px] overflow-hidden ${
-                          active
-                            ? "border-sakura bg-sakura/10 shadow-[0_0_24px_rgba(253,176,192,0.12)]"
-                            : "border-white/5 bg-white/[0.02] hover:border-white/15 hover:bg-white/[0.04]"
-                        }`}
-                      >
-                        <p className={`text-[13px] font-semibold leading-tight line-clamp-2 ${active ? "text-white" : "text-white/70"}`}>
-                          {product.name}
-                        </p>
-                        <div className="flex items-baseline gap-1.5 mt-auto">
-                          <span className={`text-sm font-bold ${active ? "text-sakura" : "text-sakura/70"}`}>
-                            {formatIDR(product.displayPrice)}
-                          </span>
-                          {product.originalPrice && product.originalPrice > product.displayPrice && (
-                            <span className="text-[10px] text-white/30 line-through">
-                              {formatIDR(product.originalPrice)}
-                            </span>
-                          )}
-                        </div>
-                        {/* Promo badge */}
-                        {product.isFlashSale && (
-                          <div className="absolute top-2 right-2 bg-rose-500 text-[9px] font-bold text-white px-1.5 py-0.5 rounded-md">
-                            PROMO
-                          </div>
-                        )}
-                        {/* Selected checkmark */}
-                        {active && (
-                          <div className="absolute top-2 right-2">
-                            <CheckCircle2 className="w-4 h-4 text-sakura" />
-                          </div>
-                        )}
-                      </button>
-                    );
-                  })}
+        <AnimatePresence>
+          {validatedName && (
+            <motion.section 
+              initial={{ opacity: 0, height: 0, marginTop: 0 }}
+              animate={{ opacity: 1, height: "auto", marginTop: 20 }}
+              exit={{ opacity: 0, height: 0, marginTop: 0 }}
+              className="rounded-2xl border border-white/5 bg-white/[0.02] backdrop-blur-sm p-5 overflow-hidden"
+            >
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+                <StepHeader num={2} title="Pilih Nominal" done={!!selectedProduct} />
+                
+                <div className="group relative w-full sm:w-64">
+                  <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-white/40 transition-colors group-focus-within:text-sakura" />
+                  <input
+                    type="text"
+                    placeholder="Cari item..."
+                    value={searchFilter}
+                    onChange={(e) => setSearchFilter(e.target.value)}
+                    className="w-full bg-black/40 border border-white/10 rounded-2xl py-3 pl-10 pr-4 text-sm text-white placeholder:text-white/30 focus:outline-none focus:border-sakura/50 focus:ring-2 focus:ring-sakura/20 transition-all"
+                  />
                 </div>
               </div>
-            ))
-          ) : (
-            /* Fallback: Flat product list */
-            <div className="text-center py-12">
-              <p className="text-white/30 text-sm">Belum ada produk tersedia untuk game ini.</p>
-              <p className="text-white/20 text-xs mt-1">Silakan lakukan Sync API di Admin Dashboard.</p>
-            </div>
+
+              {/* Tabs */}
+              <div className="flex gap-2 overflow-x-auto pb-6 mb-2 no-scrollbar">
+                <button
+                  onClick={() => setActiveTab("ALL")}
+                  className={`shrink-0 px-6 py-3 rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] transition-all duration-300 ${
+                    activeTab === "ALL" 
+                      ? "bg-sakura text-zinc-950 shadow-[0_10px_25px_-5px_rgba(253,176,192,0.4)] scale-105" 
+                      : "bg-white/[0.03] text-zinc-500 border border-white/5 hover:bg-white/[0.08] hover:text-white"
+                  }`}
+                >
+                  SEMUA
+                </button>
+                {groupedByCategory.map(g => (
+                  <button
+                    key={g.category.slug}
+                    onClick={() => setActiveTab(g.category.label.toUpperCase())}
+                    className={`shrink-0 px-6 py-3 rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] transition-all duration-300 ${
+                      activeTab === g.category.label.toUpperCase()
+                        ? "bg-sakura text-zinc-950 shadow-[0_10px_25px_-5px_rgba(253,176,192,0.4)] scale-105"
+                        : "bg-white/[0.03] text-zinc-500 border border-white/5 hover:bg-white/[0.08] hover:text-white"
+                    }`}
+                  >
+                    {g.category.label}
+                  </button>
+                ))}
+              </div>
+
+              {filteredGroups.length > 0 ? (
+                filteredGroups.map((group, idx) => (
+                  <div key={idx} className="mb-6 last:mb-0">
+                    <h3 className="flex items-center gap-2 text-sm font-black uppercase tracking-widest text-zinc-500 mb-4">
+                      {group.category.icon && <span className="text-lg">{group.category.icon}</span>}
+                      {group.category.label}
+                    </h3>
+                    {/* Premium Card Grid: 3 col desktop, 2 col mobile */}
+                    <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                      {group.items.map(product => {
+                        const active = selectedProduct?.id === product.id;
+                        // Better image resolving logic
+                        const nominalMatch = product.name.match(/\d+/);
+                        const nominalStr = nominalMatch ? nominalMatch[0] : "1";
+                        // Priority: Product thumbnail -> Specific category folder -> Generic folder
+                        const imageSrc = product.thumbnail || `/images/items/${game.slug}/${group.category.slug.toLowerCase()}/${nominalStr}.png`;
+
+                        return (
+                          <button
+                            key={product.id}
+                            onClick={() => setSelectedProduct(product)}
+                            className={`group relative flex items-center gap-4 p-5 rounded-[2rem] border text-left transition-all duration-500 overflow-hidden ${
+                              active
+                                ? "border-sakura bg-sakura/10 shadow-[0_20px_40px_-12px_rgba(253,176,192,0.2)] scale-[1.02]"
+                                : "border-white/5 bg-white/[0.02] hover:border-white/20 hover:bg-white/[0.05] hover:translate-y-[-2px]"
+                            }`}
+                          >
+                            {/* Product Icon (Left) */}
+                            <div className="shrink-0 w-14 h-14 rounded-2xl bg-zinc-950/50 border border-white/10 p-2.5 overflow-hidden flex items-center justify-center transition-transform duration-500 group-hover:scale-110">
+                               <img 
+                                 src={imageSrc} 
+                                 alt={product.name} 
+                                 className="w-full h-full object-contain filter drop-shadow-[0_0_8px_rgba(253,176,192,0.3)]"
+                                 onError={(e) => {
+                                   (e.target as HTMLImageElement).src = "/images/items/generic/diamond.png";
+                                 }}
+                               />
+                            </div>
+                            
+                            {/* Product Details */}
+                            <div className="min-w-0 flex-1">
+                              <p className={`text-xs font-black leading-tight truncate mb-1.5 ${active ? "text-white" : "text-zinc-400 group-hover:text-white"}`}>
+                                {product.name}
+                              </p>
+                              <div className="flex flex-col gap-0.5">
+                                <span className={`text-sm font-black tracking-tight ${active ? "text-sakura" : "text-sakura/90 group-hover:text-sakura"}`}>
+                                  {formatIDR(product.displayPrice)}
+                                </span>
+                                {product.originalPrice && product.originalPrice > product.displayPrice && (
+                                  <span className="text-[10px] text-zinc-600 font-bold line-through">
+                                    {formatIDR(product.originalPrice)}
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+
+                            {/* Promo badge */}
+                            {product.isFlashSale && (
+                              <div className="absolute top-0 right-0 bg-gradient-to-l from-rose-600 to-rose-500 text-[8px] font-black uppercase text-white px-3 py-1.5 rounded-bl-2xl rounded-tr-xl shadow-lg">
+                                PROMO
+                              </div>
+                            )}
+                            
+                            {/* Selected Indicator Dot */}
+                            {active && (
+                              <motion.div 
+                                layoutId="activeProduct"
+                                className="absolute right-4 top-1/2 -translate-y-1/2 w-1.5 h-6 bg-sakura rounded-full shadow-[0_0_12px_rgba(253,176,192,0.8)]"
+                              />
+                            )}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div className="text-center py-12 border border-dashed border-white/10 rounded-2xl">
+                  <Search className="w-8 h-8 text-zinc-600 mx-auto mb-3" />
+                  <p className="text-white/60 text-sm font-bold">Tidak ada produk ditemukan.</p>
+                  <p className="text-white/40 text-xs mt-1">Coba kata kunci lain atau pilih tab berbeda.</p>
+                </div>
+              )}
+            </motion.section>
           )}
-        </section>
+        </AnimatePresence>
 
         {/* ──────────────────────────────────────────────────────────────────
-            STEP 3: PILIH PEMBAYARAN (ACCORDION GROUPS)
+            STEP 3: PILIH PEMBAYARAN
             ────────────────────────────────────────────────────────────────── */}
-        <section className="rounded-2xl border border-white/5 bg-white/[0.02] backdrop-blur-sm p-5">
-          <StepHeader num={3} title="Pilih Pembayaran" done={!!selectedPayment} />
-
-          {paymentGroups.length > 0 ? (
-            <div className="space-y-2.5">
-              {paymentGroups.map(group => {
-                const isOpen = expandedPaymentGroup === group.groupKey;
-                const hasSelected = group.methods.some(m => m.id === selectedPayment?.id);
-
-                return (
-                  <div key={group.groupKey} className={`rounded-xl border overflow-hidden transition-colors ${hasSelected ? "border-sakura/30" : "border-white/5"}`}>
-                    {/* Accordion header */}
-                    <button
-                      onClick={() => setExpandedPaymentGroup(isOpen ? null : group.groupKey)}
-                      className="w-full flex items-center justify-between px-4 py-3 bg-white/[0.02] hover:bg-white/[0.04] transition-colors"
-                    >
-                      <div className="flex items-center gap-2.5">
-                        <span className="text-lg">{group.countryFlag || "💳"}</span>
-                        <span className="text-sm font-semibold text-white/70">{group.groupLabel}</span>
-                        <span className="text-[10px] text-white/30 bg-white/5 px-1.5 py-0.5 rounded">{group.methods.length}</span>
-                      </div>
-                      <ChevronDown className={`w-4 h-4 text-white/30 transition-transform ${isOpen ? "rotate-180" : ""}`} />
-                    </button>
-
-                    {/* Accordion body */}
-                    <AnimatePresence>
-                      {isOpen && (
-                        <motion.div
-                          initial={{ height: 0, opacity: 0 }}
-                          animate={{ height: "auto", opacity: 1 }}
-                          exit={{ height: 0, opacity: 0 }}
-                          transition={{ duration: 0.2 }}
-                          className="overflow-hidden"
-                        >
-                          <div className="p-3 grid grid-cols-1 sm:grid-cols-2 gap-2">
-                            {group.methods.map(method => {
-                              const active = selectedPayment?.id === method.id;
-                              const price = selectedProduct ? calcFinal(selectedProduct.displayPrice, method) : null;
-
-                              return (
-                                <button
-                                  key={method.id}
-                                  onClick={() => setSelectedPayment(method)}
-                                  className={`flex items-center justify-between p-3 rounded-xl border text-left transition-all ${
-                                    active
-                                      ? "border-sakura bg-sakura/10"
-                                      : "border-white/5 bg-white/[0.02] hover:border-white/10 hover:bg-white/[0.04]"
-                                  }`}
-                                >
-                                  <div className="flex items-center gap-3">
-                                    {method.logo ? (
-                                      <div className="w-10 h-7 bg-white/10 rounded-lg overflow-hidden flex items-center justify-center p-1">
-                                        <img src={method.logo} alt={method.name} className="max-w-full max-h-full object-contain" />
-                                      </div>
-                                    ) : (
-                                      <div className="w-10 h-7 bg-white/5 rounded-lg flex items-center justify-center text-white/30">
-                                        <CreditCard className="w-4 h-4" />
-                                      </div>
-                                    )}
-                                    <div>
-                                      <p className="text-xs font-semibold text-white/80">{method.name}</p>
-                                      <p className="text-[10px] text-white/30">Otomatis</p>
-                                    </div>
-                                  </div>
-                                  <div className="text-right">
-                                    {price ? (
-                                      <p className={`text-xs font-bold ${active ? "text-sakura" : "text-white/50"}`}>{formatIDR(price)}</p>
-                                    ) : (
-                                      <p className="text-[10px] text-white/20">Pilih item</p>
-                                    )}
-                                  </div>
-                                </button>
-                              );
-                            })}
-                          </div>
-                        </motion.div>
-                      )}
-                    </AnimatePresence>
-                  </div>
-                );
-              })}
-            </div>
-          ) : (
-            <p className="text-white/30 text-sm text-center py-8">Belum ada metode pembayaran tersedia.</p>
+        <AnimatePresence>
+          {selectedProduct && (
+            <motion.section 
+              initial={{ opacity: 0, height: 0, marginTop: 0 }}
+              animate={{ opacity: 1, height: "auto", marginTop: 20 }}
+              exit={{ opacity: 0, height: 0, marginTop: 0 }}
+              className="rounded-2xl border border-white/5 bg-white/[0.02] backdrop-blur-sm p-5 overflow-hidden"
+            >
+              <StepHeader num={3} title="Pilih Pembayaran" done={!!selectedPayment} />
+              <PaymentAccordion 
+                groups={paymentGroups}
+                selectedCode={selectedPayment?.code}
+                onSelect={(method) => setSelectedPayment(method)}
+                baseTotal={selectedProduct.displayPrice}
+              />
+            </motion.section>
           )}
-        </section>
+        </AnimatePresence>
 
         {/* ──────────────────────────────────────────────────────────────────
             STEP 4: KONTAK & CHECKOUT
             ────────────────────────────────────────────────────────────────── */}
-        <section className="rounded-2xl border border-white/5 bg-white/[0.02] backdrop-blur-sm p-5">
-          <StepHeader num={4} title="Nomor WhatsApp" />
-
-          <div>
-            <label className="text-[11px] font-semibold text-white/40 uppercase tracking-wider mb-1.5 block">WhatsApp</label>
-            <div className="relative">
-              <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/20" />
-              <input
-                type="tel"
-                value={whatsapp}
-                onChange={e => setWhatsapp(e.target.value)}
-                placeholder="08xxxxxxxxxx"
-                className="w-full bg-white/[0.03] border border-white/10 rounded-xl pl-9 pr-4 py-3 text-sm text-white focus:outline-none focus:ring-2 focus:ring-sakura/50 focus:border-sakura/30 transition-all placeholder:text-white/20"
-              />
-            </div>
-            <p className="text-[10px] text-white/30 mt-1.5">Status pesanan & bukti bayar dikirim via WhatsApp.</p>
-          </div>
-
-          {/* Order Summary */}
-          {selectedProduct && selectedPayment && (
-            <motion.div
-              initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
-              className="mt-5 p-4 rounded-xl bg-sakura/5 border border-sakura/10"
+        <AnimatePresence>
+          {selectedPayment && (
+            <motion.section 
+              initial={{ opacity: 0, height: 0, marginTop: 0 }}
+              animate={{ opacity: 1, height: "auto", marginTop: 20 }}
+              exit={{ opacity: 0, height: 0, marginTop: 0 }}
+              className="rounded-2xl border border-white/5 bg-white/[0.02] backdrop-blur-sm p-8 overflow-hidden mb-24 lg:mb-0"
             >
-              <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-sakura/60 mb-3">Ringkasan Pesanan</p>
-              <div className="space-y-2 text-sm">
-                <div className="flex justify-between">
-                  <span className="text-white/40">Item</span>
-                  <span className="text-white font-medium">{selectedProduct.name}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-white/40">Harga</span>
-                  <span className="text-white">{formatIDR(selectedProduct.displayPrice)}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-white/40">Biaya Admin</span>
-                  <span className="text-white/60">{formatIDR(finalPrice! - selectedProduct.displayPrice)}</span>
-                </div>
-                <div className="flex justify-between pt-2 border-t border-white/5">
-                  <span className="text-white font-bold">Total Bayar</span>
-                  <span className="text-sakura font-bold text-lg">{formatIDR(finalPrice!)}</span>
-                </div>
-              </div>
-            </motion.div>
-          )}
+              <StepHeader num={4} title="Informasi Kontak" />
 
-          {/* CTA Button */}
-          <button
-            onClick={() => setShowConfirmModal(true)}
-            disabled={!canCheckout}
-            className="w-full mt-5 bg-gradient-to-r from-sakura to-rose-500 hover:from-rose-400 hover:to-sakura text-zinc-950 font-black py-3.5 rounded-2xl shadow-[0_0_30px_rgba(253,176,192,0.2)] disabled:opacity-30 disabled:cursor-not-allowed disabled:shadow-none transition-all active:scale-[0.98] flex items-center justify-center gap-2 text-sm tracking-wider"
-          >
-            <ShieldCheck className="w-4 h-4" />
-            BELI SEKARANG
-          </button>
-        </section>
+              <div className="space-y-6">
+                <div>
+                  <label className="text-[10px] font-black font-mono text-sakura uppercase tracking-[0.3em] mb-3 block">Nomor WhatsApp</label>
+                  <div className="relative group">
+                    <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                      <Phone className="h-5 w-5 text-white/20 group-focus-within:text-sakura transition-colors" />
+                    </div>
+                    <input
+                      type="tel"
+                      value={whatsapp}
+                      onChange={e => setWhatsapp(e.target.value)}
+                      placeholder="Contoh: 081234567890"
+                      className="w-full bg-black/40 border border-white/10 rounded-2xl py-4 pl-12 pr-6 text-sm text-white placeholder:text-white/10 focus:outline-none focus:border-sakura focus:ring-4 focus:ring-sakura/10 transition-all font-bold"
+                    />
+                  </div>
+                  <p className="text-[10px] text-white/20 mt-3 font-medium flex items-center gap-2">
+                    <AlertCircle className="w-3 h-3" />
+                    Nomor ini akan digunakan untuk mengirimkan rincian pesanan.
+                  </p>
+                </div>
+
+                <button
+                  onClick={() => setShowConfirmModal(true)}
+                  disabled={!canCheckout}
+                  className="w-full bg-gradient-to-r from-sakura to-rose-500 hover:from-rose-400 hover:to-sakura text-zinc-950 font-black py-5 rounded-[2rem] shadow-[0_20px_40px_-10px_rgba(253,176,192,0.3)] disabled:opacity-30 disabled:cursor-not-allowed disabled:shadow-none transition-all active:scale-[0.98] flex items-center justify-center gap-3 text-sm tracking-[0.2em]"
+                >
+                  <ShieldCheck className="w-5 h-5" />
+                  BAYAR SEKARANG
+                </button>
+              </div>
+            </motion.section>
+          )}
+        </AnimatePresence>
       </div>
 
       {/* ══════════════════════════════════════════════════════════════════════
-          STICKY BOTTOM BAR (MOBILE)
+          PREMIUM FLOATING SUMMARY BAR (Ditusi Style)
           ══════════════════════════════════════════════════════════════════════ */}
-      {selectedProduct && (
-        <div className="fixed bottom-0 left-0 right-0 z-50 lg:hidden bg-zinc-950/95 backdrop-blur-xl border-t border-white/10 px-4 py-3 safe-bottom">
-          <div className="flex items-center justify-between gap-3">
-            <div className="min-w-0">
-              <p className="text-xs text-white/50 truncate">{selectedProduct.name}</p>
-              <p className="text-base font-bold text-sakura">
-                {finalPrice ? formatIDR(finalPrice) : formatIDR(selectedProduct.displayPrice)}
-              </p>
+      <AnimatePresence>
+        {selectedProduct && (
+          <motion.div 
+            initial={{ y: 100 }}
+            animate={{ y: 0 }}
+            exit={{ y: 100 }}
+            className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[50] w-[95%] max-w-4xl"
+          >
+            <div className="bg-zinc-900/80 backdrop-blur-3xl border border-white/10 rounded-[2.5rem] p-3 pl-8 shadow-[0_25px_50px_-12px_rgba(0,0,0,0.5)] flex items-center justify-between gap-4">
+              <div className="hidden sm:flex items-center gap-4 min-w-0">
+                <div className="w-12 h-12 rounded-2xl bg-sakura/10 flex items-center justify-center border border-sakura/20 shrink-0">
+                   <img 
+                     src={selectedProduct.thumbnail || `/images/items/generic/diamond.png`} 
+                     className="w-8 h-8 object-contain" 
+                   />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-[10px] font-black text-white/30 uppercase tracking-widest leading-none mb-1">Item Terpilih</p>
+                  <h4 className="text-sm font-black text-white truncate">{selectedProduct.name}</h4>
+                </div>
+              </div>
+              
+              <div className="flex items-center gap-6 pr-2">
+                <div className="text-right">
+                  <p className="text-[10px] font-black text-white/30 uppercase tracking-widest leading-none mb-1">Total Pembayaran</p>
+                  <p className="text-xl font-black text-sakura tracking-tighter">
+                    {finalPrice ? formatIDR(finalPrice) : formatIDR(selectedProduct.displayPrice)}
+                  </p>
+                </div>
+                <button
+                  onClick={() => setShowConfirmModal(true)}
+                  disabled={!canCheckout}
+                  className="bg-sakura hover:bg-white text-zinc-950 font-black px-8 py-4 rounded-[2rem] text-xs tracking-[0.2em] transition-all hover:scale-105 active:scale-95 disabled:opacity-40 shadow-xl"
+                >
+                  BELI
+                </button>
+              </div>
             </div>
-            <button
-              onClick={() => setShowConfirmModal(true)}
-              disabled={!canCheckout}
-              className="shrink-0 bg-gradient-to-r from-sakura to-rose-500 text-zinc-950 font-black px-6 py-2.5 rounded-xl text-xs tracking-wider disabled:opacity-30 transition-all"
-            >
-              BELI
-            </button>
-          </div>
-        </div>
-      )}
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* ══════════════════════════════════════════════════════════════════════
           CONFIRMATION MODAL

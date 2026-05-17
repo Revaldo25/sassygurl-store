@@ -9,26 +9,26 @@ const banners = [
   {
     id: 1,
     src: "/images/hero/hero_anime_duo_action.webp",
-    title: "Top-Up MLBB dengan rasa elite.",
-    game: "MLBB",
-    slug: "mlbb",
-    subtitle: "Dibangun dengan alur reactive modular, glassmorphism neon, dan smart routing.",
-  },
-  {
-    id: 2,
-    src: "/images/hero/hero_genshin_fantasy_battle.webp",
-    title: "Genshin Impact Premium Top-Up",
-    game: "Genshin",
-    slug: "genshin-impact",
-    subtitle: "Dapatkan Genesis Crystal dengan rute termurah otomatis.",
-  },
-  {
-    id: 3,
-    src: "/images/hero/hero_sci_fi_team_banner.webp",
     title: "Zenless Zone Zero Exclusive",
     game: "ZZZ",
     slug: "zenless-zone-zero",
     subtitle: "Top up Monochrome tanpa biaya admin tersembunyi.",
+  },
+  {
+    id: 2,
+    src: "/images/hero/hero_genshin_fantasy_battle.webp",
+    title: "Wuthering Waves Premium Top-Up",
+    game: "Wuthering Waves",
+    slug: "wuthering-waves",
+    subtitle: "Dapatkan Lunites dengan rute termurah otomatis.",
+  },
+  {
+    id: 3,
+    src: "/images/hero/hero_sci_fi_team_banner.webp",
+    title: "Honkai Star Rail Premium Top-Up",
+    game: "HSR",
+    slug: "honkai-star-rail",
+    subtitle: "Top up Oneiric Shards dengan harga terbaik.",
   }
 ];
 
@@ -109,7 +109,7 @@ export default function BannerCarousel() {
               <ArrowRight className="h-4 w-4" />
             </Link>
             <Link
-              href="#games"
+              href="#catalog"
               className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-5 py-3 text-sm font-semibold text-white/80 backdrop-blur-xl transition hover:bg-white/10"
             >
               <PlayCircle className="h-4 w-4" />

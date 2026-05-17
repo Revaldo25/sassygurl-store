@@ -164,18 +164,14 @@ public class SyncEngine : ISyncEngine
                 try
                 {
                     var brand = item.Game ?? "";
-                    var targetGameSlug = NormalizeBrandToSlug(brand);
-                    if (targetGameSlug == null)
-                    {
-                        _logger.LogWarning("Category for brand [{Brand}] not found (VIP Reseller)", brand);
-                        continue;
-                    }
+                    var targetGameSlug = NormalizeBrandToSlug(brand) ?? brand.ToLowerInvariant().Replace(" ", "-");
 
                     await UpsertProductAsync(
                         sku: item.Code ?? "",
-                        name: item.Name ?? "",
+                        originalName: item.Name ?? "",
                         gameSlug: targetGameSlug,
-                        categorySlug: "games", // VIP Reseller is game-only provider
+                        categorySlug: "games",
+                        subCategory: "games",
                         basePrice: item.Price?.Basic ?? 0,
                         source: ProviderSource.VIP,
                         isActive: item.Status == "available",
@@ -264,18 +260,16 @@ public class SyncEngine : ISyncEngine
                     var categorySlug = ResolveCategorySlug(item.Category);
                     var brand = item.Brand ?? "";
                     
-                    var targetGameSlug = NormalizeBrandToSlug(brand);
-                    if (targetGameSlug == null)
-                    {
-                        _logger.LogWarning("Category for brand [{Brand}] not found", brand);
-                        continue;
-                    }
+                    var targetGameSlug = NormalizeBrandToSlug(brand) ?? brand.ToLowerInvariant().Replace(" ", "-");
+
+                    var subCategory = item.Type ?? categorySlug;
 
                     await UpsertProductAsync(
                         sku: item.BuyerSkuCode ?? "",
-                        name: item.ProductName ?? "",
+                        originalName: item.ProductName ?? "",
                         gameSlug: targetGameSlug,
                         categorySlug: categorySlug,
+                        subCategory: subCategory,
                         basePrice: item.Price,
                         source: ProviderSource.DIGIFLAZZ,
                         isActive: isActive,
@@ -328,13 +322,52 @@ public class SyncEngine : ISyncEngine
         { "e-wallet", "E-Wallet & Tagihan" }
     };
 
+    private static string CleanProductName(string name)
+    {
+        // Universal Data Sanitizer
+        name = System.Text.RegularExpressions.Regex.Replace(name, @"\s*\(.*?\)\s*", " ");
+        name = System.Text.RegularExpressions.Regex.Replace(name, @"\s*\[.*?\]\s*", " ");
+        int plusIndex = name.IndexOf('+');
+        if (plusIndex >= 0) name = name.Substring(0, plusIndex);
+        return name.Trim();
+    }
+
+    private static string ExtractNominal(string sku, string name)
+    {
+        // Smart Nominal Extractor
+        var match = System.Text.RegularExpressions.Regex.Match(name, @"\d+");
+        if (!match.Success) match = System.Text.RegularExpressions.Regex.Match(sku, @"\d+");
+        return match.Success ? match.Value : "0";
+    }
+
+    private static string GetCurrencyName(string gameSlug)
+    {
+        return gameSlug switch
+        {
+            "mlbb" => "Diamonds",
+            "ff" => "Diamonds",
+            "genshin" => "Genesis Crystals",
+            "hsr" => "Oneiric Shards",
+            "pubg" => "UC",
+            "valorant" => "Points",
+            "hok" => "Tokens",
+            "aether" => "Shifted Stars",
+            _ => "Items"
+        };
+    }
+
     private async Task UpsertProductAsync(
-        string sku, string name, string gameSlug,
-        string categorySlug,
+        string sku, string originalName, string gameSlug,
+        string categorySlug, string subCategory,
         decimal basePrice, ProviderSource source, bool isActive,
         SyncResult result)
     {
         if (string.IsNullOrWhiteSpace(sku)) return;
+
+        // Auto-Input Detection
+        bool isServerNeeded = originalName.Contains("Server", StringComparison.OrdinalIgnoreCase) || 
+                              originalName.Contains("Zone", StringComparison.OrdinalIgnoreCase) || 
+                              originalName.Contains("Region", StringComparison.OrdinalIgnoreCase);
 
         // ── Phase 2: Resolve Category (Games / Pulsa / E-Wallet) ─
         var category = await _db.Categories.FirstOrDefaultAsync(c => c.Slug == categorySlug);
@@ -350,9 +383,33 @@ public class SyncEngine : ISyncEngine
         var game = await _db.Games.FirstOrDefaultAsync(g => g.Slug == gameSlug);
         if (game == null)
         {
-            _logger.LogWarning("Game with slug {Slug} not found in DB. Skipping product {Sku}.", gameSlug, sku);
-            return;
+            _logger.LogInformation("Creating new inactive game for unmapped brand: {Slug}", gameSlug);
+            game = new Game 
+            { 
+                Name = gameSlug.Replace("-", " ").ToUpper(), 
+                Slug = gameSlug, 
+                CategoryId = category.Id, 
+                IsActive = false 
+            };
+            _db.Games.Add(game);
+            await _db.SaveChangesAsync();
         }
+
+        if (isServerNeeded && !game.HasServerId)
+        {
+            game.HasServerId = true;
+            _db.Games.Update(game);
+        }
+
+        string cleanName = CleanProductName(originalName);
+        string nominal = ExtractNominal(sku, originalName);
+        string standardName = $"{nominal} {GetCurrencyName(gameSlug)}";
+        if (nominal == "0") standardName = cleanName;
+
+        // ── Construct Image URL ────────────────────────────────────────
+        string safeSubCategory = subCategory.ToLowerInvariant().Replace(" ", "-");
+        string safeNominal = nominal.ToLowerInvariant().Replace(" ", "-");
+        string imageUrl = $"/images/items/{gameSlug}/{safeSubCategory}/{safeNominal}.png";
 
         // ── Resolve or create Provider entity ──────────────────────────
         var providerName = source == ProviderSource.VIP ? "VIP Reseller" : "Digiflazz";
@@ -364,57 +421,73 @@ public class SyncEngine : ISyncEngine
             await _db.SaveChangesAsync();
         }
 
-        // ── Price Engine ───────────────────────────────────────────────
-        decimal marginPercent = _config.GetValue<decimal>("Pricing:MarginPercentage", 0.05m);
-        decimal fixedFee = _config.GetValue<decimal>("Pricing:FixedFee", 0m);
-        decimal salePrice = basePrice + (basePrice * marginPercent) + fixedFee;
+        // ── Dynamic Pricing Sultan ───────────────────────────────────────────
+        decimal marginPercent = _config.GetValue<decimal>("Pricing:MarginPercentage", 0.03m); // 3% margin
+        
+        // Harga Jual = CEILING((Harga Modal * (1 + Margin)) / 100) * 100
+        decimal rawSalePrice = basePrice * (1m + marginPercent);
+        decimal salePrice = Math.Ceiling(rawSalePrice / 100m) * 100m;
+        
+        // Harga Coret (OriginalPrice) = Harga Jual * 1.15
+        decimal margin = salePrice - basePrice;
+        decimal originalPrice = salePrice * 1.15m;
 
         // ── Build metadata JSONB ───────────────────────────────────────
         bool gameNeedsZone = game.HasServerId;
         var metadata = JsonSerializer.Serialize(new { needsZoneId = gameNeedsZone });
 
-        // ── Upsert ─────────────────────────────────────────────────────
-        var existing = await _db.Products.FirstOrDefaultAsync(p => p.Sku == sku);
+        // ── Multi-Provider Price War ───────────────────────────────────
+        var existing = await _db.Products.FirstOrDefaultAsync(p => p.Name == standardName && p.GameId == game.Id);
 
         if (existing != null)
         {
-            // UPDATE: only touch price fields + active status
-            existing.PriceModal = basePrice;
-            existing.PriceSell = salePrice;
-            existing.PriceMember = salePrice * 0.98m;
-            existing.PriceReseller = salePrice * 0.95m;
-            existing.PriceVip = salePrice * 0.90m;
-            existing.IsActive = isActive;
-            existing.Metadata = metadata;
-            existing.LastSyncedAt = DateTime.UtcNow;
-            result.Updated++;
+            // Update logic: If new basePrice is cheaper OR it's from the same provider, update.
+            if (basePrice < existing.PriceModal || existing.ProviderId == provider.Id)
+            {
+                existing.Sku = sku;
+                existing.ProviderId = provider.Id;
+                existing.Source = source;
+                existing.OriginalName = originalName;
+                existing.CleanName = cleanName;
+                existing.PriceModal = basePrice;
+                existing.Margin = margin;
+                existing.PriceSell = salePrice;
+                existing.OriginalPrice = originalPrice;
+                existing.PriceMember = salePrice * 0.98m;
+                existing.PriceReseller = salePrice * 0.95m;
+                existing.PriceVip = salePrice * 0.90m;
+                existing.IsActive = isActive;
+                existing.Metadata = metadata;
+                existing.ImageUrl = imageUrl;
+                existing.LastSyncedAt = DateTime.UtcNow;
+                result.Updated++;
+            }
+            else
+            {
+                // New price is more expensive from a different provider -> Keep existing active, ignore new.
+                // Or if we were syncing multiple products, we'd set the more expensive one to IsActive = false, 
+                // but since we only keep 1 record per "standardName", we just don't update it.
+                existing.LastSyncedAt = DateTime.UtcNow;
+            }
         }
         else
         {
             // CREATE: new product
-            // We use the game slug to fetch the placeholder image name, 
-            // since we removed `gameName` parameter.
-            string? imageUrl = null;
-            try
-            {
-                imageUrl = await _cloudinary.UploadPlaceholderAsync(game.Name, sku);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogWarning(ex, "Cloudinary upload failed for {Sku}. Using null ImageUrl.", sku);
-            }
-
             var product = new Product
             {
                 GameId = game.Id,
                 ProviderId = provider.Id,
                 Sku = sku,
-                Name = name,
+                Name = standardName,
+                OriginalName = originalName,
+                CleanName = cleanName,
                 Source = source,
                 ImageUrl = imageUrl,
                 Metadata = metadata,
                 PriceModal = basePrice,
+                Margin = margin,
                 PriceSell = salePrice,
+                OriginalPrice = originalPrice,
                 PriceMember = salePrice * 0.98m,
                 PriceReseller = salePrice * 0.95m,
                 PriceVip = salePrice * 0.90m,

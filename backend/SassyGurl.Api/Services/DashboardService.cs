@@ -117,17 +117,9 @@ public class DashboardService : IDashboardService
         var successTransactions = await txBaseQuery.CountAsync(t => t.PaymentStatus == PaymentStatus.PAID);
         var pendingTransactions = await txBaseQuery.CountAsync(t => t.PaymentStatus == PaymentStatus.PENDING);
         var failedTransactions = await txBaseQuery.CountAsync(t => t.PaymentStatus == PaymentStatus.FAILED);
-        var totalOmzet = await txBaseQuery
-            .Where(t => t.PaymentStatus == PaymentStatus.PAID)
-            .SumAsync(t => (decimal?)t.TotalAmount) ?? 0m;
-        var totalProfit = await txBaseQuery
-            .Where(t => t.PaymentStatus == PaymentStatus.PAID)
-            .SumAsync(t => (decimal?)t.Profit) ?? 0m;
 
         var stats = new AdminStatsDto
         {
-            TotalOmzet = totalOmzet,
-            TotalProfit = totalProfit,
             TotalTransactions = totalTransactions,
             SuccessTransactions = successTransactions,
             PendingTransactions = pendingTransactions,

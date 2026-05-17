@@ -130,6 +130,72 @@ async function seed() {
     ]);
     console.log("   ✅ admin@sassygurl.id (SUPERADMIN)");
 
+    // ─── F. Add 5 Products per Game ──────────────────────────────────────
+console.log("\n🛍️ Seeding Products...");
+
+const PRODUCT_CATALOG = {
+  "mlbb": [
+    { name: "Mobile Legends - 11 Diamond", price: 2000, originalPrice: 2500, type: "CODE" },
+    { name: "Mobile Legends - 24 Diamond", price: 4500, originalPrice: 5000, type: "CODE" },
+    { name: "Mobile Legends - 36 Diamond", price: 6000, originalPrice: 7000, type: "CODE" },
+    { name: "Mobile Legends - 49 Diamond", price: 7500, originalPrice: 8500, type: "CODE" },
+    { name: "Mobile Legends - 72 Diamond", price: 10500, originalPrice: 11500, type: "CODE" },
+  ],
+  "pubg": [
+    { name: "PUBG UC - 60 UC", price: 2000, originalPrice: 2500, type: "CODE" },
+    { name: "PUBG UC - 300 UC", price: 8000, originalPrice: 9000, type: "CODE" },
+    { name: "PUBG UC - 600 UC", price: 15000, originalPrice: 16000, type: "CODE" },
+    { name: "PUBG UC - 1200 UC", price: 28000, originalPrice: 30000, type: "CODE" },
+    { name: "PUBG UC - 3000 UC", price: 65000, originalPrice: 70000, type: "CODE" },
+  ],
+  "genshin": [
+    { name: "Genshin - 60 Genesis Crystal", price: 1800, originalPrice: 2200, type: "CODE" },
+    { name: "Genshin - 300 Genesis Crystal", price: 8000, originalPrice: 9000, type: "CODE" },
+    { name: "Genshin - 980 Genesis Crystal", price: 23000, originalPrice: 25000, type: "CODE" },
+    { name: "Genshin - 1980 Genesis Crystal", price: 45000, originalPrice: 50000, type: "CODE" },
+    { name: "Genshin - Battle Pass", price: 15000, originalPrice: 17000, type: "CODE" },
+  ],
+  "valorant": [
+    { name: "Valorant Points - 350 VP", price: 3500, originalPrice: 4000, type: "CODE" },
+    { name: "Valorant Points - 1000 VP", price: 9000, originalPrice: 10000, type: "CODE" },
+    { name: "Valorant Points - 2000 VP", price: 17000, originalPrice: 18000, type: "CODE" },
+    { name: "Valorant Points - 5000 VP", price: 40000, originalPrice: 42000, type: "CODE" },
+    { name: "Valorant Points - 8400 VP", price: 65000, originalPrice: 68000, type: "CODE" },
+  ],
+};
+
+for (const [gameSlug, products] of Object.entries(PRODUCT_CATALOG)) {
+  // Get game id
+  const gameResult = await client.query('SELECT id FROM "Game" WHERE slug = $1', [gameSlug]);
+  const gameId = gameResult.rows[0]?.id;
+
+  if (!gameId) {
+    console.log(`   ⚠️ Game ${gameSlug} not found, skipping products.`);
+    continue;
+  }
+
+  for (const prod of products) {
+    await client.query(`
+      INSERT INTO "Product" (
+        id, "gameId", name, slug, description, type, price, "originalPrice", "isFeatured", "isActive", sortOrder
+      )
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, false, true, 1)
+      ON CONFLICT (slug) DO NOTHING;
+    `, [
+      crypto.randomUUID(),
+      gameId,
+      prod.name,
+      `${gameSlug}-${Math.floor(Math.random()*1000)}`,
+      `Top up ${prod.name}`,
+      prod.type,
+      prod.price,
+      prod.originalPrice,
+      Math.random() < 0.2, // 20% random featured
+    ]);
+  }
+  console.log(`   ✅ ${products.length} products for ${gameSlug}`);
+}
+
     console.log("\n" + "═".repeat(60));
     console.log("✨ 🎉 ALL SEED DATA UPSERTED SUCCESSFULLY!");
     console.log(`   📊 ${GAMES.length} Games | ${PAYMENT_METHODS.length} Payments | 2 Providers`);

@@ -36,7 +36,7 @@ public class DashboardController : ControllerBase
         return Ok(result);
     }
 
-    [Authorize(Roles = "SUPERADMIN,CS,FINANCE")]
+    [Authorize(Roles = "SUPERADMIN,OWNER,CS,FINANCE")]
     [HttpGet("admin/stats")]
     public async Task<ActionResult<ApiResponse<AdminStatsDto>>> GetAdminStats()
     {
@@ -48,7 +48,7 @@ public class DashboardController : ControllerBase
     /// Owner-only financial intelligence: NetProfit, ProviderCost, DailyRevenue chart.
     /// Only accessible by SUPERADMIN role.
     /// </summary>
-    [Authorize(Roles = "SUPERADMIN")]
+    [Authorize(Roles = "SUPERADMIN,OWNER")]
     [HttpGet("owner/stats")]
     public async Task<ActionResult<ApiResponse<OwnerStatsDto>>> GetOwnerStats()
     {
@@ -56,7 +56,7 @@ public class DashboardController : ControllerBase
         return Ok(result);
     }
 
-    [Authorize(Roles = "SUPERADMIN,CS,FINANCE")]
+    [Authorize(Roles = "SUPERADMIN,OWNER,CS,FINANCE")]
     [HttpGet("admin/transactions")]
     public async Task<ActionResult<ApiResponse<PaginatedResponse<RecentTransactionDto>>>> GetAdminTransactions([FromQuery] string filter = "ALL", [FromQuery] string search = "")
     {

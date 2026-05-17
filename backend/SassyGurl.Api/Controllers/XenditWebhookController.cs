@@ -85,6 +85,12 @@ public class XenditWebhookController : ControllerBase
             return Ok(new { message = "Transaction not found." });
         }
 
+        if (transaction.PaymentStatus == PaymentStatus.PAID)
+        {
+            _logger.LogInformation("Idempotency hit: Invoice {ExtId} is already PAID. Ignoring.", payload.ExternalId);
+            return Ok(new { message = "Transaction already processed." });
+        }
+
         // Update payment status
         transaction.PaymentStatus = PaymentStatus.PAID;
         transaction.PaidAt = DateTime.UtcNow;

@@ -47,6 +47,7 @@ export type NormalizedGame = {
   guideImage?: string;
   accent: string;
   description: string;
+  publisher?: string;
   productCount: number;
   hasServerId: boolean;
   isHot: boolean;
@@ -82,6 +83,7 @@ export type ProviderStatus = {
   successRate: number;
   avgLatency: string;
   lastChecked: string;
+  balance: number;
 };
 
 type ApiResponse<T> = {
@@ -322,6 +324,7 @@ export async function getProviderStatuses(): Promise<ProviderStatus[]> {
       successRate: p.successRate,
       avgLatency:  `${p.avgLatency}ms`,
       lastChecked: p.lastChecked,
+      balance:     p.balance ?? 0,
     }));
   } catch (error) {
     console.error("Error fetching provider status:", error);
