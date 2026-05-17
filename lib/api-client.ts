@@ -1,10 +1,17 @@
 import { cookies } from 'next/headers';
+import { auth } from './auth';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
 
 export async function fetchApi<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
   const cookieStore = await cookies();
-  const token = cookieStore.get('auth_token')?.value;
+  let token = cookieStore.get('auth_token')?.value;
+  
+  if (!token) {
+    const session = await auth();
+    // @ts-ignore
+    token = session?.user?.apiToken;
+  }
 
   const headers = new Headers(options.headers);
   headers.set('Content-Type', 'application/json');
@@ -23,13 +30,17 @@ export async function fetchApi<T>(endpoint: string, options: RequestInit = {}): 
       cache: options.cache || 'no-store',
     });
 
-    const data = await response.json();
-
-    if (!response.ok) {
-      throw new Error(data.message || 'An error occurred while fetching data');
+    let data: any = null;
+    const text = await response.text();
+    if (text) {
+      try { data = JSON.parse(text); } catch {}
     }
 
-    return data;
+    if (!response.ok) {
+      throw new Error(data?.message || `HTTP ${response.status} ${response.statusText}`);
+    }
+
+    return data as T;
   } catch (error: any) {
     console.error(`[API Error] ${endpoint}:`, error);
     throw error;

@@ -15,8 +15,6 @@ export type DashboardStats = {
 };
 
 export type AdminStats = {
-  totalOmzet: number;
-  totalProfit: number;
   totalTransactions: number;
   successTransactions: number;
   pendingTransactions: number;
@@ -36,6 +34,7 @@ export type RecentTransaction = {
   profit: number;
   paymentStatus: string;
   orderStatus: string;
+  providerRef?: string;
   createdAt: string;
 };
 
@@ -168,6 +167,7 @@ export async function updateTransactionStatus(
     });
     
     revalidatePath("/admin");
+    revalidatePath("/dashboard");
     return { success: response.success, message: response.message };
   } catch (error: any) {
     console.error("Error updating tx status:", error);
@@ -192,6 +192,7 @@ export async function getOwnerStats(): Promise<OwnerStats> {
   }
 }
 
+
 export async function triggerCatalogSync(): Promise<{ success: boolean; message: string }> {
   try {
     const response = await fetchApi<ApiResponse<any>>('/Sync/all', {
@@ -202,10 +203,69 @@ export async function triggerCatalogSync(): Promise<{ success: boolean; message:
     });
     
     revalidatePath("/admin");
+    revalidatePath("/dashboard");
     return { success: response.success, message: response.message || "Sync triggered successfully" };
   } catch (error: any) {
     console.error("Error triggerCatalogSync:", error);
     return { success: false, message: error.message || "Gagal sinkronisasi katalog" };
+  }
+}
+
+export async function getAdminGames(): Promise<any[]> {
+  try {
+    const response = await fetchApi<ApiResponse<any[]>>('/Catalog/games');
+    if (response.success && response.data) {
+      return response.data;
+    }
+    return [];
+  } catch (error) {
+    console.error("Error getAdminGames:", error);
+    return [];
+  }
+}
+
+export async function createGame(data: any): Promise<{ success: boolean; message: string }> {
+  try {
+    const response = await fetchApi<ApiResponse<any>>('/Catalog/games', {
+      method: 'POST',
+      body: JSON.stringify(data)
+    });
+    revalidatePath("/admin");
+    revalidatePath("/dashboard");
+    revalidatePath("/");
+    return { success: response.success, message: response.message };
+  } catch (error: any) {
+    return { success: false, message: error.message || "Gagal membuat game" };
+  }
+}
+
+export async function updateGame(id: string, data: any): Promise<{ success: boolean; message: string }> {
+  try {
+    const response = await fetchApi<ApiResponse<any>>(`/Catalog/games/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data)
+    });
+    revalidatePath("/admin");
+    revalidatePath("/dashboard");
+    revalidatePath("/");
+    revalidatePath(`/game/${data.slug}`);
+    return { success: response.success, message: response.message };
+  } catch (error: any) {
+    return { success: false, message: error.message || "Gagal update game" };
+  }
+}
+
+export async function deleteGame(id: string): Promise<{ success: boolean; message: string }> {
+  try {
+    const response = await fetchApi<ApiResponse<any>>(`/Catalog/games/${id}`, {
+      method: 'DELETE'
+    });
+    revalidatePath("/admin");
+    revalidatePath("/dashboard");
+    revalidatePath("/");
+    return { success: response.success, message: response.message };
+  } catch (error: any) {
+    return { success: false, message: error.message || "Gagal menghapus game" };
   }
 }
 
@@ -246,8 +306,6 @@ function getDefaultMemberStats(): DashboardStats {
 
 function getDefaultAdminStats(): AdminStats {
   return {
-    totalOmzet: 0,
-    totalProfit: 0,
     totalTransactions: 0,
     successTransactions: 0,
     pendingTransactions: 0,

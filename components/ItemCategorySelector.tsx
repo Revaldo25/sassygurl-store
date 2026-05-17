@@ -63,6 +63,16 @@ export default function ItemCategorySelector({
     [groups, activeCategory]
   );
 
+  const [searchQuery, setSearchQuery] = useState("");
+
+  const filteredItems = useMemo(() => {
+    if (!activeGroup) return [];
+    if (!searchQuery) return activeGroup.items;
+    return activeGroup.items.filter(p => 
+      p.name.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+  }, [activeGroup, searchQuery]);
+
   const selectedProduct = products.find(p => p.sku === selectedSku);
 
   return (
@@ -111,9 +121,23 @@ export default function ItemCategorySelector({
       <div className="p-4 md:p-6">
         {activeGroup && (
           <div>
-            <p className="mb-3 text-xs font-bold uppercase tracking-[0.28em] text-white/35">
-              Pilih Item — {activeGroup.category.label}
-            </p>
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
+              <p className="text-xs font-bold uppercase tracking-[0.28em] text-white/35">
+                Pilih Item — {activeGroup.category.label}
+              </p>
+              <div className="relative w-full sm:w-64">
+                <input
+                  type="text"
+                  placeholder="Cari item..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full bg-white/5 border border-white/10 rounded-xl pl-9 pr-4 py-2 text-sm text-white focus:outline-none focus:border-sakura/50 transition-colors"
+                />
+                <svg className="w-4 h-4 text-white/40 absolute left-3 top-1/2 -translate-y-1/2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+              </div>
+            </div>
 
             <AnimatePresence mode="wait">
               <motion.div
@@ -124,7 +148,7 @@ export default function ItemCategorySelector({
                 transition={{ duration: 0.2 }}
                 className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 xl:grid-cols-4"
               >
-                {activeGroup.items.map((product, index) => {
+                {filteredItems.map((product, index) => {
                   const selected = selectedSku === product.sku;
                   return (
                     <ItemCard
@@ -140,11 +164,11 @@ export default function ItemCategorySelector({
               </motion.div>
             </AnimatePresence>
 
-            {activeGroup.items.length === 0 && (
+            {filteredItems.length === 0 && (
               <div className="py-12 text-center">
                 <Tag className="mx-auto h-8 w-8 text-white/20" />
                 <p className="mt-3 text-sm text-white/40">
-                  Tidak ada item untuk kategori ini.
+                  {searchQuery ? "Tidak ada item yang cocok dengan pencarian." : "Tidak ada item untuk kategori ini."}
                 </p>
               </div>
             )}
@@ -190,81 +214,60 @@ function ItemCard({
       transition={{ delay: index * 0.025, duration: 0.22 }}
       onClick={() => onSelect(product)}
       className={[
-        "group relative flex flex-col overflow-hidden rounded-2xl border text-left transition-all duration-200",
+        "group relative flex items-center gap-3 overflow-hidden rounded-2xl border text-left transition-all duration-200 p-3",
         selected
           ? "border-sakura/60 bg-sakura/10 shadow-[0_0_24px_rgba(253,176,192,0.2)]"
           : "border-white/10 bg-zinc-950/60 hover:border-white/25 hover:bg-white/[0.07]",
       ].join(" ")}
     >
       {/* Thumbnail area */}
-      <div className="relative aspect-square w-full overflow-hidden bg-zinc-900">
+      <div className="relative h-12 w-12 shrink-0 overflow-hidden bg-zinc-900 rounded-xl">
         <Image
           src={product.image}
           alt={product.name}
           fill
-          className="object-contain p-3 transition-transform duration-300 group-hover:scale-105"
+          className="object-contain p-1.5 transition-transform duration-300 group-hover:scale-105"
           onError={() => {/* handled by next/image fallback */}}
         />
 
-        {/* Discount badge — top left */}
+        {/* Discount badge */}
         {discountPct > 0 && (
-          <span className="absolute left-2 top-2 inline-flex items-center gap-0.5 rounded-lg bg-rose-500/90 px-1.5 py-0.5 text-[10px] font-black text-white backdrop-blur-sm">
+          <span className="absolute left-0 bottom-0 w-full text-center bg-rose-500/90 py-0.5 text-[8px] font-black text-white backdrop-blur-sm">
             -{discountPct}%
           </span>
         )}
-
-        {/* Flash Sale badge */}
-        {product.isFlashSale && (
-          <span className="absolute left-2 top-2 inline-flex items-center gap-0.5 rounded-lg bg-orange-500/90 px-1.5 py-0.5 text-[10px] font-black text-white">
-            <Flame className="h-2.5 w-2.5" />
-            SALE
-          </span>
-        )}
-
-        {/* Selected checkmark — top right */}
-        {selected && (
-          <span
-            className="absolute right-2 top-2 flex h-6 w-6 items-center justify-center rounded-full text-zinc-950"
-            style={{ backgroundColor: accent }}
-          >
-            <Check className="h-4 w-4" />
-          </span>
-        )}
-
-        {/* Hover accent overlay */}
-        <div
-          className="absolute inset-0 opacity-0 transition-opacity duration-300 group-hover:opacity-100"
-          style={{
-            background: `linear-gradient(to top, ${accent}30, transparent 60%)`,
-          }}
-        />
       </div>
 
       {/* Info area */}
-      <div className="p-2.5">
-        <p className="line-clamp-2 text-xs font-bold leading-snug text-white">
+      <div className="flex-1 min-w-0">
+        <p className="line-clamp-1 text-xs font-bold leading-snug text-white">
           {product.name}
         </p>
 
-        <div className="mt-2">
+        <div className="mt-1">
+          <p
+            className="text-sm font-black"
+            style={{ color: "#FDB0C0" }}
+          >
+            {product.displayPrice === 0 ? "Gratis" : formatIDR(product.displayPrice)}
+          </p>
           {product.originalPrice && product.originalPrice > product.displayPrice && (
             <p className="text-[10px] text-white/30 line-through">
               {formatIDR(product.originalPrice)}
             </p>
           )}
-          <p
-            className="text-sm font-black"
-            style={{ color: selected ? accent : "white" }}
-          >
-            {product.displayPrice === 0 ? "Gratis" : formatIDR(product.displayPrice)}
-          </p>
-        </div>
-
-        <div className="mt-1.5 flex items-center gap-1 text-[10px] text-emerald-400">
-          <Zap className="h-2.5 w-2.5" />
-          <span>Instan</span>
         </div>
       </div>
+
+      {/* Selected checkmark */}
+      {selected && (
+        <span
+          className="absolute right-3 top-1/2 -translate-y-1/2 flex h-5 w-5 items-center justify-center rounded-full text-zinc-950"
+          style={{ backgroundColor: accent }}
+        >
+          <Check className="h-3 w-3" />
+        </span>
+      )}
 
       {/* Active accent bottom bar */}
       {selected && (

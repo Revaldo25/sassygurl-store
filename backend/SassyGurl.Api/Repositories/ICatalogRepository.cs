@@ -8,7 +8,10 @@ public interface ICatalogRepository
     Task AddCategoryAsync(Category category);
     
     Task<Game?> GetGameByNameAsync(string name);
+    Task<Game?> GetGameByIdAsync(string id);
     Task AddGameAsync(Game game);
+    Task UpdateGameAsync(Game game);
+    Task DeleteGameAsync(Game game);
 
     Task<Product?> GetProductBySkuAsync(string sku);
     Task AddProductAsync(Product product);

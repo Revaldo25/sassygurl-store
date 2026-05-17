@@ -11,6 +11,8 @@ public interface ITelegramService
 {
     Task<bool> SendAdminReportAsync(string gameName, string productName, decimal margin, string providerStatus, string invoiceId);
     Task<bool> SendMessageAsync(string message);
+    Task<bool> SendLowBalanceAlertAsync(string providerName, decimal balance, decimal threshold);
+    Task<bool> SendSystemErrorAlertAsync(string context, string errorMessage);
 }
 
 public class TelegramService : ITelegramService
@@ -42,6 +44,37 @@ public class TelegramService : ITelegramService
         💰 Margin Keuntungan: Rp {margin:N0}
         🔌 Status Provider: {providerStatus}
         🕐 Waktu: {DateTime.Now:dd/MM/yyyy HH:mm:ss}
+        """;
+
+        return await SendMessageAsync(message.Trim());
+    }
+
+    public async Task<bool> SendLowBalanceAlertAsync(string providerName, decimal balance, decimal threshold)
+    {
+        var message = $"""
+        🚨 *CRITICAL ALERT: LOW BALANCE*
+        
+        🔌 Provider: {providerName}
+        💰 Sisa Saldo: Rp {balance:N0}
+        📉 Ambang Batas: Rp {threshold:N0}
+        🕐 Waktu: {DateTime.Now:dd/MM/yyyy HH:mm:ss}
+        
+        Mohon segera lakukan top up saldo {providerName} untuk menghindari kegagalan transaksi!
+        """;
+
+        return await SendMessageAsync(message.Trim());
+    }
+
+    public async Task<bool> SendSystemErrorAlertAsync(string context, string errorMessage)
+    {
+        var message = $"""
+        🔥 *SYSTEM ERROR DETECTED*
+        
+        📍 Context: {context}
+        ❌ Error: `{errorMessage}`
+        🕐 Waktu: {DateTime.Now:dd/MM/yyyy HH:mm:ss}
+        
+        Mohon periksa log server secepatnya.
         """;
 
         return await SendMessageAsync(message.Trim());

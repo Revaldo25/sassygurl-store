@@ -4,11 +4,29 @@ import { Compass, Zap, ShieldCheck, Gem } from "lucide-react";
 import SiteHeader from "@/components/SiteHeader";
 import BannerCarousel from "@/components/BannerCarousel";
 import GameCatalogClient from "@/components/GameCatalogClient";
-import { liveTransactions, formatIDR } from "@/lib/catalog";
+import LiveTransactionFeed from "@/components/LiveTransactionFeed";
+import { formatIDR } from "@/lib/catalog";
 import { getAllGamesNormalized } from "@/lib/api-adapter";
+
+import { fetchApi } from "@/lib/api-client";
+import { PublicTransaction } from "@/components/LiveTransactionFeed";
 
 export default async function HomePage() {
   const games = await getAllGamesNormalized();
+
+  // Fetch real-time recent transactions
+  const recentRes = await fetchApi<{ success: boolean; data: any[] }>("/transactions/recent").catch(() => ({ success: false, data: [] }));
+  let initialTransactions: PublicTransaction[] = [];
+  
+  if (recentRes.success && recentRes.data) {
+    initialTransactions = recentRes.data.map((tx: any, idx: number) => ({
+      id: `tx-init-${idx}`,
+      maskedTarget: tx.maskedTarget || "User",
+      gameName: tx.gameName || "Game",
+      productName: tx.productName || "Item",
+      timestamp: new Date(tx.timestamp).toLocaleTimeString("id-ID", { hour: '2-digit', minute: '2-digit' }),
+    }));
+  }
 
   return (
     <main className="min-h-screen bg-[#09090b] text-white">
@@ -48,28 +66,7 @@ export default async function HomePage() {
       <section className="mx-auto max-w-7xl px-4 py-8 pb-20 md:px-6 md:py-12">
         <div className="grid gap-6 lg:grid-cols-[1fr_1fr]">
           {/* Live Transactions */}
-          <div className="rounded-[2rem] border border-white/5 bg-zinc-900/30 p-6 backdrop-blur-3xl">
-            <p className="text-[10px] font-bold tracking-[0.4em] text-sakura/75">LIVE TRANSACTIONS</p>
-            <h3 className="mt-2 text-2xl font-black">Bukti transaksi terasa hidup</h3>
-            <div className="mt-6 grid gap-3">
-              {liveTransactions.slice(0, 4).map((tx) => (
-                <div key={`${tx.name}-${tx.product}`} className="flex items-center justify-between rounded-2xl border border-white/5 bg-zinc-950/60 px-5 py-4 transition hover:border-white/10">
-                  <div className="flex items-center gap-4">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-emerald-500/10 text-emerald-400">
-                      <Zap className="h-4 w-4" />
-                    </div>
-                    <div>
-                      <p className="text-sm font-bold text-white">{tx.name}</p>
-                      <p className="text-xs text-white/50">{tx.game} • {tx.product}</p>
-                    </div>
-                  </div>
-                  <span className="rounded-full bg-white/5 px-3 py-1 text-[10px] font-semibold text-sakura/80">
-                    {tx.time}
-                  </span>
-                </div>
-              ))}
-            </div>
-          </div>
+          <LiveTransactionFeed initialData={initialTransactions} />
 
           {/* Why Premium */}
           <div className="relative overflow-hidden rounded-[2rem] border border-white/5 bg-zinc-900/30 p-6 backdrop-blur-3xl">

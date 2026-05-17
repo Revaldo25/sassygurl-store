@@ -9,6 +9,8 @@ public interface INotificationOrchestrator
     Task NotifyPaymentReceivedAsync(NotificationContext ctx);
     Task NotifyOrderSuccessAsync(NotificationContext ctx);
     Task NotifyOrderFailedAsync(NotificationContext ctx);
+    Task NotifyLowBalanceAsync(string providerName, decimal balance, decimal threshold);
+    Task NotifySystemErrorAsync(string context, string errorMessage);
 }
 
 public class NotificationContext
@@ -79,6 +81,20 @@ public class NotificationOrchestrator : INotificationOrchestrator
             $"❌ FAILED: {ctx.ProviderStatus}", ctx.InvoiceId);
 
         _logger.LogWarning("Failure notification dispatched for {Invoice}", ctx.InvoiceId);
+        await Task.CompletedTask;
+    }
+
+    public async Task NotifyLowBalanceAsync(string providerName, decimal balance, decimal threshold)
+    {
+        _ = _telegram.SendLowBalanceAlertAsync(providerName, balance, threshold);
+        _logger.LogWarning("Low balance notification dispatched for {Provider}", providerName);
+        await Task.CompletedTask;
+    }
+
+    public async Task NotifySystemErrorAsync(string context, string errorMessage)
+    {
+        _ = _telegram.SendSystemErrorAlertAsync(context, errorMessage);
+        _logger.LogWarning("System error notification dispatched for {Context}", context);
         await Task.CompletedTask;
     }
 }

@@ -12,6 +12,19 @@ const nextConfig: NextConfig = {
   experimental: {
     optimizeCss: true, // Auto-minify CSS
   },
+  async headers() {
+    return [
+      {
+        source: "/(.*)",
+        headers: [
+          {
+            key: "ngrok-skip-browser-warning",
+            value: "true",
+          },
+        ],
+      },
+    ];
+  },
 };
 
 export default nextConfig;

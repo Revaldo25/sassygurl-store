@@ -201,6 +201,11 @@ namespace SassyGurl.Api.Migrations
                         .HasColumnType("text")
                         .HasColumnName("categoryId");
 
+                    b.Property<string>("CurrencyName")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("currencyName");
+
                     b.Property<string>("GuideImage")
                         .HasColumnType("text")
                         .HasColumnName("guideImage");
@@ -307,6 +312,10 @@ namespace SassyGurl.Api.Migrations
                         .HasColumnType("text")
                         .HasColumnName("id");
 
+                    b.Property<string>("CleanName")
+                        .HasColumnType("text")
+                        .HasColumnName("cleanName");
+
                     b.Property<string>("Description")
                         .HasColumnType("text")
                         .HasColumnName("description");
@@ -332,6 +341,10 @@ namespace SassyGurl.Api.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("lastSyncedAt");
 
+                    b.Property<decimal>("Margin")
+                        .HasColumnType("decimal(10,2)")
+                        .HasColumnName("margin");
+
                     b.Property<string>("Metadata")
                         .HasColumnType("jsonb")
                         .HasColumnName("metadata");
@@ -340,6 +353,10 @@ namespace SassyGurl.Api.Migrations
                         .IsRequired()
                         .HasColumnType("text")
                         .HasColumnName("name");
+
+                    b.Property<string>("OriginalName")
+                        .HasColumnType("text")
+                        .HasColumnName("originalName");
 
                     b.Property<decimal?>("OriginalPrice")
                         .HasColumnType("decimal(10,2)")

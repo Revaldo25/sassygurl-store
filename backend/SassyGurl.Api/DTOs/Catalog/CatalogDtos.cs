@@ -142,4 +142,35 @@ public class ProviderStatusDto
     public decimal SuccessRate { get; set; }
     public int AvgLatency { get; set; }
     public DateTime LastChecked { get; set; } = DateTime.UtcNow;
+    public decimal Balance { get; set; }
+}
+
+// ─────────────────────────────────────────────────────────────
+// ADMIN CRUD DTOs
+// ─────────────────────────────────────────────────────────────
+
+public class GameCreateDto
+{
+    public string Name { get; set; } = null!;
+    public string Slug { get; set; } = null!;
+    public string? Publisher { get; set; }
+    public string? CategoryId { get; set; }
+    public bool HasServerId { get; set; }
+    public string? ServerOptions { get; set; }
+    public string CurrencyName { get; set; } = "Item";
+    public bool IsActive { get; set; } = true;
+    public bool IsHot { get; set; } = false;
+}
+
+public class GameUpdateDto
+{
+    public string Name { get; set; } = null!;
+    public string Slug { get; set; } = null!;
+    public string? Publisher { get; set; }
+    public string? CategoryId { get; set; }
+    public bool HasServerId { get; set; }
+    public string? ServerOptions { get; set; }
+    public string CurrencyName { get; set; } = "Item";
+    public bool IsActive { get; set; }
+    public bool IsHot { get; set; }
 }

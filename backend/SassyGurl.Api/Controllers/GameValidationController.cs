@@ -54,12 +54,33 @@ public class GameValidationController : ControllerBase
             var sign = CreateMD5($"{apiId}{apiKey}");
             var client = _httpClientFactory.CreateClient("VipResellerClient");
 
+            // Map frontend game slug to VIP Reseller game code
+            string vipGameCode = request.GameCode.ToLowerInvariant() switch
+            {
+                "mlbb" => "mobile-legends",
+                "ff" => "free-fire",
+                "genshin" => "genshin-impact",
+                "hsr" => "honkai-star-rail",
+                "zzz" => "zenless-zone-zero",
+                "wuwa" => "wuthering-waves",
+                "pubg" => "pubg-mobile",
+                "valorant" => "valorant",
+                "hok" => "honor-of-kings",
+                "nikke" => "goddess-of-victory-nikke",
+                "lol" => "league-of-legends",
+                "wr" => "league-of-legends-wild-rift",
+                "roblox" => "roblox",
+                "aether" => "aether-gazer",
+                "mccg" => "magic-chess",
+                _ => request.GameCode
+            };
+
             var formFields = new List<KeyValuePair<string, string>>
             {
                 new("key", apiKey),
                 new("sign", sign),
                 new("type", "game-feature"),
-                new("code", request.GameCode),
+                new("code", vipGameCode),
                 new("target", request.TargetId)
             };
 

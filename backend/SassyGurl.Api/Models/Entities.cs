@@ -173,6 +173,8 @@ public class Game
     public string Slug { get; set; } = null!;
 
     public string? Publisher { get; set; }
+    
+    public string CurrencyName { get; set; } = "Diamonds";
 
     public string? Thumbnail { get; set; }
 
@@ -286,6 +288,10 @@ public class Product
 
     public string Name { get; set; } = null!;
 
+    public string? OriginalName { get; set; }
+
+    public string? CleanName { get; set; }
+
     public string? Description { get; set; }
 
     /// <summary>Provider source enum for smart failover routing.</summary>
@@ -300,6 +306,9 @@ public class Product
 
     [Column(TypeName = "decimal(10,2)")]
     public decimal PriceModal { get; set; }
+
+    [Column(TypeName = "decimal(10,2)")]
+    public decimal Margin { get; set; } = 0;
 
     [Column(TypeName = "decimal(10,2)")]
     public decimal PriceSell { get; set; } = 0;

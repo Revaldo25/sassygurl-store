@@ -12,7 +12,7 @@ namespace SassyGurl.Api.Hubs;
 ///   - "MyOrderUpdated"       → Sent to specific user when their order status changes
 ///   - "ProviderStatusChanged"→ Sent to Admin/Owner when provider health changes
 /// </summary>
-[Authorize]
+[AllowAnonymous]
 public class NotificationHub : Hub
 {
     private readonly ILogger<NotificationHub> _logger;
@@ -28,19 +28,28 @@ public class NotificationHub : Hub
         var role = Context.User?.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value ?? "MEMBER";
 
         // Auto-join role-based groups for targeted broadcasting
-        await Groups.AddToGroupAsync(Context.ConnectionId, $"role:{role}");
-
-        if (role is "SUPERADMIN" or "FINANCE" or "CS")
+        if (Context.User?.Identity?.IsAuthenticated == true)
         {
-            await Groups.AddToGroupAsync(Context.ConnectionId, "admins");
+            await Groups.AddToGroupAsync(Context.ConnectionId, $"role:{role}");
+
+            if (role is "SUPERADMIN" or "FINANCE" or "CS")
+            {
+                await Groups.AddToGroupAsync(Context.ConnectionId, "admins");
+            }
+
+            if (role == "SUPERADMIN")
+            {
+                await Groups.AddToGroupAsync(Context.ConnectionId, "owners");
+            }
+            _logger.LogInformation("Dashboard client connected: {UserId} ({Role})", userId, role);
+        }
+        else
+        {
+            // Anonymous users join the public feed
+            await Groups.AddToGroupAsync(Context.ConnectionId, "PublicFeed");
+            _logger.LogInformation("Public client connected to Live Feed: {ConnectionId}", Context.ConnectionId);
         }
 
-        if (role == "SUPERADMIN")
-        {
-            await Groups.AddToGroupAsync(Context.ConnectionId, "owners");
-        }
-
-        _logger.LogInformation("Dashboard client connected: {UserId} ({Role})", userId, role);
         await base.OnConnectedAsync();
     }
 
@@ -87,9 +96,26 @@ public static class NotificationBroadcaster
     {
         await hub.Clients.Group("admins").SendAsync("ProviderStatusChanged", payload);
     }
+
+    /// <summary>
+    /// Notify public feed about successful transaction (privacy masked).
+    /// </summary>
+    public static async Task BroadcastPublicTransaction(
+        IHubContext<NotificationHub> hub,
+        PublicTransactionPayload payload)
+    {
+        await hub.Clients.Group("PublicFeed").SendAsync("PublicTransactionUpdated", payload);
+    }
 }
 
 // ── SignalR Payload DTOs ─────────────────────────────────────────────────────
+
+public record PublicTransactionPayload(
+    string MaskedTarget,
+    string GameName,
+    string ProductName,
+    DateTime Timestamp
+);
 
 public record TransactionUpdatePayload(
     string TransactionId,
