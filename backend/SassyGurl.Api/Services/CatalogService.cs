@@ -25,16 +25,18 @@ public class CatalogService : ICatalogService
 {
     private readonly SassyGurlDbContext _context;
     private readonly IMemoryCache _cache;
+    private readonly ICacheKeyRegistry _cacheRegistry;
 
     // Cache durations (memory-efficient: short TTL, no stale data risk)
     private static readonly TimeSpan GamesListTtl    = TimeSpan.FromMinutes(5);
     private static readonly TimeSpan GameDetailTtl   = TimeSpan.FromMinutes(3);
     private static readonly TimeSpan PaymentsTtl     = TimeSpan.FromMinutes(10);
 
-    public CatalogService(SassyGurlDbContext context, IMemoryCache cache)
+    public CatalogService(SassyGurlDbContext context, IMemoryCache cache, ICacheKeyRegistry cacheRegistry)
     {
         _context = context;
         _cache   = cache;
+        _cacheRegistry = cacheRegistry;
     }
 
     // ════════════════════════════════════════════════════════
@@ -93,7 +95,7 @@ public class CatalogService : ICatalogService
         var productsList = game.Products ?? new List<Product>();
 
         // Map products → DTOs with category detection
-        var productDtos = game.Products
+        var productDtos = productsList
             .OrderBy(p => GetEffectivePrice(p, userRole))
             .Select(p =>
             {
@@ -161,6 +163,7 @@ public class CatalogService : ICatalogService
             Products        = productDtos   // flat list for backward compat
         };
 
+        _cacheRegistry.AddGameCacheKey(cacheKey);
         _cache.Set(cacheKey, dto, GameDetailTtl);
         return ApiResponse<GameDetailDto>.Ok(dto);
     }

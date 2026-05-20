@@ -19,15 +19,18 @@ public class TransactionService : ITransactionService
     private readonly SassyGurlDbContext _context;
     private readonly IWhatsAppService _whatsApp;
     private readonly IHubContext<SassyGurl.Api.Hubs.NotificationHub> _hub;
+    private readonly IOrderTransitionHelper _transition;
 
     public TransactionService(
         SassyGurlDbContext context, 
         IWhatsAppService whatsApp,
-        IHubContext<SassyGurl.Api.Hubs.NotificationHub> hub)
+        IHubContext<SassyGurl.Api.Hubs.NotificationHub> hub,
+        IOrderTransitionHelper transition)
     {
         _context = context;
         _whatsApp = whatsApp;
         _hub = hub;
+        _transition = transition;
     }
 
     public async Task<ApiResponse<TransactionResponseDto>> CreateTransactionAsync(CreateTransactionDto request, string? userId)
@@ -52,7 +55,7 @@ public class TransactionService : ITransactionService
         var totalAmount = subTotal + adminFee + taxVat + notifFee - discount;
         var profit = (product.PriceSell - product.PriceModal) * request.Quantity;
 
-        var invoiceId = $"INV-{DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()}-{new Random().Next(100, 999)}";
+        var invoiceId = $"INV-{DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()}-{Random.Shared.Next(1000, 9999)}";
 
         var transaction = new Transaction
         {
@@ -112,7 +115,20 @@ public class TransactionService : ITransactionService
         var transaction = await _context.Transactions.FindAsync(transactionId);
         if (transaction == null) return ApiResponse<string>.Fail("Transaksi tidak ditemukan.");
 
-        transaction.OrderStatus = newStatus;
+        // ── Master Plan §8: Validate transition via state machine ──────
+        try
+        {
+            _transition.TransitionStatus(
+                transaction,
+                newStatus,
+                changedBy: "admin",
+                reason: $"Manual status update to {newStatus}");
+        }
+        catch (InvalidOperationException ex)
+        {
+            return ApiResponse<string>.Fail(ex.Message);
+        }
+
         bool isJustSuccess = false;
         if (newStatus == OrderStatus.SUCCESS && transaction.PaymentStatus != PaymentStatus.PAID)
         {
@@ -144,3 +160,4 @@ public class TransactionService : ITransactionService
         return ApiResponse<string>.Ok("Status berhasil diubah", $"Status berhasil diubah ke {newStatus}");
     }
 }
+

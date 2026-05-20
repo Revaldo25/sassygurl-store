@@ -1,6 +1,20 @@
 import { fetchApi } from "./api-client";
 
 // ============================================================================
+// ERROR HANDLING — callers should use try/catch for proper error states
+// ============================================================================
+export class ApiAdapterError extends Error {
+  constructor(
+    message: string,
+    public readonly endpoint: string,
+    public readonly cause?: unknown
+  ) {
+    super(message);
+    this.name = 'ApiAdapterError';
+  }
+}
+
+// ============================================================================
 // TYPES — mirror backend DTOs exactly
 // ============================================================================
 
@@ -265,7 +279,11 @@ export async function getAllGamesNormalized(): Promise<NormalizedGame[]> {
     });
   } catch (error) {
     console.error("Error fetching games:", error);
-    return [];
+    throw new ApiAdapterError(
+      'Failed to load game catalog. Please try again.',
+      '/catalog/games',
+      error
+    );
   }
 }
 
@@ -287,7 +305,11 @@ export async function getGameProducts(slug: string): Promise<{
     };
   } catch (error) {
     console.error("Error fetching game products:", error);
-    return { game: null, products: [], groupedByCategory: [] };
+    throw new ApiAdapterError(
+      `Failed to load products for ${slug}. Please try again.`,
+      `/catalog/games/${slug}`,
+      error
+    );
   }
 }
 
@@ -298,7 +320,11 @@ export async function getPayments(): Promise<PaymentMethod[]> {
     return response.data;
   } catch (error) {
     console.error("Error fetching payments:", error);
-    return [];
+    throw new ApiAdapterError(
+      'Failed to load payment methods. Please try again.',
+      '/catalog/payments',
+      error
+    );
   }
 }
 
@@ -309,7 +335,11 @@ export async function getGroupedPayments(): Promise<PaymentGroup[]> {
     return response.data;
   } catch (error) {
     console.error("Error fetching grouped payments:", error);
-    return [];
+    throw new ApiAdapterError(
+      'Failed to load payment options. Please try again.',
+      '/catalog/payments/grouped',
+      error
+    );
   }
 }
 
@@ -328,6 +358,10 @@ export async function getProviderStatuses(): Promise<ProviderStatus[]> {
     }));
   } catch (error) {
     console.error("Error fetching provider status:", error);
-    return [];
+    throw new ApiAdapterError(
+      'Failed to load provider status. Please try again.',
+      '/catalog/providers/status',
+      error
+    );
   }
 }

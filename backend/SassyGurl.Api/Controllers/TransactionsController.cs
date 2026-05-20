@@ -23,6 +23,11 @@ public class TransactionsController : ControllerBase
         ? User.FindFirst(ClaimTypes.NameIdentifier)?.Value 
         : null;
 
+    /// <summary>
+    /// POST /api/transactions
+    /// Creates a new transaction. Requires authentication.
+    /// </summary>
+    [Authorize]
     [HttpPost]
     public async Task<ActionResult<ApiResponse<TransactionResponseDto>>> CreateTransaction([FromBody] CreateTransactionDto request)
     {

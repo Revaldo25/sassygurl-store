@@ -146,6 +146,7 @@ try
     builder.Services.AddScoped<IPaymentService, PaymentService>();
     builder.Services.AddScoped<IPromoService, PromoService>();
     builder.Services.AddScoped<IMidtransWebhookSecurity, MidtransWebhookSecurity>();
+    builder.Services.AddScoped<SassyGurl.Api.Filters.XenditWebhookSecurityFilter>();
     builder.Services.AddScoped<IProviderService, ProviderService>();
     builder.Services.AddScoped<IAuditService, AuditService>();
     builder.Services.AddScoped<IWhatsAppService, WhatsAppService>();
@@ -161,34 +162,18 @@ try
     builder.Services.AddScoped<IVoucherService, VoucherService>();
     builder.Services.AddScoped<ICheckoutService, CheckoutService>();
 
+    // Master Plan §8 — Order State Machine (stateless, safe as singleton)
+    builder.Services.AddSingleton<IOrderStateMachine, OrderStateMachine>();
+    builder.Services.AddScoped<IOrderTransitionHelper, OrderTransitionHelper>();
+    builder.Services.AddSingleton<IOrderLockManager, OrderLockManager>();
+    builder.Services.AddSingleton<ICacheKeyRegistry, CacheKeyRegistry>();
+
     // ── Phase 3 Services ─────────────────────────────────────────────────
     builder.Services.AddScoped<SassyGurl.Api.Repositories.ICatalogRepository, SassyGurl.Api.Repositories.CatalogRepository>();
 
-    // ── Phase 4: Smart Failover & Circuit Breaker (Polly) ───────────────
-    // Contoh konfigurasi Polly Policy untuk Supply Chain Resilience:
-    // Jika API VIP Reseller gagal (timeout/500/502) 3x berturut-turut, 
-    // Circuit Breaker akan terbuka selama 15 menit. Request akan dialihkan (Fallback) 
-    // ke Provider B (Digiflazz) atau memberikan HTTP 503 secara default.
-    builder.Services.AddHttpClient("VipResellerClient", client =>
-    {
-        client.BaseAddress = new Uri(builder.Configuration["ProviderApis:VipResellerBaseUrl"] ?? "https://vipreseller.co.id/api/");
-    })
-    .AddStandardResilienceHandler(options =>
-    {
-        options.CircuitBreaker.FailureRatio = 0.5; // Jika >50% gagal dari window
-        options.CircuitBreaker.MinimumThroughput = 3; // Minimal 3 request sebelum evaluasi
-        options.CircuitBreaker.BreakDuration = TimeSpan.FromMinutes(15); // 'Pindah jalur' selama 15 menit
-        options.AttemptTimeout.Timeout = TimeSpan.FromSeconds(5);
-    });
-
-    builder.Services.AddHttpClient("DigiflazzClient", client =>
-    {
-        client.BaseAddress = new Uri(builder.Configuration["Digiflazz:BaseUrl"] ?? "https://api.digiflazz.com/v1/");
-    })
-    .AddStandardResilienceHandler(); // Standard retry + CB
-
-
-    builder.Services.AddProviderClients(builder.Configuration);
+    // NOTE: HttpClients for VipReseller, Digiflazz, and Xendit are registered
+    // in SassyGurl.Infrastructure.DependencyInjection.AddInfrastructure().
+    // DO NOT register them again here to avoid conflicting configurations.
 
     // ── Rate Limiting ────────────────────────────────────────────────────
     builder.Services.AddRateLimiter(options =>
@@ -255,7 +240,8 @@ try
     });
 
     builder.Services.AddHealthChecks()
-        .AddDbContextCheck<SassyGurlDbContext>("postgres");
+        .AddDbContextCheck<SassyGurlDbContext>("postgres")
+        .AddRedis(redisConnectionString: builder.Configuration.GetConnectionString("Redis") ?? "localhost:6379", name: "redis");
 
     // ========================================================================
     // Swagger / OpenAPI Configuration
