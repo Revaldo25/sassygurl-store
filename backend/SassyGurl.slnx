@@ -3,4 +3,5 @@
   <Project Path="SassyGurl.Application/SassyGurl.Application.csproj" />
   <Project Path="SassyGurl.Domain/SassyGurl.Domain.csproj" />
   <Project Path="SassyGurl.Infrastructure/SassyGurl.Infrastructure.csproj" />
+  <Project Path="SassyGurl.Tests/SassyGurl.Tests.csproj" />
 </Solution>

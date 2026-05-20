@@ -33,7 +33,10 @@ export async function fetchApi<T>(endpoint: string, options: RequestInit = {}): 
     let data: any = null;
     const text = await response.text();
     if (text) {
-      try { data = JSON.parse(text); } catch {}
+      try { data = JSON.parse(text); } catch (e) {
+        console.error(`[API] Failed to parse JSON from ${endpoint}:`, e);
+        throw new Error(`Invalid JSON response from ${endpoint}`);
+      }
     }
 
     if (!response.ok) {

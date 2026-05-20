@@ -30,14 +30,29 @@ public enum PaymentStatus
     CHARGEBACK
 }
 
+/// <summary>
+/// Order status state machine aligned with Master Plan §8.
+/// Valid transitions:
+///   Draft → PendingPayment
+///   PendingPayment → Paid | Cancelled | Expired
+///   Paid → Processing
+///   Processing → Success | Failed
+///   Failed → Refunded | Processing (retry)
+///   Success → (terminal)
+///   Refunded → (terminal)
+///   Cancelled → (terminal)
+/// </summary>
 public enum OrderStatus
 {
-    PENDING,
+    DRAFT,
+    PENDING,          // Legacy: maps to PendingPayment
     PROCESSING,
     SUCCESS,
-    ERROR,
-    PARTIAL,
-    REFUNDING
+    FAILED,           // Replaces ERROR — provider/system failure
+    PARTIAL,          // Kept for backward compat — partial fulfillment
+    REFUNDING,        // Refund in progress
+    REFUNDED,         // Refund completed (terminal)
+    CANCELLED         // User/system cancelled before payment (terminal)
 }
 
 public enum TicketStatus

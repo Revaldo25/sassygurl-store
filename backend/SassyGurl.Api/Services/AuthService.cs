@@ -22,12 +22,14 @@ public class AuthService : IAuthService
     private readonly SassyGurlDbContext _context;
     private readonly IConfiguration _configuration;
     private readonly IHostEnvironment _environment;
+    private readonly ILogger<AuthService> _logger;
 
-    public AuthService(SassyGurlDbContext context, IConfiguration configuration, IHostEnvironment environment)
+    public AuthService(SassyGurlDbContext context, IConfiguration configuration, IHostEnvironment environment, ILogger<AuthService> logger)
     {
         _context = context;
         _configuration = configuration;
         _environment = environment;
+        _logger = logger;
     }
 
     public async Task<ApiResponse<AuthResponseDto>> LoginAsync(LoginRequestDto request)
@@ -110,10 +112,10 @@ public class AuthService : IAuthService
         // TODO: Send Email/WA based on method (Omitted for dev)
         if (_environment.IsDevelopment())
         {
-            Console.WriteLine($"[DEV ONLY] OTP for {token.Identifier}: {otp}");
+            _logger.LogDebug("[DEV ONLY] OTP for {Identifier}: {Otp}", token.Identifier, otp);
         }
 
-        return ApiResponse<string>.Ok(request.Method == "email" ? request.Email! : request.Phone!, $"OTP Terkirim! (Cek Console) -> {otp}");
+        return ApiResponse<string>.Ok(request.Method == "email" ? request.Email! : request.Phone!, "OTP Terkirim! Silakan cek email/WhatsApp Anda.");
     }
 
     public async Task<ApiResponse<AuthResponseDto>> VerifyOtpAsync(VerifyOtpRequestDto request)

@@ -124,11 +124,21 @@ public class CheckoutService : ICheckoutService
                 TargetId = request.CustomerTarget,
                 TotalAmount = finalPrice,
                 PaymentStatus = PaymentStatus.PAID, // Already paid via balance deduction
-                OrderStatus = OrderStatus.PENDING,
+                OrderStatus = OrderStatus.PROCESSING, // T-06 fix: Start as PROCESSING since it's already PAID
                 PaymentId = walletPayment.Id,
                 PromoId = validPromo?.Id
             };
             _dbContext.Transactions.Add(newOrder);
+
+            // Add initial history record
+            _dbContext.OrderStatusHistories.Add(new OrderStatusHistory
+            {
+                Transaction = newOrder, // Use navigation property since ID isn't generated yet
+                FromStatus = OrderStatus.DRAFT,
+                ToStatus = OrderStatus.PROCESSING,
+                ChangedBy = "system",
+                Reason = "Checkout wallet payment"
+            });
 
             // Save all changes to the database
             // If Optimistic Concurrency fails here (e.g. balance changed), DbUpdateConcurrencyException is thrown.

@@ -37,6 +37,12 @@ public class SassyGurlDbContext : DbContext
     // Phase 4 — Provider Health Monitoring
     public DbSet<ProviderHealthLog> ProviderHealthLogs { get; set; } = null!;
 
+    // Master Plan §8 — Order Status Audit Trail
+    public DbSet<OrderStatusHistory> OrderStatusHistories { get; set; } = null!;
+
+    // Master Plan §5.1 — Raw Provider Response Storage
+    public DbSet<ProviderSyncLog> ProviderSyncLogs { get; set; } = null!;
+
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -202,5 +208,25 @@ public class SassyGurlDbContext : DbContext
             .WithMany(u => u.Accounts)
             .HasForeignKey(a => a.UserId)
             .OnDelete(DeleteBehavior.Cascade);
+
+        // ── OrderStatusHistory Configuration (Master Plan §8) ───────────
+        modelBuilder.Entity<OrderStatusHistory>(entity =>
+        {
+            entity.ToTable("OrderStatusHistory");
+            entity.HasIndex(e => e.TransactionId)
+                .HasDatabaseName("IX_OrderStatusHistory_TransactionId");
+            entity.HasIndex(e => e.CreatedAt).IsDescending()
+                .HasDatabaseName("IX_OrderStatusHistory_CreatedAt");
+        });
+
+        // ── ProviderSyncLog Configuration (Master Plan §5.1) ────────────
+        modelBuilder.Entity<ProviderSyncLog>(entity =>
+        {
+            entity.ToTable("ProviderSyncLog");
+            entity.HasIndex(e => new { e.ProviderName, e.CreatedAt })
+                .HasDatabaseName("IX_ProviderSyncLog_Provider_Date");
+            entity.HasIndex(e => e.HttpStatus)
+                .HasDatabaseName("IX_ProviderSyncLog_Status");
+        });
     }
 }

@@ -37,8 +37,7 @@ public class XenditWebhookSecurityFilter : IAsyncActionFilter
         {
             var remoteIp = context.HttpContext.Connection.RemoteIpAddress?.ToString();
             
-            // Basic matching (for a more robust solution, IPNetwork matching can be used)
-            if (string.IsNullOrEmpty(remoteIp) || !_allowedIps.Contains(remoteIp))
+            if (string.IsNullOrEmpty(remoteIp) || !IsIpAllowed(remoteIp, _allowedIps))
             {
                 _logger.LogWarning("Blocked Xendit webhook request from unauthorized IP: {IP}", remoteIp);
                 context.Result = new ObjectResult(new { message = "Forbidden. Invalid IP." })
@@ -75,6 +74,56 @@ public class XenditWebhookSecurityFilter : IAsyncActionFilter
 
         // If validation passes, proceed to the action
         await next();
+    }
+
+    /// <summary>
+    /// Check if an IP address falls within any of the CIDR ranges.
+    /// Supports both IPv4 and IPv6 mapped addresses.
+    /// </summary>
+    private static bool IsIpAllowed(string ipStr, string[] cidrRanges)
+    {
+        if (!System.Net.IPAddress.TryParse(ipStr, out var ip))
+            return false;
+
+        if (ip.IsIPv4MappedToIPv6)
+            ip = ip.MapToIPv4();
+
+        foreach (var cidr in cidrRanges)
+        {
+            var parts = cidr.Split('/');
+            if (!System.Net.IPAddress.TryParse(parts[0], out var networkIp))
+                continue;
+
+            var prefixLength = parts.Length > 1 ? int.Parse(parts[1]) : 32;
+            var networkBytes = networkIp.GetAddressBytes();
+            var ipBytes = ip.GetAddressBytes();
+
+            if (networkBytes.Length != ipBytes.Length)
+                continue;
+
+            var totalBits = networkBytes.Length * 8;
+            var bitsToCompare = Math.Min(prefixLength, totalBits);
+
+            bool match = true;
+            for (int i = 0; i < bitsToCompare / 8 && match; i++)
+            {
+                if (networkBytes[i] != ipBytes[i])
+                    match = false;
+            }
+
+            var remainingBits = bitsToCompare % 8;
+            if (match && remainingBits > 0)
+            {
+                var byteIdx = bitsToCompare / 8;
+                var mask = (byte)(0xFF << (8 - remainingBits));
+                if ((networkBytes[byteIdx] & mask) != (ipBytes[byteIdx] & mask))
+                    match = false;
+            }
+
+            if (match) return true;
+        }
+
+        return false;
     }
 }
 

@@ -8,9 +8,12 @@ export default auth((req) => {
   
   const isLoggedIn = !!nextAuthSession || !!csharpToken;
   
-  // Extract role if available
+  // SECURITY: Extract role from NextAuth session only.
+  // C# JWT token cannot be safely decoded at the edge without the signing key.
+  // Default to MEMBER — admin access requires NextAuth session with role claim.
+  // TODO: Implement proper JWT decode with shared secret for C# tokens.
   // @ts-ignore
-  const role = nextAuthSession?.user?.role || (csharpToken ? "ADMIN" : "MEMBER"); // simplistic fallback if csharpToken exists
+  const role = nextAuthSession?.user?.role || "MEMBER";
 
   const isAuthPage = req.nextUrl.pathname.startsWith("/auth") || req.nextUrl.pathname.startsWith("/admin/login");
   const isDashboardPage = req.nextUrl.pathname.startsWith("/dashboard");
@@ -34,4 +37,4 @@ export default auth((req) => {
 
 export const config = {
   matcher: ["/dashboard/:path*", "/auth/:path*", "/admin/:path*", "/member/:path*"],
-};
+};

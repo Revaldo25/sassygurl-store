@@ -15,20 +15,32 @@ public class SyncController : ControllerBase
     private readonly ISyncEngine _syncEngine;
     private readonly IProductService _productService;
     private readonly IProviderService _providerService;
+    private readonly IConfiguration _configuration;
     private readonly ILogger<SyncController> _logger;
-
-    private const string WEBHOOK_SECRET = "SASSY_ELITE_SECURE_2026";
 
     public SyncController(
         ISyncEngine syncEngine,
         IProductService productService,
         IProviderService providerService,
+        IConfiguration configuration,
         ILogger<SyncController> logger)
     {
         _syncEngine = syncEngine;
         _productService = productService;
         _providerService = providerService;
+        _configuration = configuration;
         _logger = logger;
+    }
+
+    private bool IsWebhookSecretValid(string providedSecret)
+    {
+        var expectedSecret = _configuration["Sync:WebhookSecret"];
+        if (string.IsNullOrWhiteSpace(expectedSecret))
+        {
+            _logger.LogError("Sync:WebhookSecret is not configured. Rejecting all sync requests.");
+            return false;
+        }
+        return string.Equals(providedSecret, expectedSecret, StringComparison.Ordinal);
     }
 
     /// <summary>
@@ -43,7 +55,7 @@ public class SyncController : ControllerBase
         [FromHeader(Name = "X-Webhook-Secret")][Required] string webhookSecret,
         [FromHeader(Name = "X-Idempotency-Key")] string? idempotencyKey = null)
     {
-        if (webhookSecret != WEBHOOK_SECRET)
+        if (!IsWebhookSecretValid(webhookSecret))
         {
             _logger.LogWarning("Unauthorized sync attempt with invalid secret from {IP}", HttpContext.Connection.RemoteIpAddress);
             return Unauthorized(new { success = false, message = "Invalid X-Webhook-Secret header." });
@@ -71,7 +83,7 @@ public class SyncController : ControllerBase
     public async Task<IActionResult> SyncVip(
         [FromHeader(Name = "X-Webhook-Secret")][Required] string webhookSecret)
     {
-        if (webhookSecret != WEBHOOK_SECRET)
+        if (!IsWebhookSecretValid(webhookSecret))
         {
             return Unauthorized(new { success = false, message = "Invalid X-Webhook-Secret header." });
         }
@@ -98,7 +110,7 @@ public class SyncController : ControllerBase
     public async Task<IActionResult> SyncAll(
         [FromHeader(Name = "X-Webhook-Secret")][Required] string webhookSecret)
     {
-        if (webhookSecret != WEBHOOK_SECRET)
+        if (!IsWebhookSecretValid(webhookSecret))
         {
             return Unauthorized(new { success = false, message = "Invalid X-Webhook-Secret header." });
         }
@@ -125,7 +137,7 @@ public class SyncController : ControllerBase
     public async Task<IActionResult> GetBalance(
         [FromHeader(Name = "X-Webhook-Secret")][Required] string webhookSecret)
     {
-        if (webhookSecret != WEBHOOK_SECRET)
+        if (!IsWebhookSecretValid(webhookSecret))
         {
             return Unauthorized(new { success = false, message = "Invalid X-Webhook-Secret header." });
         }

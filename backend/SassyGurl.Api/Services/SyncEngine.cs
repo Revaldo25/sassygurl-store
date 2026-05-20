@@ -4,6 +4,7 @@ using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Memory;
 using SassyGurl.Api.Data;
 using SassyGurl.Api.Models;
 using SassyGurl.Api.Models.Enums;
@@ -46,6 +47,8 @@ public class SyncEngine : ISyncEngine
     private readonly IConfiguration _config;
     private readonly ICloudinaryService _cloudinary;
     private readonly ILogger<SyncEngine> _logger;
+    private readonly IMemoryCache _cache;
+    private readonly ICacheKeyRegistry _cacheRegistry;
 
     // ── Zone-ID dictionary — games that require Server/Zone ID ──────
     private static readonly HashSet<string> GamesRequiringZoneId = new(StringComparer.OrdinalIgnoreCase)
@@ -109,14 +112,19 @@ public class SyncEngine : ISyncEngine
         SassyGurlDbContext db,
         IConfiguration config,
         ICloudinaryService cloudinary,
-        ILogger<SyncEngine> logger)
+        ILogger<SyncEngine> logger,
+        IMemoryCache cache,
+        ICacheKeyRegistry cacheRegistry)
     {
         _httpClientFactory = httpClientFactory;
         _db = db;
         _config = config;
         _cloudinary = cloudinary;
         _logger = logger;
+        _cache = cache;
+        _cacheRegistry = cacheRegistry;
     }
+
 
     // ====================================================================
     // 1. SYNC FROM VIP RESELLER
@@ -148,23 +156,62 @@ public class SyncEngine : ISyncEngine
             });
 
             var response = await client.PostAsync("game-feature", content);
-            response.EnsureSuccessStatusCode();
+            var rawBody = await response.Content.ReadAsStringAsync();
+            sw.Stop();
 
-            var json = await response.Content.ReadFromJsonAsync<VipServiceListResponse>();
+            // ── Master Plan §5.1: Store raw provider response ────────────────
+            var syncLog = new Models.ProviderSyncLog
+            {
+                ProviderName = "VipReseller",
+                Operation = "game-feature",
+                RequestPayload = JsonSerializer.Serialize(new { apiId, type = "services", filter_type = "game" }),
+                ResponseBody = rawBody.Length > 500_000 ? rawBody[..500_000] + "... (truncated)" : rawBody,
+                HttpStatus = (int)response.StatusCode,
+                DurationMs = (int)sw.ElapsedMilliseconds
+            };
+
+            if (!response.IsSuccessStatusCode)
+            {
+                syncLog.ErrorMessage = $"HTTP {(int)response.StatusCode}";
+                _db.ProviderSyncLogs.Add(syncLog);
+                await _db.SaveChangesAsync();
+                _logger.LogError("VIP Reseller returned HTTP {StatusCode}.", (int)response.StatusCode);
+                result.Errors++;
+                return result;
+            }
+
+            var json = JsonSerializer.Deserialize<VipServiceListResponse>(rawBody);
             if (json?.Data == null || !json.Result)
             {
+                syncLog.ErrorMessage = "Empty or failed response";
+                _db.ProviderSyncLogs.Add(syncLog);
+                await _db.SaveChangesAsync();
                 _logger.LogWarning("VIP Reseller returned empty or failed response.");
                 return result;
             }
 
+            syncLog.ItemCount = json.Data.Count;
             _logger.LogInformation("Fetched {Count} products from VIP Reseller.", json.Data.Count);
+
+            int unmappedCount = 0;
 
             foreach (var item in json.Data)
             {
                 try
                 {
                     var brand = item.Game ?? "";
-                    var targetGameSlug = NormalizeBrandToSlug(brand) ?? brand.ToLowerInvariant().Replace(" ", "-");
+                    var targetGameSlug = NormalizeBrandToSlug(brand);
+
+                    // Master Plan §6.4: Don't auto-create games for unmapped brands.
+                    if (targetGameSlug == null)
+                    {
+                        unmappedCount++;
+                        if (unmappedCount <= 10)
+                        {
+                            _logger.LogDebug("VIP: Skipping unmapped brand: {Brand}, SKU: {Sku}", brand, item.Code);
+                        }
+                        continue;
+                    }
 
                     await UpsertProductAsync(
                         sku: item.Code ?? "",
@@ -184,7 +231,17 @@ public class SyncEngine : ISyncEngine
                 }
             }
 
+            if (unmappedCount > 0)
+            {
+                _logger.LogInformation("VIP: Skipped {Count} products from unmapped brands (total).", unmappedCount);
+            }
+
+            syncLog.ErrorCount = result.Errors;
+            _db.ProviderSyncLogs.Add(syncLog);
             await _db.SaveChangesAsync();
+
+            // ── Master Plan §7.9: Invalidate catalog cache after successful sync ──
+            InvalidateCatalogCache();
         }
         catch (Exception ex)
         {
@@ -192,6 +249,7 @@ public class SyncEngine : ISyncEngine
             result.Errors++;
         }
 
+        if (!sw.IsRunning) sw.Start();
         sw.Stop();
         result.Duration = sw.Elapsed;
         _logger.LogInformation("VIP Reseller sync done: Created={C}, Updated={U}, Errors={E}, Duration={D}ms",
@@ -227,17 +285,32 @@ public class SyncEngine : ISyncEngine
             _logger.LogInformation("Digiflazz request payload: cmd=prepaid, username={User}, sign={Sign}", username, sign);
 
             _logger.LogInformation("Mulai panggil HttpClient...");
-            // POST to price-list
             var response = await client.PostAsJsonAsync("price-list", payload);
 
-            // ── LOG RAW RESPONSE (critical for debugging Invalid Key / IP errors) ──
             var rawBody = await response.Content.ReadAsStringAsync();
-            _logger.LogInformation("Digiflazz raw response (HTTP {StatusCode}): {Body}",
-                (int)response.StatusCode, rawBody.Length > 2000 ? rawBody[..2000] + "... (truncated)" : rawBody);
+            sw.Stop(); // Measure duration up to response received
+
+            // ── Master Plan §5.1: Store raw provider response ────────────────
+            var syncLog = new Models.ProviderSyncLog
+            {
+                ProviderName = "Digiflazz",
+                Operation = "pricelist",
+                RequestPayload = System.Text.Json.JsonSerializer.Serialize(payload),
+                ResponseBody = rawBody.Length > 500_000 ? rawBody[..500_000] + "... (truncated)" : rawBody,
+                HttpStatus = (int)response.StatusCode,
+                DurationMs = (int)sw.ElapsedMilliseconds
+            };
+
+            _logger.LogInformation("Digiflazz raw response (HTTP {StatusCode}): {BodyLength} bytes",
+                (int)response.StatusCode, rawBody.Length);
 
             if (!response.IsSuccessStatusCode)
             {
-                _logger.LogError("Digiflazz returned HTTP {StatusCode}. Body: {Body}", (int)response.StatusCode, rawBody);
+                syncLog.ErrorMessage = $"HTTP {(int)response.StatusCode}";
+                _db.ProviderSyncLogs.Add(syncLog);
+                await _db.SaveChangesAsync();
+
+                _logger.LogError("Digiflazz returned HTTP {StatusCode}.", (int)response.StatusCode);
                 result.Errors++;
                 return result;
             }
@@ -245,12 +318,18 @@ public class SyncEngine : ISyncEngine
             var json = System.Text.Json.JsonSerializer.Deserialize<DigiflazzPriceListResponse>(rawBody);
             if (json?.Data == null)
             {
-                _logger.LogWarning("Digiflazz returned empty/null data. Full body: {Body}", rawBody);
+                syncLog.ErrorMessage = "Empty/null data in response";
+                _db.ProviderSyncLogs.Add(syncLog);
+                await _db.SaveChangesAsync();
+
+                _logger.LogWarning("Digiflazz returned empty/null data.");
                 return result;
             }
 
+            syncLog.ItemCount = json.Data.Count;
             _logger.LogInformation("Fetched {Count} products from Digiflazz.", json.Data.Count);
 
+            int unmappedCount = 0;
 
             foreach (var item in json.Data)
             {
@@ -260,7 +339,21 @@ public class SyncEngine : ISyncEngine
                     var categorySlug = ResolveCategorySlug(item.Category);
                     var brand = item.Brand ?? "";
                     
-                    var targetGameSlug = NormalizeBrandToSlug(brand) ?? brand.ToLowerInvariant().Replace(" ", "-");
+                    var targetGameSlug = NormalizeBrandToSlug(brand);
+
+                    // Master Plan §6.4: Don't auto-create games for unmapped brands.
+                    // Log the unmapped brand and skip.
+                    if (targetGameSlug == null)
+                    {
+                        unmappedCount++;
+                        // Only log first 10 to avoid log spam during large syncs
+                        if (unmappedCount <= 10)
+                        {
+                            _logger.LogDebug("Skipping unmapped brand: {Brand}, SKU: {Sku}, Category: {Category}",
+                                brand, item.BuyerSkuCode, item.Category);
+                        }
+                        continue;
+                    }
 
                     var subCategory = item.Type ?? categorySlug;
 
@@ -282,7 +375,17 @@ public class SyncEngine : ISyncEngine
                 }
             }
 
+            if (unmappedCount > 0)
+            {
+                _logger.LogInformation("Skipped {Count} products from unmapped brands (total).", unmappedCount);
+            }
+
+            syncLog.ErrorCount = result.Errors;
+            _db.ProviderSyncLogs.Add(syncLog);
             await _db.SaveChangesAsync();
+
+            // ── Master Plan §7.9: Invalidate catalog cache after successful sync ──
+            InvalidateCatalogCache();
         }
         catch (Exception ex)
         {
@@ -290,6 +393,7 @@ public class SyncEngine : ISyncEngine
             result.Errors++;
         }
 
+        if (!sw.IsRunning) sw.Start(); // Restart if stopped early
         sw.Stop();
         result.Duration = sw.Elapsed;
         _logger.LogInformation("Digiflazz sync done: Created={C}, Updated={U}, Errors={E}, Duration={D}ms",
@@ -504,6 +608,25 @@ public class SyncEngine : ISyncEngine
         using var md5 = MD5.Create();
         byte[] hash = md5.ComputeHash(Encoding.UTF8.GetBytes(input));
         return Convert.ToHexString(hash).ToLowerInvariant();
+    }
+
+    /// <summary>
+    /// Invalidates catalog cache after sync so fresh data is served.
+    /// Master Plan §7 step 9: "Cache di-refresh"
+    /// </summary>
+    private void InvalidateCatalogCache()
+    {
+        _cache.Remove("catalog:games");
+        
+        // Remove dynamic game detail caches tracked by the registry
+        var keys = _cacheRegistry.GetAllGameCacheKeys();
+        foreach (var key in keys)
+        {
+            _cache.Remove(key);
+        }
+        _cacheRegistry.ClearGameCacheKeys();
+
+        _logger.LogInformation("Catalog cache invalidated after sync. Removed {Count} dynamic game detail keys.", keys.Count());
     }
 
     // ── VIP Reseller DTOs ──────────────────────────────────────────────
