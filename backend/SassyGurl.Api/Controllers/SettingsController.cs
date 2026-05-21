@@ -23,7 +23,7 @@ public class SettingsController : ControllerBase
     private string GetUserId() => User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "";
 
     /// <summary>
-    /// Get all system settings (Owner only).
+    /// Get all system settings (Superadmin only).
     /// </summary>
     [HttpGet]
     public async Task<ActionResult<ApiResponse<List<SettingDto>>>> GetAll()

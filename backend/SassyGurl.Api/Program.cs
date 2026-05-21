@@ -165,7 +165,7 @@ try
     // Master Plan §8 — Order State Machine (stateless, safe as singleton)
     builder.Services.AddSingleton<IOrderStateMachine, OrderStateMachine>();
     builder.Services.AddScoped<IOrderTransitionHelper, OrderTransitionHelper>();
-    builder.Services.AddSingleton<IOrderLockManager, OrderLockManager>();
+    builder.Services.AddScoped<IOrderLockManager, OrderLockManager>();
     builder.Services.AddSingleton<ICacheKeyRegistry, CacheKeyRegistry>();
 
     // ── Phase 3 Services ─────────────────────────────────────────────────
@@ -379,3 +379,5 @@ public class NoOpNameTranslator : INpgsqlNameTranslator
     public string TranslateTypeName(string clrName) => clrName;
     public string TranslateMemberName(string clrName) => clrName;
 }
+
+public partial class Program { }
