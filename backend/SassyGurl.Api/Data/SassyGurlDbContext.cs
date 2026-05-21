@@ -175,6 +175,42 @@ public class SassyGurlDbContext : DbContext
         modelBuilder.Entity<Transaction>().HasIndex(t => new { t.UserId, t.PaymentStatus, t.CreatedAt })
             .HasDatabaseName("IX_Transaction_UserId_Status_Date");
 
+        // Add missing performance & audit indexes
+        modelBuilder.Entity<Transaction>().HasIndex(t => t.PromoId)
+            .HasDatabaseName("IX_Transaction_PromoId");
+        modelBuilder.Entity<SystemAudit>().HasIndex(s => s.EntityId)
+            .HasDatabaseName("IX_SystemAudit_EntityId");
+
+        // Prevent cascade deletes on Transactions (protect historical financial records)
+        modelBuilder.Entity<Transaction>()
+            .HasOne(t => t.Game)
+            .WithMany(g => g.Transactions)
+            .HasForeignKey(t => t.GameId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        modelBuilder.Entity<Transaction>()
+            .HasOne(t => t.Product)
+            .WithMany(p => p.Transactions)
+            .HasForeignKey(t => t.ProductId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        modelBuilder.Entity<Transaction>()
+            .HasOne(t => t.Payment)
+            .WithMany(p => p.Transactions)
+            .HasForeignKey(t => t.PaymentId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        // Link AuditableTransaction to Transaction
+        modelBuilder.Entity<AuditableTransaction>()
+            .HasOne<Transaction>()
+            .WithMany()
+            .HasForeignKey(e => e.OriginalTransactionId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        modelBuilder.Entity<AuditableTransaction>()
+            .HasIndex(e => e.OriginalTransactionId)
+            .HasDatabaseName("IX_AuditableTransaction_OriginalTransactionId");
+
         // DailyProfit: unique per date, fast lookup for Financial Radar
         modelBuilder.Entity<DailyProfit>().ToTable("DailyProfit");
         modelBuilder.Entity<DailyProfit>().HasIndex(d => d.Date).IsUnique()

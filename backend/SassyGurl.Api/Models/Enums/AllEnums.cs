@@ -49,6 +49,7 @@ public enum OrderStatus
     PROCESSING,
     SUCCESS,
     FAILED,           // Replaces ERROR — provider/system failure
+    ERROR,            // Kept for PostgreSQL enum compatibility (cannot drop labels)
     PARTIAL,          // Kept for backward compat — partial fulfillment
     REFUNDING,        // Refund in progress
     REFUNDED,         // Refund completed (terminal)

@@ -51,15 +51,15 @@ public class ProviderIntegrationTests : TestBase
 
         System.Console.WriteLine($"DB Count: {DbContext.Transactions.Count()}, ID in DB: {DbContext.Transactions.First().InvoiceId}, Payload ID: {payload.ExternalId}");
 
-        var txWithInclude = Microsoft.EntityFrameworkCore.EntityFrameworkQueryableExtensions.FirstOrDefaultAsync(
+        var txWithInclude = await Microsoft.EntityFrameworkCore.EntityFrameworkQueryableExtensions.FirstOrDefaultAsync(
             DbContext.Transactions.Include(t => t.Product).Include(t => t.Game).Include(t => t.User),
-            t => t.InvoiceId == payload.ExternalId).Result;
+            t => t.InvoiceId == payload.ExternalId);
         System.Console.WriteLine($"DB Include Test: {(txWithInclude != null ? "FOUND" : "NULL")}");
 
         // Act
         var result = await _xenditController.HandleInvoicePaid(payload);
         var objectResult = Assert.IsType<OkObjectResult>(result);
-        var msg = objectResult.Value.GetType().GetProperty("message")?.GetValue(objectResult.Value)?.ToString();
+        var msg = objectResult.Value?.GetType().GetProperty("message")?.GetValue(objectResult.Value)?.ToString();
         System.Console.WriteLine($"WEBHOOK MESSAGE: {msg}");
 
         // Assert
