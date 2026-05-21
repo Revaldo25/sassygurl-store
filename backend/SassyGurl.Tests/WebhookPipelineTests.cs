@@ -51,8 +51,20 @@ public class WebhookPipelineTests : IClassFixture<WebApplicationFactory<Program>
                 var dbName = "WebhookTestDb_" + Guid.NewGuid().ToString();
                 services.AddDbContext<SassyGurlDbContext>(options =>
                 {
-                    options.UseInMemoryDatabase(dbName);
+                    options.UseInMemoryDatabase(dbName)
+                           .ConfigureWarnings(w => w.Ignore(Microsoft.EntityFrameworkCore.Diagnostics.InMemoryEventId.TransactionIgnoredWarning));
                 });
+
+                var mockLockService = new Mock<SassyGurl.Application.Interfaces.IDistributedLockService>();
+                mockLockService.Setup(l => l.AcquireLockAsync(It.IsAny<string>(), It.IsAny<TimeSpan>()))
+                               .ReturnsAsync(new Mock<IAsyncDisposable>().Object);
+                services.AddSingleton(mockLockService.Object);
+
+                var mockIdempotency = new Mock<SassyGurl.Application.Interfaces.IIdempotencyService>();
+                mockIdempotency.Setup(i => i.ExistsAsync(It.IsAny<string>())).ReturnsAsync(false);
+                mockIdempotency.Setup(i => i.GetAsync(It.IsAny<string>())).ReturnsAsync((SassyGurl.Domain.Entities.IdempotencyRecord?)null);
+                mockIdempotency.Setup(i => i.SaveAsync(It.IsAny<SassyGurl.Domain.Entities.IdempotencyRecord>())).Returns(Task.CompletedTask);
+                services.AddSingleton(mockIdempotency.Object);
 
                 configureServices(services);
             });
@@ -71,9 +83,12 @@ public class WebhookPipelineTests : IClassFixture<WebApplicationFactory<Program>
         });
 
         var payload = new XenditInvoicePayload { Id = "inv_123", ExternalId = "ext_123", Status = "PAID", Amount = 10000 };
+        var request = new HttpRequestMessage(HttpMethod.Post, "/api/webhooks/xendit/invoice");
+        request.Content = JsonContent.Create(payload);
+        request.Headers.Add("X-Idempotency-Key", Guid.NewGuid().ToString());
 
         // Act
-        var response = await client.PostAsJsonAsync("/api/webhooks/xendit/invoice", payload);
+        var response = await client.SendAsync(request);
 
         // Assert
         Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
@@ -95,6 +110,7 @@ public class WebhookPipelineTests : IClassFixture<WebApplicationFactory<Program>
         var request = new HttpRequestMessage(HttpMethod.Post, "/api/webhooks/xendit/invoice");
         request.Content = JsonContent.Create(payload);
         request.Headers.Add("x-callback-token", "wrong-token");
+        request.Headers.Add("X-Idempotency-Key", Guid.NewGuid().ToString());
 
         // Act
         var response = await client.SendAsync(request);
@@ -140,11 +156,23 @@ public class WebhookPipelineTests : IClassFixture<WebApplicationFactory<Program>
                 var dbName = "WebhookTestDb_" + Guid.NewGuid().ToString();
                 services.AddDbContext<SassyGurlDbContext>(options =>
                 {
-                    options.UseInMemoryDatabase(dbName);
+                    options.UseInMemoryDatabase(dbName)
+                           .ConfigureWarnings(w => w.Ignore(Microsoft.EntityFrameworkCore.Diagnostics.InMemoryEventId.TransactionIgnoredWarning));
                 });
 
                 services.AddScoped(sp => mockProvider.Object);
                 services.AddScoped(sp => mockValidation.Object);
+                var mockLockService = new Mock<SassyGurl.Application.Interfaces.IDistributedLockService>();
+                mockLockService.Setup(l => l.AcquireLockAsync(It.IsAny<string>(), It.IsAny<TimeSpan>()))
+                               .ReturnsAsync(new Mock<IAsyncDisposable>().Object);
+                services.AddSingleton(mockLockService.Object);
+
+                var mockIdempotency = new Mock<SassyGurl.Application.Interfaces.IIdempotencyService>();
+                mockIdempotency.Setup(i => i.ExistsAsync(It.IsAny<string>())).ReturnsAsync(false);
+                mockIdempotency.Setup(i => i.GetAsync(It.IsAny<string>())).ReturnsAsync((SassyGurl.Domain.Entities.IdempotencyRecord?)null);
+                mockIdempotency.Setup(i => i.SaveAsync(It.IsAny<SassyGurl.Domain.Entities.IdempotencyRecord>())).Returns(Task.CompletedTask);
+                services.AddSingleton(mockIdempotency.Object);
+
                 services.AddScoped(sp => mockNotifier.Object);
             });
         });
@@ -186,6 +214,7 @@ public class WebhookPipelineTests : IClassFixture<WebApplicationFactory<Program>
         var request = new HttpRequestMessage(HttpMethod.Post, "/api/webhooks/xendit/invoice");
         request.Content = JsonContent.Create(payload);
         request.Headers.Add("x-callback-token", "secret-token");
+        request.Headers.Add("X-Idempotency-Key", Guid.NewGuid().ToString());
 
         // Act
         var response = await client.SendAsync(request);

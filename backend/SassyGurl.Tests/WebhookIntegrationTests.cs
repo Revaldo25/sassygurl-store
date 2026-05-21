@@ -1,8 +1,10 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using SassyGurl.Api.Controllers;
 using SassyGurl.Api.DTOs.Common;
+using SassyGurl.Api.Hubs;
 using SassyGurl.Api.Services;
 using SassyGurl.Application.Interfaces;
 using SassyGurl.Api.Models.Enums;
@@ -21,6 +23,12 @@ public class WebhookIntegrationTests : TestBase
         mockValidation.Setup(v => v.ValidatePaymentAsync(It.IsAny<string>(), It.IsAny<decimal>())).ReturnsAsync(true);
 
         var mockNotifier = new Mock<INotificationOrchestrator>();
+        var mockHub = new Mock<IHubContext<NotificationHub>>();
+        var mockClients = new Mock<IHubClients>();
+        mockClients.Setup(c => c.All).Returns(new Mock<IClientProxy>().Object);
+        mockClients.Setup(c => c.Group(It.IsAny<string>())).Returns(new Mock<IClientProxy>().Object);
+        mockClients.Setup(c => c.User(It.IsAny<string>())).Returns(new Mock<IClientProxy>().Object);
+        mockHub.Setup(h => h.Clients).Returns(mockClients.Object);
 
         _xenditController = new XenditWebhookController(
             mockValidation.Object,
@@ -29,7 +37,8 @@ public class WebhookIntegrationTests : TestBase
             DbContext,
             new NullLogger<XenditWebhookController>(),
             TransitionHelper,
-            LockManager
+            LockManager,
+            mockHub.Object
         );
     }
 

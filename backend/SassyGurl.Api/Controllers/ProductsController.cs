@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using SassyGurl.Api.Services;
 
@@ -20,6 +21,7 @@ public class ProductsController : ControllerBase
     /// POST /api/products/sync
     /// Triggers the background synchronization of all products from VIP Reseller and Digiflazz.
     /// </summary>
+    [Authorize(Roles = "SUPERADMIN")]
     [HttpPost("sync")]
     public async Task<IActionResult> Sync()
     {

@@ -82,7 +82,7 @@ export default function InvoicePage() {
               {invoice.method === "QRIS" ? (
                 <div className="space-y-6">
                   <div className="relative w-48 h-48 mx-auto bg-white p-3 rounded-2xl shadow-[0_0_30px_rgba(255,255,255,0.05)]">
-                    <Image src={invoice.qrUrl} alt="QRIS" fill className="p-2" />
+                    <Image src={invoice.qrUrl} alt="QRIS" fill sizes="192px" className="p-2" />
                   </div>
                   <p className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">Scan QRIS All Payment</p>
                 </div>

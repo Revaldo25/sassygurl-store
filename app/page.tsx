@@ -11,6 +11,8 @@ import { getAllGamesNormalized } from "@/lib/api-adapter";
 import { fetchApi } from "@/lib/api-client";
 import { PublicTransaction } from "@/components/LiveTransactionFeed";
 
+export const dynamic = "force-dynamic";
+
 export default async function HomePage() {
   const games = await getAllGamesNormalized();
 

@@ -1,8 +1,10 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using SassyGurl.Api.DTOs.Common;
 using SassyGurl.Api.DTOs.Transaction;
+using SassyGurl.Api.Middleware;
 using SassyGurl.Api.Services;
 using System.Security.Claims;
 
@@ -29,6 +31,8 @@ public class TransactionsController : ControllerBase
     /// </summary>
     [Authorize]
     [HttpPost]
+    [Idempotency]
+    [EnableRateLimiting("transaction-create")]
     public async Task<ActionResult<ApiResponse<TransactionResponseDto>>> CreateTransaction([FromBody] CreateTransactionDto request)
     {
         if (!ModelState.IsValid) return BadRequest(ApiResponse<object>.Fail("Invalid request data"));

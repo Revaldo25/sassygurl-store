@@ -1,8 +1,10 @@
 import { getGameProducts, getGroupedPayments } from "@/lib/api-adapter";
 import CheckoutClient from "./CheckoutClient";
 import SiteHeader from "@/components/SiteHeader";
+import GameHero from "@/components/game/GameHero";
+import FAQAccordion from "@/components/game/FAQAccordion";
+import RelatedGamesGrid from "@/components/game/RelatedGamesGrid";
 import { notFound } from "next/navigation";
-import { Zap, ShieldCheck, Clock } from "lucide-react";
 
 export default async function GameSlugPage({
   params,
@@ -22,50 +24,18 @@ export default async function GameSlugPage({
     <div className="min-h-screen bg-[#09090b] text-white selection:bg-sakura/40 selection:text-white">
       <SiteHeader />
 
-      {/* ═══ Hero Banner ═══ */}
-      <div className="relative h-[25vh] sm:h-[30vh] lg:h-[40vh] overflow-hidden">
-        <div className="absolute inset-0 z-10 bg-gradient-to-b from-zinc-950/20 via-zinc-950/40 to-zinc-950" />
-        <img
-          src={game.banner}
-          alt={game.name}
-          className="w-full h-full object-cover object-center scale-105 blur-[2px] opacity-60"
-        />
-        {/* Floating Game Identity */}
-        <div className="absolute inset-0 z-20 flex items-center justify-center">
-           <div className="text-center px-4">
-              <div className="inline-block p-1 rounded-[2.5rem] bg-gradient-to-b from-white/20 to-transparent backdrop-blur-2xl mb-6 shadow-2xl animate-[fadeInUp_0.5s_ease-out]">
-                <img src={game.icon} alt={game.name} className="w-24 h-24 sm:w-32 sm:h-32 rounded-[2.2rem] object-cover border-2 border-white/10" />
-              </div>
-              <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black tracking-tighter text-white mb-2 animate-[fadeInUp_0.5s_ease-out_0.1s_both]">
-                {game.name}
-              </h1>
-              <p className="text-white/40 text-xs sm:text-sm font-bold uppercase tracking-[0.3em] animate-[fadeInUp_0.5s_ease-out_0.2s_both]">
-                {game.publisher || "Official Partner"}
-              </p>
-           </div>
-        </div>
-      </div>
-
-      {/* ═══ Trust Badges ═══ */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 -mt-8 relative z-30">
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-          {[
-            { icon: Zap, label: "PENGIRIMAN INSTAN", sub: "Rata-rata 1-3 detik saja." },
-            { icon: ShieldCheck, label: "PEMBAYARAN AMAN", sub: "Enkripsi SSL & Payment Gateway." },
-            { icon: Clock, label: "LAYANAN 24/7", sub: "Sistem otomatis tanpa libur." },
-          ].map((b, i) => (
-            <div key={i} className="flex items-center gap-4 rounded-3xl border border-white/5 bg-zinc-900/50 p-5 backdrop-blur-xl shadow-xl">
-              <div className="w-12 h-12 rounded-2xl bg-sakura/10 flex items-center justify-center shrink-0">
-                <b.icon className="w-6 h-6 text-sakura" />
-              </div>
-              <div className="min-w-0">
-                <p className="text-xs font-black text-white mb-0.5">{b.label}</p>
-                <p className="text-[10px] text-white/30 font-semibold leading-tight">{b.sub}</p>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
+      {/* ═══ Game Hero Section ═══ */}
+      <GameHero
+        name={game.name}
+        publisher={game.publisher}
+        icon={game.icon}
+        banner={game.banner}
+        accent={game.accent}
+        currencyName={game.currencyName}
+        description={game.description}
+        isHot={game.isHot}
+        productCount={game.productCount}
+      />
 
       {/* ═══ Main Content: 2 Columns ═══ */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 py-12 pb-32 lg:pb-24">
@@ -129,13 +99,15 @@ export default async function GameSlugPage({
             </div>
           </aside>
 
-          {/* RIGHT: Checkout Flow */}
-          <main className="lg:col-span-8 order-1 lg:order-2">
+          {/* RIGHT: Checkout Flow, FAQ, and Related Games */}
+          <main className="lg:col-span-8 order-1 lg:order-2 space-y-6">
             <CheckoutClient
               game={game}
               groupedByCategory={groupedByCategory}
               paymentGroups={paymentGroups}
             />
+            <FAQAccordion />
+            <RelatedGamesGrid currentSlug={game.slug} />
           </main>
 
         </div>
@@ -143,3 +115,4 @@ export default async function GameSlugPage({
     </div>
   );
 }
+

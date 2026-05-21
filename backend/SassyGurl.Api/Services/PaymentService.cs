@@ -117,6 +117,10 @@ public class PaymentService : IPaymentService
         
         using (lockRelease)
         {
+            var isRelational = _context.Database.IsRelational();
+            var dbTransaction = isRelational ? await _context.Database.BeginTransactionAsync() : null;
+            try
+            {
             // Re-fetch transaction inside lock to ensure latest state
             transaction = await _context.Transactions
                 .Include(t => t.Product)
@@ -183,7 +187,10 @@ public class PaymentService : IPaymentService
                                         "system",
                                         reason: "Provider fulfillment success");
                                 }
-                                catch (InvalidOperationException) {} // Ignore if already SUCCESS
+                                catch (InvalidOperationException ex)
+                {
+                    _logger.LogWarning(ex, "State transition to SUCCESS failed for {OrderId}. Order may remain in PROCESSING.", orderId);
+                }
 
                                 transaction.ProviderRef = providerRes.ProviderRef;
                                 transaction.Sn = providerRes.Sn;
@@ -225,7 +232,10 @@ public class PaymentService : IPaymentService
                                         "system",
                                         reason: $"Provider error: {providerRes.Message}");
                                 }
-                                catch (InvalidOperationException) {}
+                                catch (InvalidOperationException ex)
+                {
+                    _logger.LogWarning(ex, "State transition to FAILED failed for {OrderId}. Order may remain in PROCESSING.", orderId);
+                }
                                 
                                 // Add to RefundQueue because Paid but Failed to topup
                                 _context.RefundQueues.Add(new RefundQueue
@@ -264,17 +274,20 @@ public class PaymentService : IPaymentService
                 case "cancel":
                 case "expire":
                     transaction.PaymentStatus = PaymentStatus.EXPIRED;
-                    try { _transition.TransitionStatus(_context, transaction, OrderStatus.CANCELLED, "system", reason: $"Midtrans {transactionStatus}"); } catch {}
+                    try { _transition.TransitionStatus(_context, transaction, OrderStatus.CANCELLED, "system", reason: $"Midtrans {transactionStatus}"); }
+                    catch (Exception ex) { _logger.LogWarning(ex, "State transition to CANCELLED failed for {OrderId}.", orderId); }
                     break;
 
                 case "refund":
                     transaction.PaymentStatus = PaymentStatus.REFUNDED;
-                    try { _transition.TransitionStatus(_context, transaction, OrderStatus.REFUNDING, "system", reason: "Midtrans refund"); } catch {}
+                    try { _transition.TransitionStatus(_context, transaction, OrderStatus.REFUNDING, "system", reason: "Midtrans refund"); }
+                    catch (Exception ex) { _logger.LogWarning(ex, "State transition to REFUNDING failed for {OrderId}.", orderId); }
                     break;
 
                 case "chargeback":
                     transaction.PaymentStatus = PaymentStatus.CHARGEBACK;
-                    try { _transition.TransitionStatus(_context, transaction, OrderStatus.REFUNDING, "system", reason: "Midtrans chargeback"); } catch {}
+                    try { _transition.TransitionStatus(_context, transaction, OrderStatus.REFUNDING, "system", reason: "Midtrans chargeback"); }
+                    catch (Exception ex) { _logger.LogWarning(ex, "State transition to REFUNDING (chargeback) failed for {OrderId}.", orderId); }
                     break;
 
                 default:
@@ -307,7 +320,19 @@ public class PaymentService : IPaymentService
                 await NotificationBroadcaster.NotifyUserOrderUpdate(_hub, transaction.UserId, broadcastPayload);
             }
 
+            if (dbTransaction != null) await dbTransaction.CommitAsync();
             return ApiResponse<string>.Ok("OK", "Webhook processed successfully.");
+            }
+            catch (Exception ex)
+            {
+                if (dbTransaction != null) await dbTransaction.RollbackAsync();
+                _logger.LogError(ex, "Database transaction failed for Midtrans webhook. OrderId={OrderId}", orderId);
+                throw;
+            }
+            finally
+            {
+                if (dbTransaction != null) await dbTransaction.DisposeAsync();
+            }
         }
     }
 }

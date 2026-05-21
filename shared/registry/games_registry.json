@@ -1,0 +1,597 @@
+[
+  {
+    "canonical_name": "Mobile Legends Bang Bang",
+    "display_title": "Mobile Legends: Bang Bang",
+    "slug": "mlbb",
+    "aliases": [
+      "Mobile Legends",
+      "Mobile Legends Bang Bang",
+      "MLBB",
+      "ML",
+      "Mobile Legends: Bang Bang"
+    ],
+    "short_names": [
+      "MLBB",
+      "ML"
+    ],
+    "search_keywords": [
+      "mobile legends",
+      "mlbb",
+      "ml",
+      "diamond"
+    ],
+    "category": "Mobile",
+    "provider_keywords": [
+      "mobile legends",
+      "mobilelegends",
+      "mlbb"
+    ],
+    "asset_keywords": [
+      "mlbb logo",
+      "mlbb banner"
+    ],
+    "confidence_level": "high",
+    "needs_review": false
+  },
+  {
+    "canonical_name": "Free Fire",
+    "display_title": "Free Fire",
+    "slug": "ff",
+    "aliases": [
+      "Free Fire",
+      "Garena Free Fire",
+      "FF"
+    ],
+    "short_names": [
+      "FF"
+    ],
+    "search_keywords": [
+      "free fire",
+      "ff",
+      "diamonds"
+    ],
+    "category": "Mobile",
+    "provider_keywords": [
+      "free fire",
+      "freefire",
+      "garena free fire"
+    ],
+    "asset_keywords": [
+      "free fire logo",
+      "free fire banner"
+    ],
+    "confidence_level": "high",
+    "needs_review": false
+  },
+  {
+    "canonical_name": "PUBG Mobile",
+    "display_title": "PUBG Mobile",
+    "slug": "pubg",
+    "aliases": [
+      "PUBG Mobile",
+      "PUBGM",
+      "PUBG"
+    ],
+    "short_names": [
+      "PUBGM",
+      "PUBG"
+    ],
+    "search_keywords": [
+      "pubg mobile",
+      "pubgm",
+      "pubg",
+      "uc"
+    ],
+    "category": "Mobile",
+    "provider_keywords": [
+      "pubg mobile",
+      "pubg",
+      "pubgm"
+    ],
+    "asset_keywords": [
+      "pubg mobile logo",
+      "pubg mobile banner"
+    ],
+    "confidence_level": "high",
+    "needs_review": false
+  },
+  {
+    "canonical_name": "Genshin Impact",
+    "display_title": "Genshin Impact",
+    "slug": "genshin",
+    "aliases": [
+      "Genshin Impact",
+      "Genshin",
+      "GI"
+    ],
+    "short_names": [
+      "GI"
+    ],
+    "search_keywords": [
+      "genshin impact",
+      "genshin",
+      "gi",
+      "primogem",
+      "crystal"
+    ],
+    "category": "Mobile/PC",
+    "provider_keywords": [
+      "genshin impact",
+      "genshin",
+      "genshinimpact"
+    ],
+    "asset_keywords": [
+      "genshin impact logo",
+      "genshin impact banner"
+    ],
+    "confidence_level": "high",
+    "needs_review": false
+  },
+  {
+    "canonical_name": "Honkai Star Rail",
+    "display_title": "Honkai: Star Rail",
+    "slug": "hsr",
+    "aliases": [
+      "Honkai: Star Rail",
+      "Honkai Star Rail",
+      "HSR"
+    ],
+    "short_names": [
+      "HSR"
+    ],
+    "search_keywords": [
+      "honkai star rail",
+      "hsr",
+      "stellar jade",
+      "oneiric shard"
+    ],
+    "category": "Mobile/PC",
+    "provider_keywords": [
+      "honkai star rail",
+      "honkaistarrail",
+      "hsr"
+    ],
+    "asset_keywords": [
+      "honkai star rail logo",
+      "honkai star rail banner"
+    ],
+    "confidence_level": "high",
+    "needs_review": false
+  },
+  {
+    "canonical_name": "Zenless Zone Zero",
+    "display_title": "Zenless Zone Zero",
+    "slug": "zzz",
+    "aliases": [
+      "Zenless Zone Zero",
+      "ZZZ"
+    ],
+    "short_names": [
+      "ZZZ"
+    ],
+    "search_keywords": [
+      "zenless zone zero",
+      "zzz",
+      "monochrome",
+      "polychrome"
+    ],
+    "category": "Mobile/PC",
+    "provider_keywords": [
+      "zenless zone zero",
+      "zenlesszonezero",
+      "zzz"
+    ],
+    "asset_keywords": [
+      "zenless zone zero logo",
+      "zenless zone zero banner"
+    ],
+    "confidence_level": "high",
+    "needs_review": false
+  },
+  {
+    "canonical_name": "Arknights Endfield",
+    "display_title": "Arknights: Endfield",
+    "slug": "arknights-endfield",
+    "aliases": [
+      "Arknights Endfield",
+      "Arknights: Endfield",
+      "Arknights EF",
+      "Endfield"
+    ],
+    "short_names": [
+      "AKEF",
+      "AEF"
+    ],
+    "search_keywords": [
+      "arknights endfield",
+      "arknights ef",
+      "endfield",
+      "origeometry"
+    ],
+    "category": "Mobile/PC",
+    "provider_keywords": [
+      "arknights endfield",
+      "arknights ef",
+      "endfield",
+      "akef"
+    ],
+    "asset_keywords": [
+      "arknights endfield logo",
+      "arknights endfield banner"
+    ],
+    "confidence_level": "high",
+    "needs_review": false
+  },
+  {
+    "canonical_name": "Honor of Kings",
+    "display_title": "Honor of Kings",
+    "slug": "hok",
+    "aliases": [
+      "Honor of Kings",
+      "HOK"
+    ],
+    "short_names": [
+      "HOK"
+    ],
+    "search_keywords": [
+      "honor of kings",
+      "hok",
+      "token"
+    ],
+    "category": "Mobile",
+    "provider_keywords": [
+      "honor of kings",
+      "honorofkings",
+      "hok"
+    ],
+    "asset_keywords": [
+      "honor of kings logo",
+      "honor of kings banner"
+    ],
+    "confidence_level": "high",
+    "needs_review": false
+  },
+  {
+    "canonical_name": "Valorant",
+    "display_title": "Valorant",
+    "slug": "valorant",
+    "aliases": [
+      "Valorant",
+      "Riot Valorant"
+    ],
+    "short_names": [
+      "VALORANT"
+    ],
+    "search_keywords": [
+      "valorant",
+      "vp",
+      "points"
+    ],
+    "category": "PC",
+    "provider_keywords": [
+      "valorant"
+    ],
+    "asset_keywords": [
+      "valorant logo",
+      "valorant banner"
+    ],
+    "confidence_level": "high",
+    "needs_review": false
+  },
+  {
+    "canonical_name": "Roblox",
+    "display_title": "Roblox",
+    "slug": "roblox",
+    "aliases": [
+      "Roblox",
+      "Robux"
+    ],
+    "short_names": [
+      "RBX"
+    ],
+    "search_keywords": [
+      "roblox",
+      "robux",
+      "rbx"
+    ],
+    "category": "Mobile/PC/Console",
+    "provider_keywords": [
+      "roblox",
+      "robux"
+    ],
+    "asset_keywords": [
+      "roblox logo",
+      "roblox banner"
+    ],
+    "confidence_level": "high",
+    "needs_review": false
+  },
+  {
+    "canonical_name": "Steam Wallet",
+    "display_title": "Steam Wallet",
+    "slug": "steam-wallet",
+    "aliases": [
+      "Steam Wallet",
+      "Steam Gift Card",
+      "Steam Card"
+    ],
+    "short_names": [
+      "STEAM"
+    ],
+    "search_keywords": [
+      "steam",
+      "wallet",
+      "gift card"
+    ],
+    "category": "Voucher",
+    "provider_keywords": [
+      "steam",
+      "steam wallet"
+    ],
+    "asset_keywords": [
+      "steam logo",
+      "steam banner"
+    ],
+    "confidence_level": "high",
+    "needs_review": false
+  },
+  {
+    "canonical_name": "FC Mobile",
+    "display_title": "FC Mobile",
+    "slug": "fc-mobile",
+    "aliases": [
+      "FC Mobile",
+      "FIFA Mobile",
+      "EA Sports FC Mobile"
+    ],
+    "short_names": [
+      "FCM"
+    ],
+    "search_keywords": [
+      "fc mobile",
+      "fifa mobile",
+      "points"
+    ],
+    "category": "Mobile",
+    "provider_keywords": [
+      "fc mobile",
+      "fifa mobile",
+      "ea sports fc"
+    ],
+    "asset_keywords": [
+      "fc mobile logo",
+      "fc mobile banner"
+    ],
+    "confidence_level": "high",
+    "needs_review": false
+  },
+  {
+    "canonical_name": "Delta Force",
+    "display_title": "Delta Force",
+    "slug": "delta-force",
+    "aliases": [
+      "Delta Force",
+      "Delta Force Hawk Ops",
+      "Delta Force: Hawk Ops"
+    ],
+    "short_names": [
+      "DF"
+    ],
+    "search_keywords": [
+      "delta force",
+      "hawk ops",
+      "df"
+    ],
+    "category": "PC",
+    "provider_keywords": [
+      "delta force",
+      "hawk ops"
+    ],
+    "asset_keywords": [
+      "delta force logo",
+      "delta force banner"
+    ],
+    "confidence_level": "high",
+    "needs_review": false
+  },
+  {
+    "canonical_name": "Blood Strike",
+    "display_title": "Blood Strike",
+    "slug": "blood-strike",
+    "aliases": [
+      "Blood Strike",
+      "Project BloodStrike",
+      "Bloodstrike"
+    ],
+    "short_names": [
+      "BS"
+    ],
+    "search_keywords": [
+      "blood strike",
+      "bloodstrike",
+      "bs",
+      "gold"
+    ],
+    "category": "Mobile/PC",
+    "provider_keywords": [
+      "blood strike",
+      "bloodstrike"
+    ],
+    "asset_keywords": [
+      "blood strike logo",
+      "blood strike banner"
+    ],
+    "confidence_level": "high",
+    "needs_review": false
+  },
+  {
+    "canonical_name": "Wuthering Waves",
+    "display_title": "Wuthering Waves",
+    "slug": "wuwa",
+    "aliases": [
+      "Wuthering Waves",
+      "WuWa"
+    ],
+    "short_names": [
+      "WUWA"
+    ],
+    "search_keywords": [
+      "wuthering waves",
+      "wuwa",
+      "lunite"
+    ],
+    "category": "Mobile/PC",
+    "provider_keywords": [
+      "wuthering waves",
+      "wutheringwaves",
+      "wuwa"
+    ],
+    "asset_keywords": [
+      "wuthering waves logo",
+      "wuthering waves banner"
+    ],
+    "confidence_level": "high",
+    "needs_review": false
+  },
+  {
+    "canonical_name": "NIKKE Goddess of Victory",
+    "display_title": "NIKKE",
+    "slug": "nikke",
+    "aliases": [
+      "NIKKE",
+      "Goddess of Victory: Nikke",
+      "Goddess of Victory Nikke",
+      "Nikke Goddess of Victory"
+    ],
+    "short_names": [
+      "NIKKE"
+    ],
+    "search_keywords": [
+      "nikke",
+      "gems"
+    ],
+    "category": "Mobile",
+    "provider_keywords": [
+      "nikke",
+      "goddess of victory nikke",
+      "goddessofvictorynikke"
+    ],
+    "asset_keywords": [
+      "nikke logo",
+      "nikke banner"
+    ],
+    "confidence_level": "high",
+    "needs_review": false
+  },
+  {
+    "canonical_name": "League of Legends",
+    "display_title": "League of Legends",
+    "slug": "lol",
+    "aliases": [
+      "League of Legends"
+    ],
+    "short_names": [
+      "LOL"
+    ],
+    "search_keywords": [
+      "league of legends",
+      "lol",
+      "rp",
+      "riot points"
+    ],
+    "category": "PC",
+    "provider_keywords": [
+      "league of legends",
+      "leagueoflegends"
+    ],
+    "asset_keywords": [
+      "league of legends logo",
+      "league of legends banner"
+    ],
+    "confidence_level": "high",
+    "needs_review": false
+  },
+  {
+    "canonical_name": "League of Legends Wild Rift",
+    "display_title": "LoL: Wild Rift",
+    "slug": "lolwr",
+    "aliases": [
+      "LoL: Wild Rift",
+      "Wild Rift",
+      "League of Legends Wild Rift"
+    ],
+    "short_names": [
+      "WR",
+      "LOLWR"
+    ],
+    "search_keywords": [
+      "wild rift",
+      "lolwr",
+      "lol wild rift",
+      "wild cores"
+    ],
+    "category": "Mobile",
+    "provider_keywords": [
+      "wild rift",
+      "lol wild rift",
+      "league of legends wild rift",
+      "leagueoflegendswildrift"
+    ],
+    "asset_keywords": [
+      "wild rift logo",
+      "wild rift banner"
+    ],
+    "confidence_level": "high",
+    "needs_review": false
+  },
+  {
+    "canonical_name": "Magic Chess",
+    "display_title": "Magic Chess",
+    "slug": "mccg",
+    "aliases": [
+      "Magic Chess",
+      "Magic Chess: Go Go"
+    ],
+    "short_names": [
+      "MCCG"
+    ],
+    "search_keywords": [
+      "magic chess"
+    ],
+    "category": "Mobile",
+    "provider_keywords": [
+      "magic chess",
+      "magicchess"
+    ],
+    "asset_keywords": [
+      "magic chess logo",
+      "magic chess banner"
+    ],
+    "confidence_level": "high",
+    "needs_review": false
+  },
+  {
+    "canonical_name": "Aether Gazer",
+    "display_title": "Aether Gazer",
+    "slug": "aether-gazer",
+    "aliases": [
+      "Aether Gazer"
+    ],
+    "short_names": [
+      "AG"
+    ],
+    "search_keywords": [
+      "aether gazer"
+    ],
+    "category": "Mobile",
+    "provider_keywords": [
+      "aether gazer",
+      "aethergazer"
+    ],
+    "asset_keywords": [
+      "aether gazer logo"
+    ],
+    "confidence_level": "low",
+    "needs_review": true
+  }
+]

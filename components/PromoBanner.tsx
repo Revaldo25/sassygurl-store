@@ -104,6 +104,7 @@ export default function PromoBanner() {
             src={ActivePromo.image} 
             alt={ActivePromo.title} 
             fill 
+            sizes="(max-width: 1200px) 100vw, 1200px"
             className="object-cover"
             priority
           />

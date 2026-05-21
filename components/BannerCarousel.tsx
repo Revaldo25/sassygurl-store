@@ -61,6 +61,7 @@ export default function BannerCarousel() {
               src={banner.src}
               alt={banner.title}
               fill
+              sizes="100vw"
               className="object-cover opacity-50"
               priority
             />
@@ -139,7 +140,7 @@ export default function BannerCarousel() {
           <div className="relative w-full overflow-hidden rounded-[2rem] border border-white/10 bg-zinc-950/[0.55] shadow-[0_0_60px_rgba(0,0,0,0.55)] backdrop-blur-2xl">
             <AnimatePresence mode="wait">
               <motion.div key={banner.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.5 }} className="relative aspect-[4/5] w-full">
-                <Image src={banner.src} alt={banner.title} fill className="object-cover" />
+                <Image src={banner.src} alt={banner.title} fill sizes="(max-width: 768px) 100vw, 33vw" className="object-cover" />
                 <div className="absolute inset-0 bg-gradient-to-t from-zinc-950 via-zinc-950/35 to-transparent" />
                 <div className="absolute bottom-5 left-5">
                   <p className="text-xs tracking-[0.24em] text-sakura/70">FEATURED</p>

@@ -85,24 +85,55 @@ public class SyncEngine : ISyncEngine
         var normalized = brand.ToLowerInvariant().Replace(" ", "");
         return normalized switch
         {
+            "mlbb" => "mlbb",
+            "ml" => "mlbb",
             "mobilelegends" => "mlbb",
             "mobilelegendsbangbang" => "mlbb",
             "freefire" => "ff",
-            "genshinimpact" => "genshin",
-            "honkaistarrail" => "hsr",
-            "zenlesszonezero" => "zzz",
-            "wutheringwaves" => "wuwa",
+            "ff" => "ff",
+            "pubg" => "pubg",
+            "pubgm" => "pubg",
             "pubgmobile" => "pubg",
-            "valorant" => "valorant",
+            "genshin" => "genshin",
+            "gi" => "genshin",
+            "genshinimpact" => "genshin",
+            "hsr" => "hsr",
+            "honkaistarrail" => "hsr",
+            "zzz" => "zzz",
+            "zenlesszonezero" => "zzz",
+            "akef" => "arknights-endfield",
+            "aef" => "arknights-endfield",
+            "arknightsendfield" => "arknights-endfield",
+            "arknightsef" => "arknights-endfield",
+            "endfield" => "arknights-endfield",
+            "hok" => "hok",
             "honorofkings" => "hok",
-            "goddessofvictorynikke" => "nikke",
-            "nikke" => "nikke",
-            "leagueoflegends" => "lol",
-            "wildrift" => "wr",
-            "leagueoflegendswildrift" => "wr",
+            "valorant" => "valorant",
+            "vp" => "valorant",
             "roblox" => "roblox",
-            "aethergazer" => "aether",
+            "rbx" => "roblox",
+            "robux" => "roblox",
+            "steam" => "steam-wallet",
+            "steamwallet" => "steam-wallet",
+            "fcm" => "fc-mobile",
+            "fcmobile" => "fc-mobile",
+            "fifamobile" => "fc-mobile",
+            "df" => "delta-force",
+            "deltaforce" => "delta-force",
+            "bs" => "blood-strike",
+            "bloodstrike" => "blood-strike",
+            "wuwa" => "wuwa",
+            "wutheringwaves" => "wuwa",
+            "nikke" => "nikke",
+            "goddessofvictorynikke" => "nikke",
+            "lol" => "lol",
+            "leagueoflegends" => "lol",
+            "lolwr" => "lolwr",
+            "wildrift" => "lolwr",
+            "mccg" => "mccg",
             "magicchess" => "mccg",
+            "ag" => "aether-gazer",
+            "aethergazer" => "aether-gazer",
             _ => null
         };
     }
@@ -167,7 +198,8 @@ public class SyncEngine : ISyncEngine
                 RequestPayload = JsonSerializer.Serialize(new { apiId, type = "services", filter_type = "game" }),
                 ResponseBody = rawBody.Length > 500_000 ? rawBody[..500_000] + "... (truncated)" : rawBody,
                 HttpStatus = (int)response.StatusCode,
-                DurationMs = (int)sw.ElapsedMilliseconds
+                DurationMs = (int)sw.ElapsedMilliseconds,
+                TraceId = System.Diagnostics.Activity.Current?.Id ?? Guid.NewGuid().ToString()
             };
 
             if (!response.IsSuccessStatusCode)
@@ -298,7 +330,8 @@ public class SyncEngine : ISyncEngine
                 RequestPayload = System.Text.Json.JsonSerializer.Serialize(payload),
                 ResponseBody = rawBody.Length > 500_000 ? rawBody[..500_000] + "... (truncated)" : rawBody,
                 HttpStatus = (int)response.StatusCode,
-                DurationMs = (int)sw.ElapsedMilliseconds
+                DurationMs = (int)sw.ElapsedMilliseconds,
+                TraceId = System.Diagnostics.Activity.Current?.Id ?? Guid.NewGuid().ToString()
             };
 
             _logger.LogInformation("Digiflazz raw response (HTTP {StatusCode}): {BodyLength} bytes",

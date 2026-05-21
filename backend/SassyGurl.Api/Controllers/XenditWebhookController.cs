@@ -1,7 +1,11 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using SassyGurl.Api.Data;
 using SassyGurl.Api.Filters;
+using SassyGurl.Api.Hubs;
+using SassyGurl.Api.Middleware;
 using SassyGurl.Api.Models.Enums;
 using SassyGurl.Api.Services;
 using SassyGurl.Application.Interfaces;
@@ -16,6 +20,7 @@ namespace SassyGurl.Api.Controllers;
 
 [ApiController]
 [Route("api/webhooks/xendit")]
+[EnableRateLimiting("xendit-webhook")]
 public class XenditWebhookController : ControllerBase
 {
     private readonly IPaymentValidationService _paymentValidation;
@@ -25,6 +30,7 @@ public class XenditWebhookController : ControllerBase
     private readonly ILogger<XenditWebhookController> _logger;
     private readonly IOrderTransitionHelper _transition;
     private readonly IOrderLockManager _lockManager;
+    private readonly IHubContext<NotificationHub> _hub;
 
     public XenditWebhookController(
         IPaymentValidationService paymentValidation,
@@ -33,7 +39,8 @@ public class XenditWebhookController : ControllerBase
         SassyGurlDbContext db,
         ILogger<XenditWebhookController> logger,
         IOrderTransitionHelper transition,
-        IOrderLockManager lockManager)
+        IOrderLockManager lockManager,
+        IHubContext<NotificationHub> hub)
     {
         _paymentValidation = paymentValidation;
         _providerService = providerService;
@@ -42,6 +49,7 @@ public class XenditWebhookController : ControllerBase
         _logger = logger;
         _transition = transition;
         _lockManager = lockManager;
+        _hub = hub;
     }
 
     /// <summary>
@@ -53,6 +61,7 @@ public class XenditWebhookController : ControllerBase
     /// </summary>
     [HttpPost("invoice")]
     [XenditWebhook]
+    [Idempotency]
     public async Task<IActionResult> HandleInvoicePaid([FromBody] XenditInvoicePayload payload)
     {
         _logger.LogInformation("Received Xendit Webhook: InvoiceId={Id}, Status={Status}, Amount={Amount}",
@@ -91,6 +100,10 @@ public class XenditWebhookController : ControllerBase
 
         using (lockRelease)
         {
+            var isRelational = _db.Database.IsRelational();
+            var dbTransaction = isRelational ? await _db.Database.BeginTransactionAsync() : null;
+            try
+            {
             var transaction = await _db.Transactions
                 .Include(t => t.Product)
                 .Include(t => t.Game)
@@ -100,12 +113,14 @@ public class XenditWebhookController : ControllerBase
             if (transaction == null)
             {
                 _logger.LogWarning("Transaction not found for ExternalId {ExtId}", payload.ExternalId);
+                if (dbTransaction != null) await dbTransaction.RollbackAsync();
                 return Ok(new { message = "Transaction not found." });
             }
 
             if (transaction.PaymentStatus == PaymentStatus.PAID)
             {
                 _logger.LogInformation("Idempotency hit: Invoice {ExtId} is already PAID. Ignoring.", payload.ExternalId);
+                if (dbTransaction != null) await dbTransaction.RollbackAsync();
                 return Ok(new { message = "Transaction already processed." });
             }
 
@@ -125,6 +140,7 @@ public class XenditWebhookController : ControllerBase
             catch (InvalidOperationException ex)
             {
                 _logger.LogWarning(ex, "Invalid state transition on Xendit settlement. OrderId={ExtId}", payload.ExternalId);
+                if (dbTransaction != null) await dbTransaction.RollbackAsync();
                 return Ok(new { message = "State transition invalid but webhook acknowledged." });
             }
 
@@ -164,7 +180,10 @@ public class XenditWebhookController : ControllerBase
                         "system",
                         reason: "Provider fulfillment success");
                 }
-                catch (InvalidOperationException) {}
+                catch (InvalidOperationException ex)
+                {
+                    _logger.LogWarning(ex, "State transition to SUCCESS failed for {InvoiceId}. Order may remain in PROCESSING.", payload.ExternalId);
+                }
 
                 transaction.ProviderRef = providerResult.ProviderRef;
                 transaction.Sn = providerResult.Sn;
@@ -219,7 +238,10 @@ public class XenditWebhookController : ControllerBase
                         "system",
                         reason: $"Provider error: {providerResult.Message}");
                 }
-                catch (InvalidOperationException) {}
+                catch (InvalidOperationException ex)
+                {
+                    _logger.LogWarning(ex, "State transition to FAILED failed for {InvoiceId}. Order may remain in PROCESSING.", payload.ExternalId);
+                }
 
                 // ── T-05: Add RefundQueue on provider failure (parity with Midtrans) ──
                 _db.RefundQueues.Add(new Models.RefundQueue
@@ -246,8 +268,40 @@ public class XenditWebhookController : ControllerBase
                 _logger.LogCritical("Order {Invoice} FAILED at provider. Added to RefundQueue. Reason: {Msg}", 
                     transaction.InvoiceId, providerResult.Message);
             }
+            // ── 7. SignalR: Broadcast real-time update (parity with Midtrans) ──
+            var broadcastPayload = new TransactionUpdatePayload(
+                transaction.Id,
+                transaction.InvoiceId,
+                transaction.Game?.Name ?? "Unknown",
+                transaction.Product?.Name ?? "Unknown",
+                transaction.TargetId,
+                transaction.TotalAmount,
+                transaction.PaymentStatus.ToString(),
+                transaction.OrderStatus.ToString(),
+                transaction.ProviderRef,
+                DateTime.UtcNow
+            );
 
+            await NotificationBroadcaster.BroadcastTransactionUpdate(_hub, broadcastPayload);
+
+            if (!string.IsNullOrEmpty(transaction.UserId))
+            {
+                await NotificationBroadcaster.NotifyUserOrderUpdate(_hub, transaction.UserId, broadcastPayload);
+            }
+
+            if (dbTransaction != null) await dbTransaction.CommitAsync();
             return Ok(new { message = "Webhook processed." });
+            }
+            catch (Exception ex)
+            {
+                if (dbTransaction != null) await dbTransaction.RollbackAsync();
+                _logger.LogError(ex, "Database transaction failed for Xendit webhook. InvoiceId={ExtId}", payload.ExternalId);
+                throw;
+            }
+            finally
+            {
+                if (dbTransaction != null) await dbTransaction.DisposeAsync();
+            }
         } // end lockRelease
     }
 }

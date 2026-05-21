@@ -1,6 +1,8 @@
 using Microsoft.Extensions.Logging.Abstractions;
+using Microsoft.AspNetCore.SignalR;
 using Moq;
 using SassyGurl.Api.Controllers;
+using SassyGurl.Api.Hubs;
 using SassyGurl.Api.Models;
 using SassyGurl.Api.Models.Enums;
 using SassyGurl.Api.Services;
@@ -20,6 +22,12 @@ public class ProviderIntegrationTests : TestBase
         var mockValidation = new Mock<IPaymentValidationService>();
         mockValidation.Setup(v => v.ValidatePaymentAsync(It.IsAny<string>(), It.IsAny<decimal>())).ReturnsAsync(true);
         var mockNotifier = new Mock<INotificationOrchestrator>();
+        var mockHub = new Mock<IHubContext<NotificationHub>>();
+        var mockClients = new Mock<IHubClients>();
+        mockClients.Setup(c => c.All).Returns(new Mock<IClientProxy>().Object);
+        mockClients.Setup(c => c.Group(It.IsAny<string>())).Returns(new Mock<IClientProxy>().Object);
+        mockClients.Setup(c => c.User(It.IsAny<string>())).Returns(new Mock<IClientProxy>().Object);
+        mockHub.Setup(h => h.Clients).Returns(mockClients.Object);
 
         _xenditController = new XenditWebhookController(
             mockValidation.Object,
@@ -28,7 +36,8 @@ public class ProviderIntegrationTests : TestBase
             DbContext,
             new NullLogger<XenditWebhookController>(),
             TransitionHelper,
-            LockManager
+            LockManager,
+            mockHub.Object
         );
     }
 
