@@ -318,8 +318,8 @@ export default function AdminDashboardClient({ initialStats, initialTransactions
                   <h3 className="mb-6 flex items-center gap-3 text-sm font-black uppercase tracking-[0.2em] text-white">
                     <TrendingUp className="h-5 w-5 text-emerald-400" /> Net Profit (Last 7 Days)
                   </h3>
-                  <div className="h-[300px] w-full">
-                    <ResponsiveContainer width="100%" height="100%">
+                  <div className="h-[300px] w-full min-w-0">
+                    <ResponsiveContainer width="100%" height="100%" minWidth={0}>
                       <AreaChart data={ownerStats.dailyRevenue?.length > 0 ? ownerStats.dailyRevenue : [{ date: "N/A", revenue: 0, profit: 0, orderCount: 0 }]}>
                         <defs>
                           <linearGradient id="profitGrad" x1="0" y1="0" x2="0" y2="1">

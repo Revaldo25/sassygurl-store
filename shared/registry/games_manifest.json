@@ -1,0 +1,122 @@
+{
+  "mlbb": {
+    "hero": "/images/hero/hero_anime_duo_action.webp",
+    "thumbnail": "/images/games/mlbb_icon.jpeg",
+    "logo": "/images/games/mlbb_icon.jpeg",
+    "accent": "#FDB0C0"
+  },
+  "ff": {
+    "hero": "/images/hero/hero_topup_bundle_03.jpg",
+    "thumbnail": "/images/games/ff_icon.jpeg",
+    "logo": "/images/games/ff_icon.jpeg",
+    "accent": "#FF6B35"
+  },
+  "pubg": {
+    "hero": "/images/hero/hero_topup_bundle_03.jpg",
+    "thumbnail": "/images/games/pubg_icon.svg",
+    "logo": "/images/games/pubg_icon.svg",
+    "accent": "#F0C040"
+  },
+  "genshin": {
+    "hero": "/images/hero/hero_genshin_fantasy_battle.webp",
+    "thumbnail": "/images/games/gi_icon.jpeg",
+    "logo": "/images/games/gi_icon.jpeg",
+    "accent": "#A8E6CF"
+  },
+  "hsr": {
+    "hero": "/images/hero/hero_sci_fi_team_banner.webp",
+    "thumbnail": "/images/games/hsr_icon.webp",
+    "logo": "/images/games/hsr_icon.webp",
+    "accent": "#7EC8E3"
+  },
+  "zzz": {
+    "hero": "/images/hero/hero_anime_duo_action.webp",
+    "thumbnail": "/images/games/zzz_icon.webp",
+    "logo": "/images/games/zzz_icon.webp",
+    "accent": "#C084FC"
+  },
+  "arknights-endfield": {
+    "hero": "/images/hero/hero_genshin_fantasy_battle.webp",
+    "thumbnail": "/images/games/akef_icon.jpeg",
+    "logo": "/images/games/akef_icon.jpeg",
+    "accent": "#A78BFA"
+  },
+  "hok": {
+    "hero": "/images/hero/hero_anime_duo_action.webp",
+    "thumbnail": "/images/games/hok_icon.jpeg",
+    "logo": "/images/games/hok_icon.jpeg",
+    "accent": "#F59E0B"
+  },
+  "valorant": {
+    "hero": "/images/hero/hero_sci_fi_team_banner.webp",
+    "thumbnail": "/images/games/valorant_icon.jpeg",
+    "logo": "/images/games/valorant_icon.jpeg",
+    "accent": "#FF4655"
+  },
+  "roblox": {
+    "hero": "/images/hero/hero_topup_bundle_03.jpg",
+    "thumbnail": "/images/games/rbx_icon.png",
+    "logo": "/images/games/rbx_icon.png",
+    "accent": "#E11D48"
+  },
+  "steam-wallet": {
+    "hero": "/images/hero/hero_topup_bundle_03.jpg",
+    "thumbnail": "/images/games/rbx_icon.png",
+    "logo": "/images/games/rbx_icon.png",
+    "accent": "#1B2838"
+  },
+  "fc-mobile": {
+    "hero": "/images/hero/hero_topup_bundle_03.jpg",
+    "thumbnail": "/images/games/hok_icon.jpeg",
+    "logo": "/images/games/hok_icon.jpeg",
+    "accent": "#00DF89"
+  },
+  "delta-force": {
+    "hero": "/images/hero/hero_sci_fi_team_banner.webp",
+    "thumbnail": "/images/games/valorant_icon.jpeg",
+    "logo": "/images/games/valorant_icon.jpeg",
+    "accent": "#2C5E43"
+  },
+  "blood-strike": {
+    "hero": "/images/hero/hero_topup_bundle_03.jpg",
+    "thumbnail": "/images/games/valorant_icon.jpeg",
+    "logo": "/images/games/valorant_icon.jpeg",
+    "accent": "#FF8C00"
+  },
+  "wuwa": {
+    "hero": "/images/hero/hero_genshin_fantasy_battle.webp",
+    "thumbnail": "/images/games/wuwa_icon.webp",
+    "logo": "/images/games/wuwa_icon.webp",
+    "accent": "#60A5FA"
+  },
+  "nikke": {
+    "hero": "/images/hero/hero_sci_fi_team_banner.webp",
+    "thumbnail": "/images/games/nikke_icon.jpeg",
+    "logo": "/images/games/nikke_icon.jpeg",
+    "accent": "#F472B6"
+  },
+  "lol": {
+    "hero": "/images/hero/hero_topup_bundle_03.jpg",
+    "thumbnail": "/images/games/lol_icon.jpeg",
+    "logo": "/images/games/lol_icon.jpeg",
+    "accent": "#C4B454"
+  },
+  "lolwr": {
+    "hero": "/images/hero/hero_anime_duo_action.webp",
+    "thumbnail": "/images/games/lolwr_icon.jpeg",
+    "logo": "/images/games/lolwr_icon.jpeg",
+    "accent": "#22D3EE"
+  },
+  "mccg": {
+    "hero": "/images/hero/hero_anime_duo_action.webp",
+    "thumbnail": "/images/games/mccg_icon.jpeg",
+    "logo": "/images/games/mccg_icon.jpeg",
+    "accent": "#60A5FA"
+  },
+  "aether-gazer": {
+    "hero": "/images/hero/hero_genshin_fantasy_battle.webp",
+    "thumbnail": "/images/games/akef_icon.jpeg",
+    "logo": "/images/games/akef_icon.jpeg",
+    "accent": "#A78BFA"
+  }
+}

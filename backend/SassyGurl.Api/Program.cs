@@ -105,11 +105,15 @@ try
         options.AddPolicy("NextJsFrontend", policy =>
         {
             policy.SetIsOriginAllowed(origin => 
-                origin.Contains("localhost") || 
-                origin.EndsWith(".ngrok-free.app") || 
-                origin.EndsWith(".ngrok.io") ||
-                origin.EndsWith(".ngrok-free.dev")
-            )
+            {
+                if (!Uri.TryCreate(origin, UriKind.Absolute, out var uri))
+                    return false;
+                return uri.Host == "localhost" ||
+                       uri.Host == "127.0.0.1" ||
+                       origin.EndsWith(".ngrok-free.app") || 
+                       origin.EndsWith(".ngrok.io") ||
+                       origin.EndsWith(".ngrok-free.dev");
+            })
             .AllowAnyHeader()
             .AllowAnyMethod()
             .AllowCredentials(); // Required for SignalR WebSocket
@@ -190,6 +194,22 @@ try
         options.AddFixedWindowLimiter("payment-webhook", limiterOptions =>
         {
             limiterOptions.PermitLimit = 120;
+            limiterOptions.Window = TimeSpan.FromMinutes(1);
+            limiterOptions.QueueLimit = 0;
+            limiterOptions.AutoReplenishment = true;
+        });
+
+        options.AddFixedWindowLimiter("xendit-webhook", limiterOptions =>
+        {
+            limiterOptions.PermitLimit = 120;
+            limiterOptions.Window = TimeSpan.FromMinutes(1);
+            limiterOptions.QueueLimit = 0;
+            limiterOptions.AutoReplenishment = true;
+        });
+
+        options.AddFixedWindowLimiter("transaction-create", limiterOptions =>
+        {
+            limiterOptions.PermitLimit = 30;
             limiterOptions.Window = TimeSpan.FromMinutes(1);
             limiterOptions.QueueLimit = 0;
             limiterOptions.AutoReplenishment = true;
@@ -311,6 +331,7 @@ try
             diagnosticContext.Set("RequestHost", httpContext.Request.Host.Value ?? "unknown");
             diagnosticContext.Set("UserAgent", httpContext.Request.Headers.UserAgent.ToString());
             diagnosticContext.Set("ClientIp", httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown");
+            diagnosticContext.Set("TraceId", httpContext.TraceIdentifier);
         };
     });
 
@@ -320,8 +341,11 @@ try
         try
         {
             var dbContext = scope.ServiceProvider.GetRequiredService<SassyGurlDbContext>();
-            dbContext.Database.Migrate();
-            Log.Information("Database migrations applied successfully.");
+            if (dbContext.Database.IsRelational())
+            {
+                dbContext.Database.Migrate();
+                Log.Information("Database migrations applied successfully.");
+            }
         }
         catch (Exception ex)
         {

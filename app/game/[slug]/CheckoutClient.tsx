@@ -4,8 +4,7 @@ import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   CheckCircle2, AlertCircle, Search,
-  ShieldCheck, CreditCard, ChevronDown, Loader2,
-  User, Phone
+  ShieldCheck, Loader2, Phone, ShoppingBag
 } from "lucide-react";
 import type {
   NormalizedGame,
@@ -29,28 +28,34 @@ export default function CheckoutClient({ game, groupedByCategory, paymentGroups 
   // ── State ─────────────────────────────────────────────────────────────────
   const [userId, setUserId] = useState("");
   const [zoneId, setZoneId] = useState("");
-  const [isValidating, setIsValidating] = useState(false);
   const [validatedName, setValidatedName] = useState<string | null>(null);
-  const [validationError, setValidationError] = useState<string | null>(null);
 
   const [selectedProduct, setSelectedProduct] = useState<NormalizedProduct | null>(null);
   const [selectedPayment, setSelectedPayment] = useState<PaymentMethod | null>(null);
-  const [expandedPaymentGroup, setExpandedPaymentGroup] = useState<string | null>(null);
 
   const [whatsapp, setWhatsapp] = useState("");
   const [isCheckingOut, setIsCheckingOut] = useState(false);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [idempotencyKey, setIdempotencyKey] = useState("");
 
   // Filter & Tabs
   const [activeTab, setActiveTab] = useState<string>("ALL");
   const [searchFilter, setSearchFilter] = useState("");
 
-  // ── Computed ──────────────────────────────────────────────────────────────
-  const calcFinal = (base: number, pm: PaymentMethod) =>
-    base + pm.feeFlat + (base * (pm.feePercent / 100));
+  // ── Theme Styling Customizations ──────────────────────────────────────────
+  const accent = game.accent || "#FDB0C0"; // Fallback to SassyGurl sakura pink
 
-  const finalPrice = selectedProduct && selectedPayment
-    ? calcFinal(selectedProduct.displayPrice, selectedPayment)
+  // ── Computed ──────────────────────────────────────────────────────────────
+  const calcPaymentFee = (base: number, pm: PaymentMethod) => {
+    return pm.feeFlat + (base * (pm.feePercent / 100));
+  };
+
+  const paymentFee = selectedProduct && selectedPayment
+    ? calcPaymentFee(selectedProduct.displayPrice, selectedPayment)
+    : 0;
+
+  const finalPrice = selectedProduct
+    ? selectedProduct.displayPrice + paymentFee
     : null;
 
   const canCheckout = !!userId && !!selectedProduct && !!selectedPayment && !!whatsapp;
@@ -66,27 +71,19 @@ export default function CheckoutClient({ game, groupedByCategory, paymentGroups 
     .filter(g => g.items.length > 0);
 
   // ── Handlers ──────────────────────────────────────────────────────────────
-  const handleValidate = async () => {
-    if (!userId) return;
-    setIsValidating(true);
-    setValidatedName(null);
-    setValidationError(null);
-    try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/gamevalidation/validate`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ gameId: game.id, targetId: userId, zoneId }),
-      });
-      const data = await res.json();
-      if (res.ok && data.success) {
-        setValidatedName(data.data.username);
-      } else {
-        setValidationError(data.message || "Gagal memvalidasi akun.");
-      }
-    } catch {
-      setValidationError("Koneksi gagal. Pastikan backend menyala.");
-    } finally {
-      setIsValidating(false);
+  const handleOpenConfirm = () => {
+    if (!canCheckout) return;
+    // Generate fresh UUID for idempotency protection (Phase 1 rule compliance)
+    const uuid = typeof crypto !== "undefined" && crypto.randomUUID 
+      ? crypto.randomUUID() 
+      : Math.random().toString(36).substring(2) + Date.now().toString(36);
+    
+    setIdempotencyKey(uuid);
+    setShowConfirmModal(true);
+    
+    // Tiny haptic feedback if supported on mobile
+    if (typeof navigator !== "undefined" && navigator.vibrate) {
+      navigator.vibrate(20);
     }
   };
 
@@ -96,7 +93,10 @@ export default function CheckoutClient({ game, groupedByCategory, paymentGroups 
     try {
       const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/transactions`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { 
+          "Content-Type": "application/json",
+          "X-Idempotency-Key": idempotencyKey // Backend idempotency integration
+        },
         body: JSON.stringify({
           gameId: game.id,
           productId: selectedProduct!.id,
@@ -107,6 +107,9 @@ export default function CheckoutClient({ game, groupedByCategory, paymentGroups 
       });
       const data = await res.json();
       if (res.ok && data.success) {
+        if (typeof navigator !== "undefined" && navigator.vibrate) {
+          navigator.vibrate([40, 30, 40]);
+        }
         window.location.href = `/invoice/${data.data.invoiceId}`;
       } else {
         alert(data.message || "Gagal membuat pesanan.");
@@ -122,13 +125,20 @@ export default function CheckoutClient({ game, groupedByCategory, paymentGroups 
   // ── Step Header Component ────────────────────────────────────────────────
   const StepHeader = ({ num, title, done }: { num: number; title: string; done?: boolean }) => (
     <div className="flex items-center gap-4 mb-8">
-      <div className={`relative w-10 h-10 rounded-2xl flex items-center justify-center text-sm font-black transition-all duration-500 ${
-        done 
-          ? "bg-emerald-500 text-white shadow-[0_0_20px_rgba(16,185,129,0.4)]" 
-          : "bg-sakura/10 text-sakura border border-sakura/20 shadow-[0_0_20px_rgba(253,176,192,0.1)]"
-      }`}>
+      <div 
+        className={`relative w-10 h-10 rounded-2xl flex items-center justify-center text-sm font-black transition-all duration-500`}
+        style={done 
+          ? { backgroundColor: "#10b981", color: "#ffffff", boxShadow: "0 0 20px rgba(16,185,129,0.4)" } 
+          : { backgroundColor: `${accent}15`, color: accent, border: `1px solid ${accent}25` }
+        }
+      >
         {done ? <CheckCircle2 className="w-5 h-5" /> : num}
-        {!done && <div className="absolute inset-0 rounded-2xl bg-sakura/20 animate-ping opacity-20" />}
+        {!done && (
+          <div 
+            className="absolute inset-0 rounded-2xl animate-ping opacity-25"
+            style={{ backgroundColor: accent }}
+          />
+        )}
       </div>
       <div>
         <h2 className="text-lg font-black text-white tracking-tight leading-none mb-1">{title}</h2>
@@ -155,6 +165,10 @@ export default function CheckoutClient({ game, groupedByCategory, paymentGroups 
             setUserId(payload.id);
             setZoneId(payload.zone || "");
             setValidatedName(payload.username);
+            // Mobile trigger vibration on nickname resolution
+            if (payload.username && typeof navigator !== "undefined" && navigator.vibrate) {
+              navigator.vibrate(30);
+            }
           }}
           stepLabel="STEP 01"
         />
@@ -168,7 +182,7 @@ export default function CheckoutClient({ game, groupedByCategory, paymentGroups 
               initial={{ opacity: 0, height: 0, marginTop: 0 }}
               animate={{ opacity: 1, height: "auto", marginTop: 20 }}
               exit={{ opacity: 0, height: 0, marginTop: 0 }}
-              className="rounded-2xl border border-white/5 bg-white/[0.02] backdrop-blur-sm p-5 overflow-hidden"
+              className="rounded-[2rem] border border-white/5 bg-white/[0.02] backdrop-blur-sm p-6 overflow-hidden"
             >
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
                 <StepHeader num={2} title="Pilih Nominal" done={!!selectedProduct} />
@@ -180,71 +194,81 @@ export default function CheckoutClient({ game, groupedByCategory, paymentGroups 
                     placeholder="Cari item..."
                     value={searchFilter}
                     onChange={(e) => setSearchFilter(e.target.value)}
-                    className="w-full bg-black/40 border border-white/10 rounded-2xl py-3 pl-10 pr-4 text-sm text-white placeholder:text-white/30 focus:outline-none focus:border-sakura/50 focus:ring-2 focus:ring-sakura/20 transition-all"
+                    className="w-full bg-black/40 border border-white/10 rounded-2xl py-3 pl-10 pr-4 text-sm text-white placeholder:text-white/30 focus:outline-none focus:border-sakura/50 focus:ring-2 focus:ring-sakura/20 transition-all font-semibold"
                   />
                 </div>
               </div>
 
-              {/* Tabs */}
-              <div className="flex gap-2 overflow-x-auto pb-6 mb-2 no-scrollbar">
+              {/* Tabs with Horizontal Mask */}
+              <div className="flex gap-2 overflow-x-auto pb-6 mb-2 no-scrollbar scroll-smooth">
                 <button
                   onClick={() => setActiveTab("ALL")}
+                  style={activeTab === "ALL" 
+                    ? { backgroundColor: accent, color: "#09090b", boxShadow: `0 10px 25px -5px ${accent}66`, transform: "scale(1.05)" }
+                    : {}
+                  }
                   className={`shrink-0 px-6 py-3 rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] transition-all duration-300 ${
-                    activeTab === "ALL" 
-                      ? "bg-sakura text-zinc-950 shadow-[0_10px_25px_-5px_rgba(253,176,192,0.4)] scale-105" 
-                      : "bg-white/[0.03] text-zinc-500 border border-white/5 hover:bg-white/[0.08] hover:text-white"
+                    activeTab === "ALL" ? "" : "bg-white/[0.03] text-zinc-500 border border-white/5 hover:bg-white/[0.08] hover:text-white"
                   }`}
                 >
                   SEMUA
                 </button>
-                {groupedByCategory.map(g => (
-                  <button
-                    key={g.category.slug}
-                    onClick={() => setActiveTab(g.category.label.toUpperCase())}
-                    className={`shrink-0 px-6 py-3 rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] transition-all duration-300 ${
-                      activeTab === g.category.label.toUpperCase()
-                        ? "bg-sakura text-zinc-950 shadow-[0_10px_25px_-5px_rgba(253,176,192,0.4)] scale-105"
-                        : "bg-white/[0.03] text-zinc-500 border border-white/5 hover:bg-white/[0.08] hover:text-white"
-                    }`}
-                  >
-                    {g.category.label}
-                  </button>
-                ))}
+                {groupedByCategory.map(g => {
+                  const isActive = activeTab === g.category.label.toUpperCase();
+                  return (
+                    <button
+                      key={g.category.slug}
+                      onClick={() => setActiveTab(g.category.label.toUpperCase())}
+                      style={isActive
+                        ? { backgroundColor: accent, color: "#09090b", boxShadow: `0 10px 25px -5px ${accent}66`, transform: "scale(1.05)" }
+                        : {}
+                      }
+                      className={`shrink-0 px-6 py-3 rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] transition-all duration-300 ${
+                        isActive ? "" : "bg-white/[0.03] text-zinc-500 border border-white/5 hover:bg-white/[0.08] hover:text-white"
+                      }`}
+                    >
+                      {g.category.label}
+                    </button>
+                  );
+                })}
               </div>
 
               {filteredGroups.length > 0 ? (
                 filteredGroups.map((group, idx) => (
-                  <div key={idx} className="mb-6 last:mb-0">
-                    <h3 className="flex items-center gap-2 text-sm font-black uppercase tracking-widest text-zinc-500 mb-4">
-                      {group.category.icon && <span className="text-lg">{group.category.icon}</span>}
+                  <div key={idx} className="mb-6 last:mb-0 animate-[fadeInUp_0.3s_ease-out]">
+                    <h3 className="flex items-center gap-2 text-xs font-black uppercase tracking-widest text-zinc-500 mb-4">
+                      {group.category.icon && <span className="text-sm">{group.category.icon}</span>}
                       {group.category.label}
                     </h3>
-                    {/* Premium Card Grid: 3 col desktop, 2 col mobile */}
-                    <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                       {group.items.map(product => {
                         const active = selectedProduct?.id === product.id;
-                        // Better image resolving logic
                         const nominalMatch = product.name.match(/\d+/);
                         const nominalStr = nominalMatch ? nominalMatch[0] : "1";
-                        // Priority: Product thumbnail -> Specific category folder -> Generic folder
                         const imageSrc = product.thumbnail || `/images/items/${game.slug}/${group.category.slug.toLowerCase()}/${nominalStr}.png`;
 
                         return (
                           <button
                             key={product.id}
-                            onClick={() => setSelectedProduct(product)}
-                            className={`group relative flex items-center gap-4 p-5 rounded-[2rem] border text-left transition-all duration-500 overflow-hidden ${
+                            onClick={() => {
+                              setSelectedProduct(product);
+                              if (typeof navigator !== "undefined" && navigator.vibrate) {
+                                navigator.vibrate(15);
+                              }
+                            }}
+                            className={`group relative flex items-center gap-4 p-4 rounded-[1.8rem] border text-left transition-all duration-300 overflow-hidden ${
                               active
-                                ? "border-sakura bg-sakura/10 shadow-[0_20px_40px_-12px_rgba(253,176,192,0.2)] scale-[1.02]"
+                                ? "bg-white/[0.03] scale-[1.02]"
                                 : "border-white/5 bg-white/[0.02] hover:border-white/20 hover:bg-white/[0.05] hover:translate-y-[-2px]"
                             }`}
+                            style={active ? { borderColor: accent, boxShadow: `0 10px 30px -10px ${accent}25` } : {}}
                           >
-                            {/* Product Icon (Left) */}
-                            <div className="shrink-0 w-14 h-14 rounded-2xl bg-zinc-950/50 border border-white/10 p-2.5 overflow-hidden flex items-center justify-center transition-transform duration-500 group-hover:scale-110">
+                            {/* Product Icon */}
+                            <div className="shrink-0 w-12 h-12 rounded-xl bg-zinc-950/50 border border-white/10 p-2 overflow-hidden flex items-center justify-center transition-transform duration-300 group-hover:scale-105">
                                <img 
                                  src={imageSrc} 
                                  alt={product.name} 
-                                 className="w-full h-full object-contain filter drop-shadow-[0_0_8px_rgba(253,176,192,0.3)]"
+                                 className="w-full h-full object-contain filter drop-shadow-[0_0_8px_rgba(255,255,255,0.1)]"
                                  onError={(e) => {
                                    (e.target as HTMLImageElement).src = "/images/items/generic/diamond.png";
                                  }}
@@ -253,15 +277,18 @@ export default function CheckoutClient({ game, groupedByCategory, paymentGroups 
                             
                             {/* Product Details */}
                             <div className="min-w-0 flex-1">
-                              <p className={`text-xs font-black leading-tight truncate mb-1.5 ${active ? "text-white" : "text-zinc-400 group-hover:text-white"}`}>
+                              <p className={`text-[11px] font-black leading-snug truncate mb-1 ${active ? "text-white" : "text-zinc-400 group-hover:text-white"}`}>
                                 {product.name}
                               </p>
                               <div className="flex flex-col gap-0.5">
-                                <span className={`text-sm font-black tracking-tight ${active ? "text-sakura" : "text-sakura/90 group-hover:text-sakura"}`}>
+                                <span 
+                                  className="text-xs font-black tracking-tight"
+                                  style={{ color: active ? accent : `${accent}d9` }}
+                                >
                                   {formatIDR(product.displayPrice)}
                                 </span>
                                 {product.originalPrice && product.originalPrice > product.displayPrice && (
-                                  <span className="text-[10px] text-zinc-600 font-bold line-through">
+                                  <span className="text-[9px] text-zinc-600 font-bold line-through">
                                     {formatIDR(product.originalPrice)}
                                   </span>
                                 )}
@@ -270,16 +297,17 @@ export default function CheckoutClient({ game, groupedByCategory, paymentGroups 
 
                             {/* Promo badge */}
                             {product.isFlashSale && (
-                              <div className="absolute top-0 right-0 bg-gradient-to-l from-rose-600 to-rose-500 text-[8px] font-black uppercase text-white px-3 py-1.5 rounded-bl-2xl rounded-tr-xl shadow-lg">
+                              <div className="absolute top-0 right-0 bg-gradient-to-l from-rose-600 to-rose-500 text-[8px] font-black uppercase text-white px-2.5 py-1 rounded-bl-xl rounded-tr-lg shadow-lg">
                                 PROMO
                               </div>
                             )}
                             
-                            {/* Selected Indicator Dot */}
+                            {/* Selected Indicator */}
                             {active && (
                               <motion.div 
                                 layoutId="activeProduct"
-                                className="absolute right-4 top-1/2 -translate-y-1/2 w-1.5 h-6 bg-sakura rounded-full shadow-[0_0_12px_rgba(253,176,192,0.8)]"
+                                className="absolute right-3 top-1/2 -translate-y-1/2 w-1 h-5 rounded-full shadow-[0_0_12px_rgba(255,255,255,0.8)]"
+                                style={{ backgroundColor: accent }}
                               />
                             )}
                           </button>
@@ -289,7 +317,7 @@ export default function CheckoutClient({ game, groupedByCategory, paymentGroups 
                   </div>
                 ))
               ) : (
-                <div className="text-center py-12 border border-dashed border-white/10 rounded-2xl">
+                <div className="text-center py-12 border border-dashed border-white/10 rounded-3xl">
                   <Search className="w-8 h-8 text-zinc-600 mx-auto mb-3" />
                   <p className="text-white/60 text-sm font-bold">Tidak ada produk ditemukan.</p>
                   <p className="text-white/40 text-xs mt-1">Coba kata kunci lain atau pilih tab berbeda.</p>
@@ -308,14 +336,20 @@ export default function CheckoutClient({ game, groupedByCategory, paymentGroups 
               initial={{ opacity: 0, height: 0, marginTop: 0 }}
               animate={{ opacity: 1, height: "auto", marginTop: 20 }}
               exit={{ opacity: 0, height: 0, marginTop: 0 }}
-              className="rounded-2xl border border-white/5 bg-white/[0.02] backdrop-blur-sm p-5 overflow-hidden"
+              className="rounded-[2rem] border border-white/5 bg-white/[0.02] backdrop-blur-sm p-6 overflow-hidden"
             >
               <StepHeader num={3} title="Pilih Pembayaran" done={!!selectedPayment} />
               <PaymentAccordion 
                 groups={paymentGroups}
                 selectedCode={selectedPayment?.code}
-                onSelect={(method) => setSelectedPayment(method)}
+                onSelect={(method) => {
+                  setSelectedPayment(method);
+                  if (typeof navigator !== "undefined" && navigator.vibrate) {
+                    navigator.vibrate(15);
+                  }
+                }}
                 baseTotal={selectedProduct.displayPrice}
+                accent={accent}
               />
             </motion.section>
           )}
@@ -330,13 +364,18 @@ export default function CheckoutClient({ game, groupedByCategory, paymentGroups 
               initial={{ opacity: 0, height: 0, marginTop: 0 }}
               animate={{ opacity: 1, height: "auto", marginTop: 20 }}
               exit={{ opacity: 0, height: 0, marginTop: 0 }}
-              className="rounded-2xl border border-white/5 bg-white/[0.02] backdrop-blur-sm p-8 overflow-hidden mb-24 lg:mb-0"
+              className="rounded-[2rem] border border-white/5 bg-white/[0.02] backdrop-blur-sm p-8 overflow-hidden mb-24 lg:mb-0"
             >
               <StepHeader num={4} title="Informasi Kontak" />
 
               <div className="space-y-6">
                 <div>
-                  <label className="text-[10px] font-black font-mono text-sakura uppercase tracking-[0.3em] mb-3 block">Nomor WhatsApp</label>
+                  <label 
+                    className="text-[9px] font-black font-mono uppercase tracking-[0.3em] mb-3 block"
+                    style={{ color: accent }}
+                  >
+                    Nomor WhatsApp
+                  </label>
                   <div className="relative group">
                     <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
                       <Phone className="h-5 w-5 text-white/20 group-focus-within:text-sakura transition-colors" />
@@ -347,6 +386,7 @@ export default function CheckoutClient({ game, groupedByCategory, paymentGroups 
                       onChange={e => setWhatsapp(e.target.value)}
                       placeholder="Contoh: 081234567890"
                       className="w-full bg-black/40 border border-white/10 rounded-2xl py-4 pl-12 pr-6 text-sm text-white placeholder:text-white/10 focus:outline-none focus:border-sakura focus:ring-4 focus:ring-sakura/10 transition-all font-bold"
+                      inputMode="numeric"
                     />
                   </div>
                   <p className="text-[10px] text-white/20 mt-3 font-medium flex items-center gap-2">
@@ -356,9 +396,13 @@ export default function CheckoutClient({ game, groupedByCategory, paymentGroups 
                 </div>
 
                 <button
-                  onClick={() => setShowConfirmModal(true)}
+                  onClick={handleOpenConfirm}
                   disabled={!canCheckout}
-                  className="w-full bg-gradient-to-r from-sakura to-rose-500 hover:from-rose-400 hover:to-sakura text-zinc-950 font-black py-5 rounded-[2rem] shadow-[0_20px_40px_-10px_rgba(253,176,192,0.3)] disabled:opacity-30 disabled:cursor-not-allowed disabled:shadow-none transition-all active:scale-[0.98] flex items-center justify-center gap-3 text-sm tracking-[0.2em]"
+                  className="w-full text-zinc-950 font-black py-5 rounded-[2rem] disabled:opacity-30 disabled:cursor-not-allowed disabled:shadow-none transition-all active:scale-[0.98] flex items-center justify-center gap-3 text-sm tracking-[0.2em]"
+                  style={canCheckout 
+                    ? { backgroundColor: accent, boxShadow: `0 20px 40px -10px ${accent}40` }
+                    : { backgroundColor: "rgba(255,255,255,0.08)" }
+                  }
                 >
                   <ShieldCheck className="w-5 h-5" />
                   BAYAR SEKARANG
@@ -382,11 +426,11 @@ export default function CheckoutClient({ game, groupedByCategory, paymentGroups 
           >
             <div className="bg-zinc-900/80 backdrop-blur-3xl border border-white/10 rounded-[2.5rem] p-3 pl-8 shadow-[0_25px_50px_-12px_rgba(0,0,0,0.5)] flex items-center justify-between gap-4">
               <div className="hidden sm:flex items-center gap-4 min-w-0">
-                <div className="w-12 h-12 rounded-2xl bg-sakura/10 flex items-center justify-center border border-sakura/20 shrink-0">
-                   <img 
-                     src={selectedProduct.thumbnail || `/images/items/generic/diamond.png`} 
-                     className="w-8 h-8 object-contain" 
-                   />
+                <div 
+                  className="w-12 h-12 rounded-2xl flex items-center justify-center border shrink-0 bg-white/5"
+                  style={{ borderColor: `${accent}30` }}
+                >
+                   <ShoppingBag className="w-6 h-6 text-white/70" />
                 </div>
                 <div className="min-w-0">
                   <p className="text-[10px] font-black text-white/30 uppercase tracking-widest leading-none mb-1">Item Terpilih</p>
@@ -397,14 +441,18 @@ export default function CheckoutClient({ game, groupedByCategory, paymentGroups 
               <div className="flex items-center gap-6 pr-2">
                 <div className="text-right">
                   <p className="text-[10px] font-black text-white/30 uppercase tracking-widest leading-none mb-1">Total Pembayaran</p>
-                  <p className="text-xl font-black text-sakura tracking-tighter">
+                  <p 
+                    className="text-xl font-black tracking-tighter"
+                    style={{ color: accent }}
+                  >
                     {finalPrice ? formatIDR(finalPrice) : formatIDR(selectedProduct.displayPrice)}
                   </p>
                 </div>
                 <button
-                  onClick={() => setShowConfirmModal(true)}
+                  onClick={handleOpenConfirm}
                   disabled={!canCheckout}
-                  className="bg-sakura hover:bg-white text-zinc-950 font-black px-8 py-4 rounded-[2rem] text-xs tracking-[0.2em] transition-all hover:scale-105 active:scale-95 disabled:opacity-40 shadow-xl"
+                  className="text-zinc-950 font-black px-8 py-4 rounded-[2rem] text-xs tracking-[0.2em] transition-all hover:scale-105 active:scale-95 disabled:opacity-40 shadow-xl"
+                  style={{ backgroundColor: accent }}
                 >
                   BELI
                 </button>
@@ -429,44 +477,68 @@ export default function CheckoutClient({ game, groupedByCategory, paymentGroups 
               initial={{ opacity: 0, scale: 0.95, y: 16 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 16 }}
-              className="relative w-full max-w-md bg-zinc-900 border border-white/10 rounded-3xl p-6 shadow-2xl"
+              className="relative w-full max-w-md bg-zinc-900 border border-white/10 rounded-3xl p-6 shadow-2xl overflow-hidden"
             >
-              <h3 className="text-lg font-bold text-center text-white mb-5">Konfirmasi Pesanan</h3>
+              {/* Neon border highlight */}
+              <div className="absolute top-0 left-0 right-0 h-1" style={{ backgroundColor: accent }} />
 
-              <div className="space-y-3 mb-6 text-sm">
+              <h3 className="text-lg font-black text-center text-white mb-5">Rincian & Konfirmasi</h3>
+
+              <div className="space-y-3 mb-6 text-xs">
                 {[
                   ["Game", game.name],
-                  ["Target", `${userId}${zoneId ? ` (${zoneId})` : ""}`],
-                  ...(validatedName ? [["Nickname", validatedName]] : []),
-                  ["Item", selectedProduct.name],
-                  ["Pembayaran", selectedPayment.name],
-                  ["WhatsApp", whatsapp],
+                  ["Target ID / Server", `${userId}${zoneId ? ` (${zoneId})` : ""}`],
+                  ...(validatedName ? [["Nickname Akun", validatedName]] : []),
+                  ["Nama Item", selectedProduct.name],
+                  ["Metode Pembayaran", selectedPayment.name],
+                  ["WhatsApp Notifikasi", whatsapp],
                 ].map(([label, val], i) => (
-                  <div key={i} className="flex justify-between py-2 border-b border-white/5 last:border-0">
-                    <span className="text-white/40">{label}</span>
-                    <span className={`font-medium ${label === "Nickname" ? "text-emerald-400" : "text-white"}`}>{val}</span>
+                  <div key={i} className="flex justify-between py-2 border-b border-white/5 last:border-0 items-center">
+                    <span className="text-white/40 font-semibold">{label}</span>
+                    <span className={`font-black ${label === "Nickname Akun" ? "text-emerald-400" : "text-white"}`}>{val}</span>
                   </div>
                 ))}
-                <div className="flex justify-between items-center pt-3">
-                  <span className="text-white font-bold">Total</span>
-                  <span className="text-xl font-black text-sakura">{formatIDR(finalPrice!)}</span>
+
+                <div className="pt-4 border-t border-white/10 space-y-2">
+                  <div className="flex justify-between text-white/40">
+                    <span>Harga Item</span>
+                    <span className="font-semibold">{formatIDR(selectedProduct.displayPrice)}</span>
+                  </div>
+                  <div className="flex justify-between text-white/40">
+                    <span>Biaya Admin Gateway</span>
+                    <span className="font-semibold">{formatIDR(paymentFee)}</span>
+                  </div>
                 </div>
+
+                <div className="flex justify-between items-center pt-4 border-t border-white/10">
+                  <span className="text-white font-bold">Total Pembayaran</span>
+                  <span className="text-lg font-black" style={{ color: accent }}>{formatIDR(finalPrice!)}</span>
+                </div>
+              </div>
+
+              {/* Warning label */}
+              <div className="rounded-xl bg-orange-500/10 border border-orange-500/20 p-3 mb-6 flex items-start gap-2">
+                <AlertCircle className="w-4 h-4 text-orange-400 shrink-0 mt-0.5" />
+                <p className="text-[10px] text-orange-300 font-semibold leading-relaxed">
+                  Harap periksa kembali target ID dan server Anda. Kesalahan pengisian di luar tanggung jawab SassyGurl Store.
+                </p>
               </div>
 
               <div className="flex gap-3">
                 <button
                   onClick={() => setShowConfirmModal(false)}
                   disabled={isCheckingOut}
-                  className="flex-1 py-3 bg-white/5 hover:bg-white/10 border border-white/10 text-white rounded-xl font-medium text-sm transition-colors"
+                  className="flex-1 py-3.5 bg-white/5 hover:bg-white/10 border border-white/10 text-white rounded-xl font-black text-xs tracking-wider uppercase transition-colors"
                 >
                   Batal
                 </button>
                 <button
                   onClick={handleCheckout}
                   disabled={isCheckingOut}
-                  className="flex-1 py-3 bg-gradient-to-r from-sakura to-rose-500 text-zinc-950 rounded-xl font-bold text-sm transition-all flex items-center justify-center gap-2"
+                  className="flex-1 py-3.5 text-zinc-950 rounded-xl font-black text-xs tracking-wider uppercase transition-all flex items-center justify-center gap-2"
+                  style={{ backgroundColor: accent }}
                 >
-                  {isCheckingOut ? <Loader2 className="w-4 h-4 animate-spin" /> : "Lanjut Bayar"}
+                  {isCheckingOut ? <Loader2 className="w-4 h-4 animate-spin" /> : "Bayar Sekarang"}
                 </button>
               </div>
             </motion.div>

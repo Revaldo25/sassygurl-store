@@ -90,6 +90,7 @@ export default function GameExperienceClient({
             src={game.banner}
             alt={`${game.name} banner`}
             fill
+            sizes="100vw"
             className="object-cover"
             priority
           />
@@ -187,7 +188,7 @@ export default function GameExperienceClient({
                 <div className="grid gap-4 p-5 md:grid-cols-2">
                   {/* Game icon */}
                   <div className="relative aspect-[1/1.1] overflow-hidden rounded-[1.5rem] border border-white/10">
-                    <Image src={game.icon} alt={game.name} fill className="object-cover" />
+                    <Image src={game.icon} alt={game.name} fill sizes="(max-width: 768px) 100vw, 33vw" className="object-cover" />
                     <div className="absolute inset-0 bg-gradient-to-t from-zinc-950 via-zinc-950/10 to-transparent" />
                     <div className="absolute bottom-3 left-3">
                       <p className="text-xs tracking-[0.24em] text-white/60">FEATURED</p>

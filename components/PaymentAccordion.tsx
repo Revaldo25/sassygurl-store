@@ -171,6 +171,7 @@ export default function PaymentAccordion({
                                 src={resolvePaymentIcon(method.code, method.logo)}
                                 alt={method.name}
                                 fill
+                                sizes="56px"
                                 className="object-contain"
                               />
                             </div>

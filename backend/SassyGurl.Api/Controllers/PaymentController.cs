@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
+using SassyGurl.Api.Middleware;
 using SassyGurl.Api.Services;
 using System.Net;
 using System.Text.Json;
@@ -30,6 +31,7 @@ public class PaymentController : ControllerBase
     /// </summary>
     [EnableRateLimiting("payment-webhook")]
     [HttpPost("webhook")]
+    [Idempotency]
     public async Task<IActionResult> Webhook()
     {
         var sourceIp = HttpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown";

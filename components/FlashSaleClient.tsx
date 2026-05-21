@@ -64,7 +64,7 @@ export default function FlashSaleClient({ items }: { items: any[] }) {
                 
                 <div className="flex gap-5">
                   <div className="relative w-24 h-24 rounded-2xl overflow-hidden border border-white/10">
-                    <Image src={item.img} alt={item.name} fill className="object-cover group-hover:scale-110 transition-transform duration-500" />
+                    <Image src={item.img} alt={item.name} fill sizes="96px" className="object-cover group-hover:scale-110 transition-transform duration-500" />
                   </div>
                   <div className="flex-1 flex flex-col justify-center">
                     <h3 className="text-sm font-black text-white uppercase tracking-tight">{item.name}</h3>
