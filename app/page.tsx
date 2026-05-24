@@ -96,7 +96,7 @@ export default async function HomePage() {
                  <p className="text-xs font-bold text-sakura">Mulai dari {formatIDR(1200)}</p>
                  <p className="text-[10px] text-white/60">Untuk entry item MLBB</p>
                </div>
-               <Link href="/game/mlbb" className="rounded-full bg-sakura px-4 py-2 text-xs font-black text-zinc-950">
+               <Link href="/games/mlbb" className="rounded-full bg-sakura px-4 py-2 text-xs font-black text-zinc-950">
                  Coba Sekarang
                </Link>
             </div>

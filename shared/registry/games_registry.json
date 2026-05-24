@@ -31,7 +31,8 @@
       "mlbb banner"
     ],
     "confidence_level": "high",
-    "needs_review": false
+    "needs_review": false,
+    "description": "Top up Mobile Legends Diamond termurah, teraman, dan terpercaya! Proses instan."
   },
   {
     "canonical_name": "Free Fire",
@@ -61,7 +62,8 @@
       "free fire banner"
     ],
     "confidence_level": "high",
-    "needs_review": false
+    "needs_review": false,
+    "description": "Top up Diamond Free Fire (FF) dengan harga terbaik dan proses super cepat."
   },
   {
     "canonical_name": "PUBG Mobile",
@@ -93,7 +95,8 @@
       "pubg mobile banner"
     ],
     "confidence_level": "high",
-    "needs_review": false
+    "needs_review": false,
+    "description": "Top up UC PUBG Mobile paling murah. Diproses otomatis dalam hitungan detik."
   },
   {
     "canonical_name": "Genshin Impact",
@@ -125,7 +128,8 @@
       "genshin impact banner"
     ],
     "confidence_level": "high",
-    "needs_review": false
+    "needs_review": false,
+    "description": "Top up Genesis Crystal & Welkin Moon Genshin Impact tanpa ribet. Harga bersaing."
   },
   {
     "canonical_name": "Honkai Star Rail",
@@ -156,7 +160,8 @@
       "honkai star rail banner"
     ],
     "confidence_level": "high",
-    "needs_review": false
+    "needs_review": false,
+    "description": "Top up Oneiric Shard Honkai: Star Rail tercepat dan termurah di Indonesia."
   },
   {
     "canonical_name": "Zenless Zone Zero",
@@ -186,7 +191,8 @@
       "zenless zone zero banner"
     ],
     "confidence_level": "high",
-    "needs_review": false
+    "needs_review": false,
+    "description": "Top up Monochrome Zenless Zone Zero harga terbaik, langsung masuk akun."
   },
   {
     "canonical_name": "Arknights Endfield",
@@ -220,7 +226,8 @@
       "arknights endfield banner"
     ],
     "confidence_level": "high",
-    "needs_review": false
+    "needs_review": false,
+    "description": "Top up Origeometry Arknights: Endfield tercepat dan teraman."
   },
   {
     "canonical_name": "Honor of Kings",
@@ -249,7 +256,8 @@
       "honor of kings banner"
     ],
     "confidence_level": "high",
-    "needs_review": false
+    "needs_review": false,
+    "description": "Top up Token Honor of Kings harga termurah. Langsung masuk ke akun."
   },
   {
     "canonical_name": "Valorant",
@@ -276,7 +284,8 @@
       "valorant banner"
     ],
     "confidence_level": "high",
-    "needs_review": false
+    "needs_review": false,
+    "description": "Top up Valorant Points (VP) resmi dan aman. Pengiriman instan ke akun kamu."
   },
   {
     "canonical_name": "Roblox",
@@ -304,7 +313,8 @@
       "roblox banner"
     ],
     "confidence_level": "high",
-    "needs_review": false
+    "needs_review": false,
+    "description": "Top up Robux Roblox murah dan terpercaya. Proses otomatis."
   },
   {
     "canonical_name": "Steam Wallet",
@@ -333,7 +343,8 @@
       "steam banner"
     ],
     "confidence_level": "high",
-    "needs_review": false
+    "needs_review": false,
+    "description": "Top up Steam Wallet IDR untuk membeli game favoritmu di Steam."
   },
   {
     "canonical_name": "FC Mobile",
@@ -363,7 +374,8 @@
       "fc mobile banner"
     ],
     "confidence_level": "high",
-    "needs_review": false
+    "needs_review": false,
+    "description": "Top up FC Points & Silver FC Mobile termurah dan instan."
   },
   {
     "canonical_name": "Delta Force",
@@ -392,7 +404,8 @@
       "delta force banner"
     ],
     "confidence_level": "high",
-    "needs_review": false
+    "needs_review": false,
+    "description": "Top up Coins Delta Force dengan harga terbaik."
   },
   {
     "canonical_name": "Blood Strike",
@@ -422,7 +435,8 @@
       "blood strike banner"
     ],
     "confidence_level": "high",
-    "needs_review": false
+    "needs_review": false,
+    "description": "Top up Gold Blood Strike aman dan terpercaya."
   },
   {
     "canonical_name": "Wuthering Waves",
@@ -451,7 +465,8 @@
       "wuthering waves banner"
     ],
     "confidence_level": "high",
-    "needs_review": false
+    "needs_review": false,
+    "description": "Top up Lunite Wuthering Waves murah dan cepat. Proses otomatis 24 jam."
   },
   {
     "canonical_name": "NIKKE Goddess of Victory",
@@ -481,7 +496,8 @@
       "nikke banner"
     ],
     "confidence_level": "high",
-    "needs_review": false
+    "needs_review": false,
+    "description": "Top up Gem NIKKE: Goddess of Victory harga spesial dan proses instan."
   },
   {
     "canonical_name": "League of Legends",
@@ -509,7 +525,8 @@
       "league of legends banner"
     ],
     "confidence_level": "high",
-    "needs_review": false
+    "needs_review": false,
+    "description": "Top up Riot Points League of Legends resmi. Harga kompetitif."
   },
   {
     "canonical_name": "League of Legends Wild Rift",
@@ -542,7 +559,8 @@
       "wild rift banner"
     ],
     "confidence_level": "high",
-    "needs_review": false
+    "needs_review": false,
+    "description": "Top up Wild Core LoL: Wild Rift cepat dan aman. Harga terbaik."
   },
   {
     "canonical_name": "Magic Chess",
@@ -568,7 +586,8 @@
       "magic chess banner"
     ],
     "confidence_level": "high",
-    "needs_review": false
+    "needs_review": false,
+    "description": "Top up Magic Chess: Go Go Weekly Pass dan item lainnya."
   },
   {
     "canonical_name": "Aether Gazer",
@@ -592,6 +611,7 @@
       "aether gazer logo"
     ],
     "confidence_level": "low",
-    "needs_review": true
+    "needs_review": true,
+    "description": "Top up Shifted Stars Aether Gazer harga spesial dan proses instan."
   }
 ]

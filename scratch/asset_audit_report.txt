@@ -1,0 +1,50 @@
+VISUAL ASSET AUDIT
+==================
+
+GAME: mlbb
+  - [Warning] Potential Duplicate Thumbnail asset: /images/games/mlbb_icon.jpeg (Same as /images/games/mlbb_icon.jpeg)
+GAME: ff
+  - [Warning] Potential Duplicate Thumbnail asset: /images/games/ff_icon.jpeg (Same as /images/games/ff_icon.jpeg)
+GAME: pubg
+  - [Warning] Potential Duplicate Thumbnail asset: /images/games/pubg_icon.svg (Same as /images/games/pubg_icon.svg)
+GAME: genshin
+  - [Warning] Potential Duplicate Thumbnail asset: /images/games/gi_icon.jpeg (Same as /images/games/gi_icon.jpeg)
+GAME: hsr
+  - [Warning] Potential Duplicate Thumbnail asset: /images/games/hsr_icon.webp (Same as /images/games/hsr_icon.webp)
+GAME: zzz
+  - [Warning] Potential Duplicate Thumbnail asset: /images/games/zzz_icon.webp (Same as /images/games/zzz_icon.webp)
+GAME: arknights-endfield
+  - [Warning] Potential Duplicate Thumbnail asset: /images/games/akef_icon.jpeg (Same as /images/games/akef_icon.jpeg)
+GAME: hok
+  - [Warning] Potential Duplicate Thumbnail asset: /images/games/hok_icon.jpeg (Same as /images/games/hok_icon.jpeg)
+GAME: valorant
+  - [Warning] Potential Duplicate Hero/Banner asset: /images/hero/hero_sci_fi_team_banner.webp (Same as /images/games/hsr_icon.webp)
+  - [Warning] Potential Duplicate Thumbnail asset: /images/games/valorant_icon.jpeg (Same as /images/games/valorant_icon.jpeg)
+GAME: roblox
+  - [Warning] Potential Duplicate Thumbnail asset: /images/games/rbx_icon.png (Same as /images/games/rbx_icon.png)
+GAME: steam-wallet
+  - [Warning] Potential Duplicate Thumbnail asset: /images/games/steam_icon.png (Same as /images/games/steam_icon.png)
+GAME: fc-mobile
+  - [Warning] Potential Duplicate Thumbnail asset: /images/games/fcm_icon.png (Same as /images/games/fcm_icon.png)
+GAME: delta-force
+  - [Warning] Potential Duplicate Thumbnail asset: /images/games/df_icon.png (Same as /images/games/df_icon.png)
+GAME: blood-strike
+  - [Warning] Potential Duplicate Thumbnail asset: /images/games/bs_icon.png (Same as /images/games/bs_icon.png)
+GAME: wuwa
+  - [Warning] Potential Duplicate Thumbnail asset: /images/games/wuwa_icon.webp (Same as /images/games/wuwa_icon.webp)
+GAME: nikke
+  - [Warning] Potential Duplicate Thumbnail asset: /images/games/nikke_icon.jpeg (Same as /images/games/nikke_icon.jpeg)
+GAME: lol
+  - [Warning] Potential Duplicate Thumbnail asset: /images/games/lol_icon.jpeg (Same as /images/games/lol_icon.jpeg)
+GAME: lolwr
+  - [Warning] Potential Duplicate Thumbnail asset: /images/games/lolwr_icon.jpeg (Same as /images/games/lolwr_icon.jpeg)
+GAME: mccg
+  - [Warning] Potential Duplicate Hero/Banner asset: /images/hero/hero_mccg.jpg (Same as /images/hero/hero_mlbb.jpg)
+  - [Warning] Potential Duplicate Thumbnail asset: /images/games/mccg_icon.jpeg (Same as /images/games/mccg_icon.jpeg)
+GAME: aether-gazer
+  - [Warning] Potential Duplicate Thumbnail asset: /images/games/aether_gazer_icon.png (Same as /images/games/aether_gazer_icon.png)
+
+SUMMARY:
+Missing Files: 0
+Fallbacks Used: 0
+Potential Duplicates: 22

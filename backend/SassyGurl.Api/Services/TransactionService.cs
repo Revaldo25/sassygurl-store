@@ -20,17 +20,20 @@ public class TransactionService : ITransactionService
     private readonly IWhatsAppService _whatsApp;
     private readonly IHubContext<SassyGurl.Api.Hubs.NotificationHub> _hub;
     private readonly IOrderTransitionHelper _transition;
+    private readonly IMidtransService _midtrans;
 
     public TransactionService(
         SassyGurlDbContext context, 
         IWhatsAppService whatsApp,
         IHubContext<SassyGurl.Api.Hubs.NotificationHub> hub,
-        IOrderTransitionHelper transition)
+        IOrderTransitionHelper transition,
+        IMidtransService midtrans)
     {
         _context = context;
         _whatsApp = whatsApp;
         _hub = hub;
         _transition = transition;
+        _midtrans = midtrans;
     }
 
     public async Task<ApiResponse<TransactionResponseDto>> CreateTransactionAsync(CreateTransactionDto request, string? userId)
@@ -86,10 +89,21 @@ public class TransactionService : ITransactionService
 
         _context.Transactions.Add(transaction);
 
-        // Simulated Token for Midtrans
-        var simulatedToken = $"SNAP-{invoiceId}-{Guid.NewGuid().ToString().Substring(0, 6).ToUpper()}";
-        transaction.PaymentRef = simulatedToken;
+        // Generate real SnapToken from Midtrans Sandbox
+        var snapToken = await _midtrans.GenerateSnapTokenAsync(
+            invoiceId,
+            totalAmount,
+            product.Name,
+            "SassyGurl User",
+            request.Email ?? "",
+            request.Whatsapp ?? "");
 
+        if (string.IsNullOrEmpty(snapToken))
+        {
+            return ApiResponse<TransactionResponseDto>.Fail("Gagal membuat token pembayaran. Silakan coba metode lain.");
+        }
+
+        transaction.PaymentRef = snapToken;
         await _context.SaveChangesAsync();
 
         // WhatsApp: Notify "Pesanan Dibuat — Menunggu Pembayaran"
@@ -103,7 +117,7 @@ public class TransactionService : ITransactionService
         return ApiResponse<TransactionResponseDto>.Ok(new TransactionResponseDto
         {
             InvoiceId = invoiceId,
-            PaymentToken = simulatedToken
+            PaymentToken = snapToken
         }, "Transaksi berhasil dibuat!");
     }
 

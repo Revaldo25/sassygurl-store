@@ -101,13 +101,15 @@ public class CatalogService : ICatalogService
             {
                 var price    = GetEffectivePrice(p, userRole);
                 var origPrice = p.OriginalPrice ?? (p.PriceSell > 0 ? p.PriceSell : p.PriceMember);
-                var cat      = ClassifyProduct(p.Name, p.Description);
+                var cat      = ClassifyProduct(p);
+
+                string displayName = ProductDisplayFormatter.FormatProductName(p.Name, game.Name);
 
                 return new ProductDto
                 {
                     Id                 = p.Id,
                     Sku                = p.Sku,
-                    Name               = p.Name,
+                    Name               = displayName,
                     ItemCategory       = cat.Slug,
                     ItemCategoryLabel  = cat.Label,
                     ItemCategoryIcon   = cat.Icon,
@@ -373,8 +375,8 @@ public class CatalogService : ICatalogService
         // Convention: /images/games/{slug}-{type}.webp
         return assetType switch
         {
-            "icon"   => $"/images/games/{slug}-icon.webp",
-            "banner" => $"/images/games/{slug}-banner.webp",
+            "icon"   => $"/images/games/{slug}/icon.png",
+            "banner" => $"/images/games/{slug}/banner.png",
             _        => null
         };
     }
@@ -406,43 +408,34 @@ public class CatalogService : ICatalogService
     }
 
     /// <summary>
-    /// Generic product classification engine.
-    /// Uses name keywords to assign a standardized ItemCategory.
-    /// Works for MLBB, PUBG, Genshin, HSR, FF, Valorant, ZZZ, etc.
+    /// Product thumbnail convention: /images/products/{gameSlug}/{sku}.webp
     /// </summary>
-    private static (string Slug, string Label, string Icon, int SortOrder) ClassifyProduct(
-        string name, string? description)
+    private static (string Slug, string Label, string Icon, int SortOrder) ClassifyProduct(Models.Product p)
     {
-        var n = name.ToLowerInvariant();
+        if (!string.IsNullOrWhiteSpace(p.Metadata))
+        {
+            try
+            {
+                using var doc = System.Text.Json.JsonDocument.Parse(p.Metadata);
+                if (doc.RootElement.TryGetProperty("isManuallyMapped", out var manMapProp) && manMapProp.GetBoolean())
+                {
+                    if (doc.RootElement.TryGetProperty("itemCategory", out var itemCatProp))
+                    {
+                        var catSlug = itemCatProp.GetString()!;
+                        var meta = ProductClassifier.GetCategoryMeta(catSlug);
+                        return (catSlug, meta.Label, meta.Icon, meta.SortOrder);
+                    }
+                }
+            }
+            catch { }
+        }
 
-        // ── Weekly / Battle Pass ──────────────────────────────────────────
-        if (n.Contains("weekly diamond") || n.Contains("weekly pass") || n.Contains("twilight pass") || n.Contains("battle pass") || n.Contains("royale pass") || n.Contains("starlight") || n.Contains("membership") || n.Contains("express supply pass") || n.Contains("supply pass"))
-            return ("PASS_MEMBERSHIP", "PASS / MEMBERSHIP", "🎫", 10);
-
-        // ── Bundles / Packs ───────────────────────────────────────────────
-        if (n.Contains("elite bundle") || n.Contains("elite pass") || n.Contains("limited") || n.Contains("value pack") || n.Contains("special") || n.Contains("bundle") || n.Contains("pack"))
-            return ("SPECIALS", "SPECIALS", "🎁", 35);
-
-        // ── Skins / Cosmetics ─────────────────────────────────────────────
-        if (n.Contains("skin") || n.Contains("costume") || n.Contains("outfit"))
-            return ("SKIN", "Skin & Cosmetics", "🎨", 40);
-
-        // ── Patungan / Group ──────────────────────────────────────────────
-        if (n.Contains("patungan") || n.Contains("group"))
-            return ("GROUP_BUY", "Patungan", "🤝", 50);
-
-        // ── Standard Currency (catch-all for diamond / crystal / gem etc.) ─
-        if (n.Contains("diamond") || n.Contains("crystal") || n.Contains("gems") ||
-            n.Contains("uc") || n.Contains("primogem") || n.Contains("stellar jade") ||
-            n.Contains("polychrome") || n.Contains("oneiric") || n.Contains("vp") ||
-            n.Contains("credit") || n.Contains("zeny") || n.Contains("coin") || n.Contains("token"))
-            return ("CURRENCY", "DIAMONDS", "💎", 5);
-
-        // ── Description fallback ──────────────────────────────────────────
-        if (!string.IsNullOrWhiteSpace(description) && description != "General")
-            return ("OTHER", description, "📌", 90);
-
-        return ("CURRENCY", "Item", "💎", 5); // ultimate fallback
+        var result = ProductClassifier.ClassifyStrict(p.Name);
+        if (result.IsAmbiguous && !string.IsNullOrWhiteSpace(p.Description) && p.Description != "General")
+        {
+            return ("OTHER", p.Description, "📌", 90);
+        }
+        return (result.Slug, result.Label, result.Icon, result.SortOrder);
     }
 
     private static int CategorySortOrder(string slug) => slug switch

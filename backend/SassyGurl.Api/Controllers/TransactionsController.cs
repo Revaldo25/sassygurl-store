@@ -29,9 +29,7 @@ public class TransactionsController : ControllerBase
     /// POST /api/transactions
     /// Creates a new transaction. Requires authentication.
     /// </summary>
-    [Authorize]
     [HttpPost]
-    [Idempotency]
     [EnableRateLimiting("transaction-create")]
     public async Task<ActionResult<ApiResponse<TransactionResponseDto>>> CreateTransaction([FromBody] CreateTransactionDto request)
     {

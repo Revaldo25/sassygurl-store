@@ -36,9 +36,17 @@ Log.Logger = new LoggerConfiguration()
 
 try
 {
+    // Load .env from root before builder creation
+    DotNetEnv.Env.Load(Path.Combine(AppContext.BaseDirectory, "../../../../../.env"));
+    // Fallback for different build/run paths
+    DotNetEnv.Env.Load(Path.Combine(Directory.GetCurrentDirectory(), "../../.env"));
+
     Log.Information("Starting SassyGurl API...");
 
     var builder = WebApplication.CreateBuilder(args);
+    
+    // Merge loaded env vars into config
+    builder.Configuration.AddEnvironmentVariables();
 
     // ========================================================================
     // Serilog Integration — replace built-in logging with Serilog
@@ -150,6 +158,7 @@ try
     builder.Services.AddScoped<IPaymentService, PaymentService>();
     builder.Services.AddScoped<IPromoService, PromoService>();
     builder.Services.AddScoped<IMidtransWebhookSecurity, MidtransWebhookSecurity>();
+    builder.Services.AddScoped<IMidtransService, MidtransService>();
     builder.Services.AddScoped<SassyGurl.Api.Filters.XenditWebhookSecurityFilter>();
     builder.Services.AddScoped<IProviderService, ProviderService>();
     builder.Services.AddScoped<IAuditService, AuditService>();
@@ -171,6 +180,8 @@ try
     builder.Services.AddScoped<IOrderTransitionHelper, OrderTransitionHelper>();
     builder.Services.AddScoped<IOrderLockManager, OrderLockManager>();
     builder.Services.AddSingleton<ICacheKeyRegistry, CacheKeyRegistry>();
+    builder.Services.AddSingleton<IGameRegistryService, GameRegistryService>();
+    builder.Services.AddScoped<IGameSeeder, GameSeeder>();
 
     // ── Phase 3 Services ─────────────────────────────────────────────────
     builder.Services.AddScoped<SassyGurl.Api.Repositories.ICatalogRepository, SassyGurl.Api.Repositories.CatalogRepository>();
@@ -178,6 +189,9 @@ try
     // NOTE: HttpClients for VipReseller, Digiflazz, and Xendit are registered
     // in SassyGurl.Infrastructure.DependencyInjection.AddInfrastructure().
     // DO NOT register them again here to avoid conflicting configurations.
+    builder.Services.AddHttpClient("MidtransClient", client => {
+        client.Timeout = TimeSpan.FromSeconds(30);
+    });
 
     // ── Rate Limiting ────────────────────────────────────────────────────
     builder.Services.AddRateLimiter(options =>
@@ -350,6 +364,18 @@ try
         catch (Exception ex)
         {
             Log.Error(ex, "Failed to apply database migrations.");
+        }
+
+        // ── Seed Games from Registry ────────────────────────
+        try
+        {
+            var gameSeeder = scope.ServiceProvider.GetRequiredService<SassyGurl.Api.Services.IGameSeeder>();
+            await gameSeeder.SeedFromRegistryAsync();
+            Log.Information("Games registry seeded successfully.");
+        }
+        catch (Exception ex)
+        {
+            Log.Error(ex, "Failed to seed games from registry.");
         }
     }
 

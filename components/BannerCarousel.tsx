@@ -103,7 +103,7 @@ export default function BannerCarousel() {
 
           <div className="flex flex-wrap gap-3">
             <Link
-              href={`/game/${banner.slug}`}
+              href={`/games/${banner.slug}`}
               className="inline-flex items-center gap-2 rounded-full bg-sakura px-5 py-3 text-sm font-black text-zinc-950 shadow-[0_0_28px_rgba(253,176,192,0.32)] transition hover:scale-[1.02]"
             >
               Buka {banner.game} Elite

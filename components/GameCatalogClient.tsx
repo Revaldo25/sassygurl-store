@@ -88,7 +88,7 @@ export default function GameCatalogClient({ games, accent = "#FDB0C0" }: Props) 
         {filteredGames.map((game) => (
           <Link
             key={game.slug}
-            href={`/game/${game.slug}`}
+            href={`/games/${game.slug}`}
             className="group relative flex flex-col overflow-hidden rounded-[1.5rem] border border-white/10 bg-zinc-900/50 transition-all duration-300 hover:-translate-y-1.5 hover:border-sakura/40 hover:shadow-[0_10px_30px_rgba(253,176,192,0.15)]"
           >
             {/* Image Container (Portrait 3:4 or 4:5 ratio) */}

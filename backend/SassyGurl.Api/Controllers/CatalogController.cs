@@ -100,4 +100,13 @@ public class CatalogController : ControllerBase
         if (!result.Success) return BadRequest(result);
         return Ok(result);
     }
+
+    [Authorize(Roles = "SUPERADMIN")]
+    [HttpPost("seed-registry")]
+    public async Task<IActionResult> SeedFromRegistry([FromServices] IGameSeeder gameSeeder)
+    {
+        var success = await gameSeeder.SeedFromRegistryAsync();
+        if (!success) return StatusCode(500, new { success = false, message = "Failed to seed games from registry." });
+        return Ok(new { success = true, message = "Successfully seeded games from registry. Active games configured." });
+    }
 }
