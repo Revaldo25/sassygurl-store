@@ -239,14 +239,35 @@ function ItemCard({
       </div>
 
       {/* Info area */}
-      <div className="flex-1 min-w-0">
-        <p className="line-clamp-1 text-xs font-bold leading-snug text-white">
+      <div className="flex-1 min-w-0 flex flex-col justify-center">
+        <p className="line-clamp-2 text-xs font-bold leading-snug text-white" title={product.name}>
           {product.name}
         </p>
 
-        <div className="mt-1">
+        {/* Dynamic Badges */}
+        {(product.name.toLowerCase().includes("bonus") || product.name.toLowerCase().includes("pack") || product.name.toLowerCase().includes("pass")) && (
+          <div className="mt-1 flex flex-wrap gap-1">
+            {product.name.toLowerCase().includes("bonus") && (
+              <span className="rounded bg-indigo-500/20 px-1 py-0.5 text-[8px] font-bold text-indigo-300">
+                + BONUS
+              </span>
+            )}
+            {product.name.toLowerCase().includes("pack") && (
+              <span className="rounded bg-amber-500/20 px-1 py-0.5 text-[8px] font-bold text-amber-300">
+                PACK
+              </span>
+            )}
+            {product.name.toLowerCase().includes("pass") && (
+              <span className="rounded bg-fuchsia-500/20 px-1 py-0.5 text-[8px] font-bold text-fuchsia-300">
+                PASS
+              </span>
+            )}
+          </div>
+        )}
+
+        <div className="mt-1.5 flex items-baseline gap-1.5">
           <p
-            className="text-sm font-black"
+            className="text-sm sm:text-base font-black tracking-tight"
             style={{ color: "#FDB0C0" }}
           >
             {product.displayPrice === 0 ? "Gratis" : formatIDR(product.displayPrice)}

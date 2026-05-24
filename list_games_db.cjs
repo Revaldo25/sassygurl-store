@@ -3,7 +3,7 @@ const client = new Client({ connectionString: 'postgres://postgres:12345@localho
 
 async function run() {
   await client.connect();
-  const res = await client.query('SELECT id, name, slug, "isActive", "isHot", "sortOrder" FROM "Game" ORDER BY "sortOrder"');
+  const res = await client.query('SELECT id, name, slug, "isActive", "isHot", "sortOrder", "currencyName" FROM "Game" ORDER BY "sortOrder"');
   console.log(JSON.stringify(res.rows, null, 2));
   await client.end();
 }

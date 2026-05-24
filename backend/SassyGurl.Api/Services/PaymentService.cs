@@ -271,11 +271,21 @@ public class PaymentService : IPaymentService
                     break;
 
                 case "deny":
+                    transaction.PaymentStatus = PaymentStatus.FAILED;
+                    try { _transition.TransitionStatus(_context, transaction, OrderStatus.FAILED, "system", reason: "Midtrans deny"); }
+                    catch (Exception ex) { _logger.LogWarning(ex, "State transition to FAILED failed for {OrderId}.", orderId); }
+                    break;
+
                 case "cancel":
+                    transaction.PaymentStatus = PaymentStatus.FAILED; // Fallback since PaymentStatus has no Cancelled
+                    try { _transition.TransitionStatus(_context, transaction, OrderStatus.CANCELLED, "system", reason: "Midtrans cancel"); }
+                    catch (Exception ex) { _logger.LogWarning(ex, "State transition to CANCELLED failed for {OrderId}.", orderId); }
+                    break;
+
                 case "expire":
                     transaction.PaymentStatus = PaymentStatus.EXPIRED;
-                    try { _transition.TransitionStatus(_context, transaction, OrderStatus.CANCELLED, "system", reason: $"Midtrans {transactionStatus}"); }
-                    catch (Exception ex) { _logger.LogWarning(ex, "State transition to CANCELLED failed for {OrderId}.", orderId); }
+                    try { _transition.TransitionStatus(_context, transaction, OrderStatus.FAILED, "system", reason: "Midtrans expire"); }
+                    catch (Exception ex) { _logger.LogWarning(ex, "State transition to FAILED failed for {OrderId}.", orderId); }
                     break;
 
                 case "refund":

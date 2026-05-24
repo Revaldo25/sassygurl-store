@@ -35,6 +35,7 @@ export default function GameHero({
           sizes="100vw"
           className="object-cover scale-105 blur-[2px] opacity-40"
           priority
+          loading="eager"
         />
         <div className="absolute inset-0 bg-gradient-to-b from-zinc-950/20 via-zinc-950/50 to-[#09090b]" />
         <div
@@ -45,8 +46,8 @@ export default function GameHero({
         />
       </div>
 
-      <div className="relative z-10 mx-auto max-w-7xl px-4 pb-16 pt-10 sm:px-6 lg:px-8">
-        <div className="grid gap-8 lg:grid-cols-[1.2fr_0.8fr] items-end">
+      <div className="relative z-10 mx-auto max-w-7xl px-4 pb-6 pt-6 sm:px-6 lg:px-8">
+        <div className="flex flex-col lg:flex-row gap-6 items-end justify-between">
           
           {/* Left Column — Brand & Stats */}
           <div className="flex flex-col gap-5">
@@ -72,16 +73,21 @@ export default function GameHero({
             </div>
 
             <div>
-              <h1 className="text-4xl sm:text-5xl lg:text-6xl font-black leading-tight tracking-tight text-white">
+              <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black leading-tight tracking-tight text-white flex items-center gap-3">
+                <img
+                  src={icon}
+                  alt={name}
+                  className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl object-cover border border-white/10 shadow-lg"
+                />
                 {name}
               </h1>
-              <p className="mt-4 max-w-xl text-sm leading-relaxed text-white/50">
+              <p className="mt-3 max-w-2xl text-xs sm:text-sm leading-relaxed text-white/50 font-medium">
                 {description || `Top up ${name} termurah, teraman, dan terpercaya. Dapatkan nominal item terlengkap dengan harga distributor otomatis.`}
               </p>
             </div>
 
             {/* Quick stats badges */}
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 max-w-xl">
+            <div className="flex flex-wrap gap-2 max-w-2xl">
               {[
                 { icon: Diamond, label: "Item Terjual", value: "99K+" },
                 { icon: Users, label: "Aktif Online", value: "8,400+" },
@@ -90,47 +96,22 @@ export default function GameHero({
               ].map((stat, i) => (
                 <div
                   key={i}
-                  className="rounded-2xl border border-white/5 bg-zinc-900/30 p-3.5 backdrop-blur-xl transition duration-300 hover:border-white/10"
+                  className="flex items-center gap-2.5 rounded-xl border border-white/5 bg-zinc-900/30 px-3 py-2 backdrop-blur-xl transition duration-300 hover:border-white/10"
                 >
-                  <stat.icon className="h-4 w-4" style={{ color: accent }} />
-                  <p className="mt-2.5 text-[9px] uppercase tracking-[0.2em] text-white/35 font-bold">{stat.label}</p>
-                  <p className="mt-0.5 text-xs font-black text-white">{stat.value}</p>
+                  <stat.icon className="h-3.5 w-3.5 shrink-0" style={{ color: accent }} />
+                  <div>
+                    <p className="text-[9px] uppercase tracking-wider text-white/40 font-bold leading-none">{stat.label}</p>
+                    <p className="text-xs font-black text-white leading-tight mt-0.5">{stat.value}</p>
+                  </div>
                 </div>
               ))}
             </div>
           </div>
-
-          {/* Right Column — Large Floating Identity Card */}
-          <div className="relative flex justify-center lg:justify-end">
-            <div
-              className="absolute inset-0 rounded-[2.5rem] blur-3xl opacity-20"
-              style={{
-                background: `radial-gradient(circle, ${accent}, transparent)`,
-              }}
-            />
-            <div className="relative overflow-hidden rounded-[2.5rem] border border-white/5 bg-zinc-900/40 p-6 backdrop-blur-2xl shadow-2xl flex items-center gap-5 w-full max-w-sm">
-              <div className="shrink-0 inline-block p-1 rounded-[2rem] bg-gradient-to-b from-white/10 to-transparent">
-                <img
-                  src={icon}
-                  alt={name}
-                  className="w-20 h-20 rounded-[1.8rem] object-cover border border-white/10"
-                />
-              </div>
-              <div>
-                <h2 className="text-xl font-black text-white leading-tight">{name}</h2>
-                <p className="text-xs font-bold text-sakura uppercase tracking-widest mt-1">{publisher || "Official Partner"}</p>
-                <p className="text-[10px] text-white/40 font-medium mt-2 leading-relaxed">
-                  Tersedia {productCount} produk. Masukkan ID, selesaikan pembayaran, item langsung masuk!
-                </p>
-              </div>
-            </div>
-          </div>
-
         </div>
       </div>
 
       {/* ═══ Trust Badges ═══ */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 -mt-6 relative z-20 pb-4">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 -mt-2 relative z-20 pb-4">
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           {[
             { icon: Zap, label: "PROSES INSTAN", sub: "Masuk otomatis dalam 1-3 detik." },

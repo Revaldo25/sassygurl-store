@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import * as signalR from "@microsoft/signalr";
 import { Zap } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -16,16 +16,26 @@ export type PublicTransaction = {
 export default function LiveTransactionFeed({ initialData }: { initialData: PublicTransaction[] }) {
   const [transactions, setTransactions] = useState<PublicTransaction[]>(initialData);
 
+  const connectionRef = useRef<signalR.HubConnection | null>(null);
+
   useEffect(() => {
+    let active = true;
     const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5009/api";
     const baseUrl = apiUrl.replace(/\/api$/, "");
 
-    const connection = new signalR.HubConnectionBuilder()
-      .withUrl(`${baseUrl}/hubs/notifications`)
-      .withAutomaticReconnect()
-      .build();
+    // 1. Initialize connection if not already created
+    if (!connectionRef.current) {
+      connectionRef.current = new signalR.HubConnectionBuilder()
+        .withUrl(`${baseUrl}/hubs/notifications`)
+        .withAutomaticReconnect([0, 2000, 5000, 10000, 30000])
+        .build();
+    }
 
-    connection.on("PublicTransactionUpdated", (data) => {
+    const connection = connectionRef.current;
+
+    // 2. Set up incoming message handler
+    const handler = (data: any) => {
+      if (!active) return;
       setTransactions((prev) => {
         const newTx = {
           id: Math.random().toString(),
@@ -34,14 +44,65 @@ export default function LiveTransactionFeed({ initialData }: { initialData: Publ
           productName: data.productName,
           timestamp: new Date(data.timestamp).toLocaleTimeString("id-ID", { hour: '2-digit', minute: '2-digit' }),
         };
+        // Deduplicate locally to avoid visual anomalies during double mounts or concurrent feeds
+        if (prev.some(t => t.maskedTarget === newTx.maskedTarget && t.productName === newTx.productName)) {
+          return prev;
+        }
         return [newTx, ...prev].slice(0, 10);
       });
-    });
+    };
 
-    connection.start().catch((err) => console.error("SignalR Connection Error:", err));
+    connection.on("PublicTransactionUpdated", handler);
 
+    // 3. Start connection safely and store the start promise
+    let startPromise: Promise<void> | null = null;
+    if (connection.state === signalR.HubConnectionState.Disconnected) {
+      console.log("SignalR: Starting connection...");
+      startPromise = connection.start()
+        .then(() => {
+          if (active) {
+            console.log("SignalR: Connected successfully!");
+          }
+        })
+        .catch((err) => {
+          console.error("SignalR Connection Start failed:", err);
+        });
+    }
+
+    // 4. Safe Cleanup
     return () => {
-      connection.stop();
+      active = false;
+      
+      // Unsubscribe immediately to stop state updates
+      connection.off("PublicTransactionUpdated", handler);
+
+      const stopConnection = async () => {
+        // Wait for connection to finish negotiation/start before attempting stop
+        if (startPromise) {
+          try {
+            await startPromise;
+          } catch {
+            // Ignore startup failures in cleanup
+          }
+        }
+
+        // Only stop if the connection is still active or in connecting/reconnecting states
+        if (connection.state !== signalR.HubConnectionState.Disconnected) {
+          try {
+            await connection.stop();
+            console.log("SignalR: Stopped connection safely.");
+          } catch (err) {
+            console.error("SignalR: Error stopping connection:", err);
+          }
+        }
+
+        // Nullify connectionRef ONLY if it still points to this exact connection instance
+        if (connectionRef.current === connection) {
+          connectionRef.current = null;
+        }
+      };
+
+      stopConnection();
     };
   }, []);
 

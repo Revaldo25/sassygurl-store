@@ -49,13 +49,15 @@ public class SyncEngine : ISyncEngine
     private readonly ILogger<SyncEngine> _logger;
     private readonly IMemoryCache _cache;
     private readonly ICacheKeyRegistry _cacheRegistry;
+    private readonly IGameRegistryService _gameRegistry;
 
     // ── Zone-ID dictionary — games that require Server/Zone ID ──────
     private static readonly HashSet<string> GamesRequiringZoneId = new(StringComparer.OrdinalIgnoreCase)
     {
-        "mobile-legends", "mobile legends", "ml",
-        "genshin-impact", "genshin impact",
-        "honkai-star-rail", "honkai star rail"
+        "mobile-legends", "mobile legends", "ml", "mlbb",
+        "genshin-impact", "genshin impact", "genshin",
+        "honkai-star-rail", "honkai star rail", "hsr",
+        "zzz", "zenless zone zero", "zenless-zone-zero"
     };
 
     // ── Phase 2: Category Classification Dictionary ──────────────────
@@ -77,66 +79,7 @@ public class SyncEngine : ISyncEngine
         return CategoryMap.TryGetValue(category, out var slug) ? slug : "games";
     }
 
-    // ── Brand Normalizer (Maps Provider Game/Brand to DB Slug) ──────
-    private static string? NormalizeBrandToSlug(string brand)
-    {
-        if (string.IsNullOrWhiteSpace(brand)) return null;
-        
-        var normalized = brand.ToLowerInvariant().Replace(" ", "");
-        return normalized switch
-        {
-            "mlbb" => "mlbb",
-            "ml" => "mlbb",
-            "mobilelegends" => "mlbb",
-            "mobilelegendsbangbang" => "mlbb",
-            "freefire" => "ff",
-            "ff" => "ff",
-            "pubg" => "pubg",
-            "pubgm" => "pubg",
-            "pubgmobile" => "pubg",
-            "genshin" => "genshin",
-            "gi" => "genshin",
-            "genshinimpact" => "genshin",
-            "hsr" => "hsr",
-            "honkaistarrail" => "hsr",
-            "zzz" => "zzz",
-            "zenlesszonezero" => "zzz",
-            "akef" => "arknights-endfield",
-            "aef" => "arknights-endfield",
-            "arknightsendfield" => "arknights-endfield",
-            "arknightsef" => "arknights-endfield",
-            "endfield" => "arknights-endfield",
-            "hok" => "hok",
-            "honorofkings" => "hok",
-            "valorant" => "valorant",
-            "vp" => "valorant",
-            "roblox" => "roblox",
-            "rbx" => "roblox",
-            "robux" => "roblox",
-            "steam" => "steam-wallet",
-            "steamwallet" => "steam-wallet",
-            "fcm" => "fc-mobile",
-            "fcmobile" => "fc-mobile",
-            "fifamobile" => "fc-mobile",
-            "df" => "delta-force",
-            "deltaforce" => "delta-force",
-            "bs" => "blood-strike",
-            "bloodstrike" => "blood-strike",
-            "wuwa" => "wuwa",
-            "wutheringwaves" => "wuwa",
-            "nikke" => "nikke",
-            "goddessofvictorynikke" => "nikke",
-            "lol" => "lol",
-            "leagueoflegends" => "lol",
-            "lolwr" => "lolwr",
-            "wildrift" => "lolwr",
-            "mccg" => "mccg",
-            "magicchess" => "mccg",
-            "ag" => "aether-gazer",
-            "aethergazer" => "aether-gazer",
-            _ => null
-        };
-    }
+
 
     public SyncEngine(
         IHttpClientFactory httpClientFactory,
@@ -145,7 +88,8 @@ public class SyncEngine : ISyncEngine
         ICloudinaryService cloudinary,
         ILogger<SyncEngine> logger,
         IMemoryCache cache,
-        ICacheKeyRegistry cacheRegistry)
+        ICacheKeyRegistry cacheRegistry,
+        IGameRegistryService gameRegistry)
     {
         _httpClientFactory = httpClientFactory;
         _db = db;
@@ -154,6 +98,7 @@ public class SyncEngine : ISyncEngine
         _logger = logger;
         _cache = cache;
         _cacheRegistry = cacheRegistry;
+        _gameRegistry = gameRegistry;
     }
 
 
@@ -232,7 +177,7 @@ public class SyncEngine : ISyncEngine
                 try
                 {
                     var brand = item.Game ?? "";
-                    var targetGameSlug = NormalizeBrandToSlug(brand);
+                    var targetGameSlug = _gameRegistry.NormalizeBrandToSlug(brand);
 
                     // Master Plan §6.4: Don't auto-create games for unmapped brands.
                     if (targetGameSlug == null)
@@ -339,6 +284,7 @@ public class SyncEngine : ISyncEngine
 
             if (!response.IsSuccessStatusCode)
             {
+                _logger.LogError("Digiflazz API Error: {StatusCode} - {Body}", response.StatusCode, rawBody);
                 syncLog.ErrorMessage = $"HTTP {(int)response.StatusCode}";
                 _db.ProviderSyncLogs.Add(syncLog);
                 await _db.SaveChangesAsync();
@@ -372,7 +318,7 @@ public class SyncEngine : ISyncEngine
                     var categorySlug = ResolveCategorySlug(item.Category);
                     var brand = item.Brand ?? "";
                     
-                    var targetGameSlug = NormalizeBrandToSlug(brand);
+                    var targetGameSlug = _gameRegistry.NormalizeBrandToSlug(brand);
 
                     // Master Plan §6.4: Don't auto-create games for unmapped brands.
                     // Log the unmapped brand and skip.
@@ -477,21 +423,7 @@ public class SyncEngine : ISyncEngine
         return match.Success ? match.Value : "0";
     }
 
-    private static string GetCurrencyName(string gameSlug)
-    {
-        return gameSlug switch
-        {
-            "mlbb" => "Diamonds",
-            "ff" => "Diamonds",
-            "genshin" => "Genesis Crystals",
-            "hsr" => "Oneiric Shards",
-            "pubg" => "UC",
-            "valorant" => "Points",
-            "hok" => "Tokens",
-            "aether" => "Shifted Stars",
-            _ => "Items"
-        };
-    }
+
 
     private async Task UpsertProductAsync(
         string sku, string originalName, string gameSlug,
@@ -501,10 +433,8 @@ public class SyncEngine : ISyncEngine
     {
         if (string.IsNullOrWhiteSpace(sku)) return;
 
-        // Auto-Input Detection
-        bool isServerNeeded = originalName.Contains("Server", StringComparison.OrdinalIgnoreCase) || 
-                              originalName.Contains("Zone", StringComparison.OrdinalIgnoreCase) || 
-                              originalName.Contains("Region", StringComparison.OrdinalIgnoreCase);
+        // Auto-Input Detection based on slug
+        bool isServerNeeded = GamesRequiringZoneId.Contains(gameSlug);
 
         // ── Phase 2: Resolve Category (Games / Pulsa / E-Wallet) ─
         var category = await _db.Categories.FirstOrDefaultAsync(c => c.Slug == categorySlug);
@@ -532,16 +462,23 @@ public class SyncEngine : ISyncEngine
             await _db.SaveChangesAsync();
         }
 
-        if (isServerNeeded && !game.HasServerId)
+        if (game.HasServerId != isServerNeeded)
         {
-            game.HasServerId = true;
+            game.HasServerId = isServerNeeded;
             _db.Games.Update(game);
         }
 
         string cleanName = CleanProductName(originalName);
         string nominal = ExtractNominal(sku, originalName);
-        string standardName = $"{nominal} {GetCurrencyName(gameSlug)}";
+        string standardName = $"{nominal} {game.CurrencyName}";
         if (nominal == "0") standardName = cleanName;
+
+        // Apply strict keyword rules and mark ambiguous mappings as needsReview
+        var classification = ProductClassifier.ClassifyStrict(originalName);
+        if (classification.IsAmbiguous)
+        {
+            isActive = false; // Do not auto-publish ambiguous items
+        }
 
         // ── Construct Image URL ────────────────────────────────────────
         string safeSubCategory = subCategory.ToLowerInvariant().Replace(" ", "-");
@@ -570,11 +507,55 @@ public class SyncEngine : ISyncEngine
         decimal originalPrice = salePrice * 1.15m;
 
         // ── Build metadata JSONB ───────────────────────────────────────
-        bool gameNeedsZone = game.HasServerId;
-        var metadata = JsonSerializer.Serialize(new { needsZoneId = gameNeedsZone });
+        var metaObj = new
+        {
+            needsZoneId = isServerNeeded,
+            syncType = "auto",
+            providerType = source.ToString(),
+            categoryGroup = classification.Slug,
+            needsReview = classification.IsAmbiguous
+        };
+        string metadata = System.Text.Json.JsonSerializer.Serialize(metaObj);
 
         // ── Multi-Provider Price War ───────────────────────────────────
         var existing = await _db.Products.FirstOrDefaultAsync(p => p.Name == standardName && p.GameId == game.Id);
+
+        if (existing != null && !string.IsNullOrWhiteSpace(existing.Metadata))
+        {
+            try
+            {
+                using var doc = System.Text.Json.JsonDocument.Parse(existing.Metadata);
+                if (doc.RootElement.TryGetProperty("isManuallyMapped", out var manMapProp) && manMapProp.GetBoolean())
+                {
+                    // Retain admin override state
+                    isActive = existing.IsActive; 
+                    
+                    // Merge existing manual mappings into new metadata
+                    var metaDict = new System.Collections.Generic.Dictionary<string, object>
+                    {
+                        { "needsZoneId", isServerNeeded },
+                        { "syncType", "auto" },
+                        { "providerType", source.ToString() }
+                    };
+
+                    if (doc.RootElement.TryGetProperty("itemCategory", out var itemCat))
+                        metaDict["itemCategory"] = itemCat.GetString()!;
+                    if (doc.RootElement.TryGetProperty("categoryGroup", out var catGroup))
+                        metaDict["categoryGroup"] = catGroup.GetString()!;
+                    if (doc.RootElement.TryGetProperty("mappedBy", out var mappedBy))
+                        metaDict["mappedBy"] = mappedBy.GetString()!;
+                    if (doc.RootElement.TryGetProperty("mappedAt", out var mappedAt))
+                        metaDict["mappedAt"] = mappedAt.GetString()!;
+
+                    metaDict["isManuallyMapped"] = true;
+                    
+                    // Ensure needsReview is not present if manually mapped
+                    
+                    metadata = System.Text.Json.JsonSerializer.Serialize(metaDict);
+                }
+            }
+            catch { }
+        }
 
         if (existing != null)
         {
@@ -601,9 +582,6 @@ public class SyncEngine : ISyncEngine
             }
             else
             {
-                // New price is more expensive from a different provider -> Keep existing active, ignore new.
-                // Or if we were syncing multiple products, we'd set the more expensive one to IsActive = false, 
-                // but since we only keep 1 record per "standardName", we just don't update it.
                 existing.LastSyncedAt = DateTime.UtcNow;
             }
         }

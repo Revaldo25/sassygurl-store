@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Plus_Jakarta_Sans } from "next/font/google";
+import Script from "next/script";
 import "./globals.css";
 
 const jakarta = Plus_Jakarta_Sans({
@@ -25,6 +26,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body className={`${jakarta.className} min-h-screen bg-zinc-950 text-white antialiased`}>
         <div className="fixed inset-0 -z-10 bg-[radial-gradient(circle_at_top,rgba(253,176,192,0.10),transparent_35%),linear-gradient(180deg,#09090b_0%,#09090b_35%,#050505_100%)]" />
         <Providers>{children}</Providers>
+        <Script
+          src="https://app.sandbox.midtrans.com/snap/snap.js"
+          data-client-key={process.env.NEXT_PUBLIC_MIDTRANS_CLIENT_KEY}
+          strategy="lazyOnload"
+        />
       </body>
     </html>
   );

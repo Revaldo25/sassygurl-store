@@ -1,122 +1,122 @@
 {
   "mlbb": {
-    "hero": "/images/hero/hero_anime_duo_action.webp",
-    "thumbnail": "/images/games/mlbb_icon.jpeg",
-    "logo": "/images/games/mlbb_icon.jpeg",
+    "hero": "/images/hero/hero_mlbb.jpg",
+    "thumbnail": "/images/games/mlbb_icon.png",
+    "logo": "/images/games/mlbb_icon.png",
     "accent": "#FDB0C0"
   },
   "ff": {
-    "hero": "/images/hero/hero_topup_bundle_03.jpg",
-    "thumbnail": "/images/games/ff_icon.jpeg",
-    "logo": "/images/games/ff_icon.jpeg",
+    "hero": "/images/hero/hero_ff.jpg",
+    "thumbnail": "/images/games/ff_icon.jpg",
+    "logo": "/images/games/ff_icon.jpg",
     "accent": "#FF6B35"
   },
   "pubg": {
-    "hero": "/images/hero/hero_topup_bundle_03.jpg",
+    "hero": "/images/hero/hero_pubg.jpg",
     "thumbnail": "/images/games/pubg_icon.svg",
     "logo": "/images/games/pubg_icon.svg",
     "accent": "#F0C040"
   },
   "genshin": {
-    "hero": "/images/hero/hero_genshin_fantasy_battle.webp",
-    "thumbnail": "/images/games/gi_icon.jpeg",
-    "logo": "/images/games/gi_icon.jpeg",
+    "hero": "/images/hero/hero_genshin.jpg",
+    "thumbnail": "/images/games/gi_icon.jpg",
+    "logo": "/images/games/gi_icon.jpg",
     "accent": "#A8E6CF"
   },
   "hsr": {
-    "hero": "/images/hero/hero_sci_fi_team_banner.webp",
+    "hero": "/images/hero/hero_hsr.jpg",
     "thumbnail": "/images/games/hsr_icon.webp",
     "logo": "/images/games/hsr_icon.webp",
     "accent": "#7EC8E3"
   },
   "zzz": {
-    "hero": "/images/hero/hero_anime_duo_action.webp",
+    "hero": "/images/hero/hero_zzz.png",
     "thumbnail": "/images/games/zzz_icon.webp",
     "logo": "/images/games/zzz_icon.webp",
     "accent": "#C084FC"
   },
   "arknights-endfield": {
-    "hero": "/images/hero/hero_genshin_fantasy_battle.webp",
-    "thumbnail": "/images/games/akef_icon.jpeg",
-    "logo": "/images/games/akef_icon.jpeg",
+    "hero": "/images/hero/hero_arknights-endfield.jpg",
+    "thumbnail": "/images/games/akef_icon.jpg",
+    "logo": "/images/games/akef_icon.jpg",
     "accent": "#A78BFA"
   },
   "hok": {
-    "hero": "/images/hero/hero_anime_duo_action.webp",
-    "thumbnail": "/images/games/hok_icon.jpeg",
-    "logo": "/images/games/hok_icon.jpeg",
+    "hero": "/images/hero/hero_hok.png",
+    "thumbnail": "/images/games/hok_icon.jpg",
+    "logo": "/images/games/hok_icon.jpg",
     "accent": "#F59E0B"
   },
   "valorant": {
     "hero": "/images/hero/hero_sci_fi_team_banner.webp",
-    "thumbnail": "/images/games/valorant_icon.jpeg",
-    "logo": "/images/games/valorant_icon.jpeg",
+    "thumbnail": "/images/games/valorant_icon.jpg",
+    "logo": "/images/games/valorant_icon.jpg",
     "accent": "#FF4655"
   },
   "roblox": {
-    "hero": "/images/hero/hero_topup_bundle_03.jpg",
+    "hero": "/images/hero/hero_roblox.jpg",
     "thumbnail": "/images/games/rbx_icon.png",
     "logo": "/images/games/rbx_icon.png",
     "accent": "#E11D48"
   },
   "steam-wallet": {
-    "hero": "/images/hero/hero_topup_bundle_03.jpg",
-    "thumbnail": "/images/games/rbx_icon.png",
-    "logo": "/images/games/rbx_icon.png",
+    "hero": "/images/hero/hero_steam_wallet.png",
+    "thumbnail": "/images/games/steam_icon.png",
+    "logo": "/images/games/steam_icon.png",
     "accent": "#1B2838"
   },
   "fc-mobile": {
-    "hero": "/images/hero/hero_topup_bundle_03.jpg",
-    "thumbnail": "/images/games/hok_icon.jpeg",
-    "logo": "/images/games/hok_icon.jpeg",
+    "hero": "/images/hero/hero_fc_mobile.png",
+    "thumbnail": "/images/games/fcm_icon.png",
+    "logo": "/images/games/fcm_icon.png",
     "accent": "#00DF89"
   },
   "delta-force": {
-    "hero": "/images/hero/hero_sci_fi_team_banner.webp",
-    "thumbnail": "/images/games/valorant_icon.jpeg",
-    "logo": "/images/games/valorant_icon.jpeg",
+    "hero": "/images/hero/hero_delta_force.png",
+    "thumbnail": "/images/games/df_icon.png",
+    "logo": "/images/games/df_icon.png",
     "accent": "#2C5E43"
   },
   "blood-strike": {
-    "hero": "/images/hero/hero_topup_bundle_03.jpg",
-    "thumbnail": "/images/games/valorant_icon.jpeg",
-    "logo": "/images/games/valorant_icon.jpeg",
+    "hero": "/images/hero/hero_blood_strike.png",
+    "thumbnail": "/images/games/bs_icon.png",
+    "logo": "/images/games/bs_icon.png",
     "accent": "#FF8C00"
   },
   "wuwa": {
-    "hero": "/images/hero/hero_genshin_fantasy_battle.webp",
+    "hero": "/images/hero/hero_wuwa.jpg",
     "thumbnail": "/images/games/wuwa_icon.webp",
     "logo": "/images/games/wuwa_icon.webp",
     "accent": "#60A5FA"
   },
   "nikke": {
-    "hero": "/images/hero/hero_sci_fi_team_banner.webp",
-    "thumbnail": "/images/games/nikke_icon.jpeg",
-    "logo": "/images/games/nikke_icon.jpeg",
+    "hero": "/images/hero/hero_nikke.jpg",
+    "thumbnail": "/images/games/nikke_icon.jpg",
+    "logo": "/images/games/nikke_icon.jpg",
     "accent": "#F472B6"
   },
   "lol": {
-    "hero": "/images/hero/hero_topup_bundle_03.jpg",
-    "thumbnail": "/images/games/lol_icon.jpeg",
-    "logo": "/images/games/lol_icon.jpeg",
+    "hero": "/images/hero/hero_lol.jpg",
+    "thumbnail": "/images/games/lol_icon.jpg",
+    "logo": "/images/games/lol_icon.jpg",
     "accent": "#C4B454"
   },
   "lolwr": {
-    "hero": "/images/hero/hero_anime_duo_action.webp",
-    "thumbnail": "/images/games/lolwr_icon.jpeg",
-    "logo": "/images/games/lolwr_icon.jpeg",
+    "hero": "/images/hero/hero_lolwr.png",
+    "thumbnail": "/images/games/lolwr_icon.jpg",
+    "logo": "/images/games/lolwr_icon.jpg",
     "accent": "#22D3EE"
   },
   "mccg": {
-    "hero": "/images/hero/hero_anime_duo_action.webp",
-    "thumbnail": "/images/games/mccg_icon.jpeg",
-    "logo": "/images/games/mccg_icon.jpeg",
+    "hero": "/images/hero/hero_mccg.png",
+    "thumbnail": "/images/games/mccg_icon.jpg",
+    "logo": "/images/games/mccg_icon.jpg",
     "accent": "#60A5FA"
   },
   "aether-gazer": {
-    "hero": "/images/hero/hero_genshin_fantasy_battle.webp",
-    "thumbnail": "/images/games/akef_icon.jpeg",
-    "logo": "/images/games/akef_icon.jpeg",
+    "hero": "/images/hero/hero_aether_gazer.png",
+    "thumbnail": "/images/games/aether_gazer_icon.png",
+    "logo": "/images/games/aether_gazer_icon.png",
     "accent": "#A78BFA"
   }
 }

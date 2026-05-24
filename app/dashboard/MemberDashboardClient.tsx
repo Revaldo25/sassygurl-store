@@ -27,7 +27,8 @@ import {
   type RecentTransaction,
   getMemberTransactions,
 } from "@/app/actions/dashboard";
-import { HubConnectionBuilder, LogLevel } from "@microsoft/signalr";
+import * as signalR from "@microsoft/signalr";
+import { toast } from "sonner";
 
 interface Props {
   initialStats: DashboardStats;
@@ -111,25 +112,26 @@ export default function MemberDashboardClient({ initialStats, initialTransaction
 
   const router = useRouter();
 
+  const connectionRef = useRef<signalR.HubConnection | null>(null);
+
   useEffect(() => {
     if (!session) {
       router.push("/auth/login");
       return;
     }
+    if (connectionRef.current) return;
 
     // ── SignalR Real-Time Integration ────────────────────────────────────────
     const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5009/api";
     const baseUrl = apiUrl.replace(/\/api$/, "");
     
-    const connection = new HubConnectionBuilder()
+    const connection = new signalR.HubConnectionBuilder()
       .withUrl(`${baseUrl}/hubs/notifications`)
-      .configureLogging(LogLevel.Warning)
-      .withAutomaticReconnect()
+      .configureLogging(signalR.LogLevel.Warning)
+      .withAutomaticReconnect([0, 2000, 5000, 10000, 30000])
       .build();
 
-    connection.start()
-      .then(() => console.log("Connected to Real-Time Hub"))
-      .catch((err) => console.error("SignalR Connection Error:", err));
+    connectionRef.current = connection;
 
     connection.on("TransactionUpdated", (data: any) => {
       setTransactions((prev) => {
@@ -143,6 +145,12 @@ export default function MemberDashboardClient({ initialStats, initialTransaction
             orderStatus: data.orderStatus,
           };
 
+          if (oldStatus !== data.paymentStatus) {
+            toast.success(`Transaksi #${data.transactionId.substring(0, 5)}... Diperbarui!`, {
+              description: `Status: ${data.paymentStatus}`,
+            });
+          }
+
           // Trigger Confetti if status changed to SUCCESS/PAID
           if (data.paymentStatus === "PAID" && oldStatus !== "PAID") {
              triggerConfetti();
@@ -154,8 +162,24 @@ export default function MemberDashboardClient({ initialStats, initialTransaction
       });
     });
 
+    const startConnection = async () => {
+      try {
+        if (connection.state === signalR.HubConnectionState.Disconnected) {
+          await connection.start();
+          console.log("Connected to Real-Time Hub");
+        }
+      } catch (err) {
+        console.error("SignalR Connection Error:", err);
+      }
+    };
+
+    startConnection();
+
     return () => {
-      connection.stop();
+      if (connectionRef.current) {
+        connectionRef.current.stop();
+        connectionRef.current = null;
+      }
     };
   }, [session, router]);
 

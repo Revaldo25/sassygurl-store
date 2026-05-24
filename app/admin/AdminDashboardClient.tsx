@@ -1,8 +1,9 @@
 "use client";
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts";
-import { useState, useTransition, useEffect } from "react";
+import { useState, useTransition, useEffect, useRef } from "react";
 import { useSearchParams } from "next/navigation";
-import { HubConnectionBuilder, LogLevel } from "@microsoft/signalr";
+import * as signalR from "@microsoft/signalr";
+import { toast } from "sonner";
 import { motion, AnimatePresence, Variants } from "framer-motion";
 import {
   Search,
@@ -94,41 +95,66 @@ export default function AdminDashboardClient({ initialStats, initialTransactions
     setIsSyncing(false);
   };
 
+  const connectionRef = useRef<signalR.HubConnection | null>(null);
+
   useEffect(() => {
+    let mounted = true;
+    if (connectionRef.current) return;
+
     const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5009/api";
     const baseUrl = apiUrl.replace(/\/api$/, "");
     
-    const connection = new HubConnectionBuilder()
+    const connection = new signalR.HubConnectionBuilder()
       .withUrl(`${baseUrl}/hubs/notifications`)
-      .configureLogging(LogLevel.Warning)
-      .withAutomaticReconnect()
+      .configureLogging(signalR.LogLevel.Warning)
+      .withAutomaticReconnect([0, 2000, 5000, 10000, 30000])
       .build();
 
-    connection.start()
-      .then(() => console.log("Connected to Real-Time NotificationHub"))
-      .catch((err) => console.error("SignalR Connection Error:", err));
+    connectionRef.current = connection;
 
     connection.on("TransactionUpdated", (data: any) => {
       setTransactions((prev) => {
         const idx = prev.findIndex((t) => t.id === data.transactionId);
         if (idx !== -1) {
           const updated = [...prev];
+          const oldStatus = updated[idx].paymentStatus;
           updated[idx] = {
             ...updated[idx],
-            orderStatus: data.orderStatus,
             paymentStatus: data.paymentStatus,
-            providerRef: data.providerRef
+            orderStatus: data.orderStatus,
           };
+
+          if (oldStatus !== data.paymentStatus) {
+            toast.success(`Admin: Transaksi #${data.transactionId.substring(0, 5)}... Diperbarui!`, {
+              description: `Status: ${data.paymentStatus}`,
+            });
+          }
+
           return updated;
         }
+        return prev;
+      });
+    });
+
+    connection.on("NewTransaction", (data: any) => {
+      setTransactions((prev) => {
+        if (prev.some(t => t.id === data.id)) return prev;
+        
+        toast.info(`Admin: Transaksi Baru Masuk!`, {
+          description: `Produk: ${data.productName} (${data.amount} IDR)`,
+        });
+
         return [{
-          id: data.transactionId,
-          invoiceId: data.invoiceId,
-          gameName: data.gameName,
+          id: data.id,
+          invoiceId: data.invoiceId || "INV-NEW",
+          date: new Date().toISOString(),
+          customer: data.customerIdentifier || "Unknown",
+          customerPhone: data.customerPhone || "N/A",
+          gameName: data.gameName || "Unknown Game",
           productName: data.productName,
-          targetId: data.targetId,
+          targetId: data.targetId || "N/A",
           amount: data.amount,
-          paymentStatus: data.paymentStatus,
+          paymentStatus: data.paymentStatus || "PENDING",
           orderStatus: data.orderStatus,
           providerRef: data.providerRef,
           profit: 0, 
@@ -318,8 +344,8 @@ export default function AdminDashboardClient({ initialStats, initialTransactions
                   <h3 className="mb-6 flex items-center gap-3 text-sm font-black uppercase tracking-[0.2em] text-white">
                     <TrendingUp className="h-5 w-5 text-emerald-400" /> Net Profit (Last 7 Days)
                   </h3>
-                  <div className="h-[300px] w-full min-w-0">
-                    <ResponsiveContainer width="100%" height="100%" minWidth={0}>
+                  <div className="min-h-[300px] w-full" style={{ position: 'relative' }}>
+                    <ResponsiveContainer width="100%" height={300}>
                       <AreaChart data={ownerStats.dailyRevenue?.length > 0 ? ownerStats.dailyRevenue : [{ date: "N/A", revenue: 0, profit: 0, orderCount: 0 }]}>
                         <defs>
                           <linearGradient id="profitGrad" x1="0" y1="0" x2="0" y2="1">

@@ -3,6 +3,8 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using Microsoft.AspNetCore.Mvc;
+using SassyGurl.Api.Services;
+using System.Linq;
 
 namespace SassyGurl.Api.Controllers;
 
@@ -17,15 +19,18 @@ public class GameValidationController : ControllerBase
     private readonly IHttpClientFactory _httpClientFactory;
     private readonly IConfiguration _config;
     private readonly ILogger<GameValidationController> _logger;
+    private readonly IGameRegistryService _gameRegistry;
 
     public GameValidationController(
         IHttpClientFactory httpClientFactory,
         IConfiguration config,
-        ILogger<GameValidationController> logger)
+        ILogger<GameValidationController> logger,
+        IGameRegistryService gameRegistry)
     {
         _httpClientFactory = httpClientFactory;
         _config = config;
         _logger = logger;
+        _gameRegistry = gameRegistry;
     }
 
     /// <summary>
@@ -54,8 +59,24 @@ public class GameValidationController : ControllerBase
             var sign = CreateMD5($"{apiId}{apiKey}");
             var client = _httpClientFactory.CreateClient("VipResellerClient");
 
-            // Map frontend game slug to VIP Reseller game code
-            string vipGameCode = request.GameCode.ToLowerInvariant() switch
+            // Normalize incoming GameCode to canonical slug using registry
+            string? canonicalSlug = _gameRegistry.NormalizeBrandToSlug(request.GameCode);
+            if (canonicalSlug == null)
+            {
+                var entry = _gameRegistry.GetAllRegistryEntries()
+                    .FirstOrDefault(g => string.Equals(g.Slug, request.GameCode, StringComparison.OrdinalIgnoreCase) ||
+                                         g.Aliases.Any(a => string.Equals(a, request.GameCode, StringComparison.OrdinalIgnoreCase)) ||
+                                         g.ShortNames.Any(s => string.Equals(s, request.GameCode, StringComparison.OrdinalIgnoreCase)));
+                if (entry != null)
+                {
+                    canonicalSlug = entry.Slug;
+                }
+            }
+
+            string targetSlug = canonicalSlug ?? request.GameCode;
+
+            // Map canonical slug to VIP Reseller validation game code
+            string vipGameCode = targetSlug.ToLowerInvariant() switch
             {
                 "mlbb" => "mobile-legends",
                 "ff" => "free-fire",
@@ -68,11 +89,12 @@ public class GameValidationController : ControllerBase
                 "hok" => "honor-of-kings",
                 "nikke" => "goddess-of-victory-nikke",
                 "lol" => "league-of-legends",
-                "wr" => "league-of-legends-wild-rift",
+                "lolwr" => "league-of-legends-wild-rift",
                 "roblox" => "roblox",
-                "aether" => "aether-gazer",
+                "aether-gazer" => "aether-gazer",
                 "mccg" => "magic-chess",
-                _ => request.GameCode
+                "arknights-endfield" => "arknights-endfield",
+                _ => targetSlug
             };
 
             var formFields = new List<KeyValuePair<string, string>>

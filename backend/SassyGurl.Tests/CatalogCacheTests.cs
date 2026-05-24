@@ -21,6 +21,7 @@ public class CatalogCacheTests
         var mockDb = new Mock<SassyGurl.Api.Data.SassyGurlDbContext>();
         var mockConfig = new Mock<IConfiguration>();
         var mockCloudinary = new Mock<ICloudinaryService>();
+        var mockRegistryService = new Mock<IGameRegistryService>();
 
         var syncEngine = new SyncEngine(
             mockFactory.Object,
@@ -29,7 +30,8 @@ public class CatalogCacheTests
             mockCloudinary.Object,
             new NullLogger<SyncEngine>(),
             cache,
-            registry
+            registry,
+            mockRegistryService.Object
         );
 
         // Simulate catalog service setting a dynamic cache key
