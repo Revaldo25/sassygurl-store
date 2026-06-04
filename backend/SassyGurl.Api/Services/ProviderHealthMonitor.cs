@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.SignalR;
 using SassyGurl.Api.Hubs;
 using System.Diagnostics;
+using Microsoft.EntityFrameworkCore;
 
 namespace SassyGurl.Api.Services;
 
@@ -51,7 +52,7 @@ public class ProviderHealthMonitor : BackgroundService
                 {
                     // For Digiflazz, VIP, etc.
                     string baseUrl = provider.Name.ToLower().Contains("digi") ? "https://api.digiflazz.com/v1/" : "https://vipreseller.co.id/api/";
-                    await PingProviderAsync(provider.Name, baseUrl, stoppingToken);
+                    await PingProviderAsync(db, provider, baseUrl, stoppingToken);
 
                     if (provider.Balance < 500000)
                     {
@@ -77,10 +78,11 @@ public class ProviderHealthMonitor : BackgroundService
         }
     }
 
-    private async Task PingProviderAsync(string name, string baseUrl, CancellationToken ct)
+    private async Task PingProviderAsync(SassyGurl.Api.Data.SassyGurlDbContext db, SassyGurl.Api.Models.Provider provider, string baseUrl, CancellationToken ct)
     {
         var sw = Stopwatch.StartNew();
         bool isActive;
+        int latency = -1;
 
         try
         {
@@ -88,44 +90,84 @@ public class ProviderHealthMonitor : BackgroundService
             client.Timeout = TimeSpan.FromSeconds(10);
             var response = await client.GetAsync(baseUrl, ct);
             sw.Stop();
-            // Any response (even 4xx) means the server is alive
+            latency = (int)sw.ElapsedMilliseconds;
             isActive = true;
         }
         catch (Exception ex)
         {
             sw.Stop();
             isActive = false;
-            _logger.LogError(ex, "Provider {Name} is DOWN or returned error.", name);
-
-            try 
-            {
-                using var scope = _scopeFactory.CreateScope();
-                var telegram = scope.ServiceProvider.GetRequiredService<ITelegramService>();
-                var config = scope.ServiceProvider.GetRequiredService<IConfiguration>();
-                var adminPhone = config["WhatsApp:AdminPhone"];
-
-                var msg = $"🚨 API ERROR: Provider {name} is DOWN atau Timeout!";
-                _ = telegram.SendSystemErrorAlertAsync("Provider Offline", msg);
-
-                if (!string.IsNullOrEmpty(adminPhone))
-                {
-                    var wa = scope.ServiceProvider.GetRequiredService<IWhatsAppService>();
-                    _ = wa.SendOrderFailedAsync(adminPhone, "SYS-ALERT", msg);
-                }
-            } 
-            catch { /* fail silently on alert failure */ }
+            _logger.LogError(ex, "Provider {Name} is DOWN or returned error.", provider.Name);
+            
+            // Alert throttling logic
+            await HandleProviderDownAlertAsync(provider.Name);
         }
 
+        // Real Success Rate calculation (last 100 transactions)
+        var recentTxs = await db.Transactions
+            .Where(t => t.Product.ProviderId == provider.Id && (t.OrderStatus == SassyGurl.Api.Models.Enums.OrderStatus.SUCCESS || t.OrderStatus == SassyGurl.Api.Models.Enums.OrderStatus.ERROR))
+            .OrderByDescending(t => t.CreatedAt)
+            .Take(100)
+            .Select(t => t.OrderStatus)
+            .ToListAsync(ct);
+
+        decimal successRate = -1m; // N/A
+        if (recentTxs.Any())
+        {
+            int successCount = recentTxs.Count(t => t == SassyGurl.Api.Models.Enums.OrderStatus.SUCCESS);
+            successRate = Math.Round((decimal)successCount / recentTxs.Count * 100, 1);
+        }
+
+        // Update provider entity
+        provider.IsActive = isActive;
+        provider.SuccessRate = successRate;
+        provider.AvgLatencyMs = latency;
+        await db.SaveChangesAsync(ct);
+
         var payload = new ProviderStatusPayload(
-            name,
+            provider.Name,
             isActive,
-            isActive ? 99.9m : 0m,
-            (int)sw.ElapsedMilliseconds,
+            successRate,
+            latency,
             DateTime.UtcNow
         );
 
-        _logger.LogInformation("Provider {Name}: Active={Active}, Latency={Latency}ms", name, isActive, sw.ElapsedMilliseconds);
-
+        _logger.LogInformation("Provider {Name}: Active={Active}, Latency={Latency}ms, SuccessRate={Rate}", provider.Name, isActive, latency, successRate);
         await NotificationBroadcaster.BroadcastProviderStatus(_hub, payload);
+    }
+
+    private static readonly System.Collections.Concurrent.ConcurrentDictionary<string, DateTime> _lastAlerts = new();
+
+    private async Task HandleProviderDownAlertAsync(string providerName)
+    {
+        try
+        {
+            var now = DateTime.UtcNow;
+            if (_lastAlerts.TryGetValue(providerName, out var lastAlertTime))
+            {
+                if ((now - lastAlertTime).TotalMinutes < 30)
+                {
+                    _logger.LogDebug("Alert for {Name} suppressed (throttled).", providerName);
+                    return;
+                }
+            }
+
+            _lastAlerts[providerName] = now;
+
+            using var scope = _scopeFactory.CreateScope();
+            var telegram = scope.ServiceProvider.GetRequiredService<ITelegramService>();
+            var config = scope.ServiceProvider.GetRequiredService<IConfiguration>();
+            var adminPhone = config["WhatsApp:AdminPhone"];
+
+            var msg = $"🚨 API ERROR: Provider {providerName} is DOWN atau Timeout!";
+            _ = telegram.SendSystemErrorAlertAsync("Provider Offline", msg);
+
+            if (!string.IsNullOrEmpty(adminPhone))
+            {
+                var wa = scope.ServiceProvider.GetRequiredService<IWhatsAppService>();
+                _ = wa.SendOrderFailedAsync(adminPhone, "SYS-ALERT", msg);
+            }
+        }
+        catch { /* fail silently on alert failure */ }
     }
 }

@@ -6,12 +6,17 @@
 #   2. postgres  — PostgreSQL 16 (primary database)
 #   3. redis     — Redis Stack (caching + distributed locks)
 #   4. pgadmin   — pgAdmin 4 (database management UI)
+#   5. backup    — Automated pg_dump backup scheduler
+#
+# Prerequisites:
+#   Copy `.env.example` to `.env` and fill in real values.
 #
 # Usage:
 #   docker-compose up -d          # Start all services
 #   docker-compose up -d --build  # Rebuild API and start
 #   docker-compose logs -f api    # Follow API logs
-#   docker-compose down -v        # Stop and remove volumes
+#   docker-compose down           # Stop services (preserves data)
+#   docker-compose down -v        # Stop and DESTROY all data volumes
 # ============================================================================
 
 services:
@@ -26,9 +31,9 @@ services:
       - "5000:8080"
     environment:
       - ASPNETCORE_ENVIRONMENT=Production
-      - ConnectionStrings__DefaultConnection=Host=postgres;Port=5432;Database=sassygurl;Username=sassygurl_user;Password=SassyGurl_Str0ng_P@ss!;Maximum Pool Size=20;Minimum Pool Size=2;Timeout=15;Command Timeout=30
+      - ConnectionStrings__DefaultConnection=Host=postgres;Port=5432;Database=${POSTGRES_DB};Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD};Maximum Pool Size=20;Minimum Pool Size=2;Timeout=15;Command Timeout=30
       - ConnectionStrings__Redis=redis:6379
-      - Jwt__Key=${JWT_SECRET_KEY:-Ut5ajelYP0Vlb8usezCTa7x3W9jRnWM8AJFVofrG4xk=}
+      - Jwt__Key=${JWT_SECRET_KEY}
       - Jwt__Issuer=SassyGurlStoreApi
       - Jwt__Audience=SassyGurlStoreClients
     depends_on:
@@ -53,10 +58,9 @@ services:
     ports:
       - "5432:5432"
     environment:
-      POSTGRES_DB: sassygurl
-      POSTGRES_USER: sassygurl_user
-      POSTGRES_PASSWORD: SassyGurl_Str0ng_P@ss!
-      # Performance tuning for development
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_INITDB_ARGS: "--encoding=UTF-8 --lc-collate=C --lc-ctype=C"
     volumes:
       - postgres_data:/var/lib/postgresql/data
@@ -64,7 +68,7 @@ services:
     networks:
       - sassygurl-network
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U sassygurl_user -d sassygurl"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -95,8 +99,8 @@ services:
     ports:
       - "5050:80"
     environment:
-      PGADMIN_DEFAULT_EMAIL: admin@sassygurl.store
-      PGADMIN_DEFAULT_PASSWORD: SassyAdmin123!
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_EMAIL}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_PASSWORD}
       PGADMIN_CONFIG_SERVER_MODE: "False"
     volumes:
       - pgadmin_data:/var/lib/pgadmin
@@ -106,12 +110,71 @@ services:
     networks:
       - sassygurl-network
 
+  # ── Automated Backup Service ───────────────────────────────────────────
+  backup:
+    image: postgres:16-alpine
+    container_name: sassygurl-backup
+    restart: unless-stopped
+    environment:
+      PGHOST: postgres
+      PGPORT: "5432"
+      PGDATABASE: ${POSTGRES_DB}
+      PGUSER: ${POSTGRES_USER}
+      PGPASSWORD: ${POSTGRES_PASSWORD}
+      BACKUP_DIR: /backups
+      BACKUP_RETENTION_DAYS: ${BACKUP_RETENTION_DAYS:-7}
+      BACKUP_RETENTION_WEEKS: ${BACKUP_RETENTION_WEEKS:-4}
+      BACKUP_CLOUD_BUCKET: ${BACKUP_CLOUD_BUCKET:-}
+      BACKUP_CLOUD_PROVIDER: ${BACKUP_CLOUD_PROVIDER:-s3}
+      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN:-}
+      TELEGRAM_CHAT_ID: ${TELEGRAM_ADMIN_CHAT_ID:-}
+      LOG_RETENTION_DAYS: ${LOG_RETENTION_DAYS:-30}
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID:-}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY:-}
+      AWS_DEFAULT_REGION: ${AWS_DEFAULT_REGION:-ap-southeast-1}
+    volumes:
+      - backup_data:/backups
+      - ./scripts/backup.sh:/scripts/backup.sh:ro
+      - ./scripts/restore.sh:/scripts/restore.sh:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - sassygurl-network
+    # Run backup every day at 02:00 AM local time
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        chmod +x /scripts/backup.sh /scripts/restore.sh
+        apk add --no-cache curl aws-cli 2>/dev/null || true
+        echo "Backup service started. Running initial backup..."
+        /scripts/backup.sh --no-cleanup
+        echo "Scheduling daily backup at 02:00..."
+        while true; do
+          # Calculate seconds until next 02:00
+          CURRENT_HOUR=$(date +%H)
+          CURRENT_MIN=$(date +%M)
+          CURRENT_SEC=$(date +%S)
+          SECONDS_SINCE_MIDNIGHT=$(( CURRENT_HOUR * 3600 + CURRENT_MIN * 60 + CURRENT_SEC ))
+          TARGET_SECONDS=$(( 2 * 3600 ))
+          if [ $SECONDS_SINCE_MIDNIGHT -ge $TARGET_SECONDS ]; then
+            SLEEP_SECONDS=$(( 86400 - SECONDS_SINCE_MIDNIGHT + TARGET_SECONDS ))
+          else
+            SLEEP_SECONDS=$(( TARGET_SECONDS - SECONDS_SINCE_MIDNIGHT ))
+          fi
+          echo "[$(date)] Next backup in ${SLEEP_SECONDS}s (at 02:00)"
+          sleep $SLEEP_SECONDS
+          /scripts/backup.sh
+        done
+
 volumes:
   postgres_data:
     driver: local
   redis_data:
     driver: local
   pgadmin_data:
+    driver: local
+  backup_data:
     driver: local
 
 networks:

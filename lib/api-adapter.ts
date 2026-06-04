@@ -95,11 +95,11 @@ export type PaymentGroup = {
   methods: PaymentMethod[];
 };
 
-export type ProviderStatus = {
+export interface ProviderStatus {
   name: string;
   isActive: boolean;
   successRate: number;
-  avgLatency: string;
+  avgLatency: number;
   lastChecked: string;
   balance: number;
 };
@@ -302,7 +302,7 @@ export async function getProviderStatuses(): Promise<ProviderStatus[]> {
       name:        p.name,
       isActive:    p.isActive,
       successRate: p.successRate,
-      avgLatency:  `${p.avgLatency}ms`,
+      avgLatency:  p.avgLatency,
       lastChecked: p.lastChecked,
       balance:     p.balance ?? 0,
     }));

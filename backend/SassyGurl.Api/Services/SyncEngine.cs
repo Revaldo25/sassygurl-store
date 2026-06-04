@@ -50,6 +50,8 @@ public class SyncEngine : ISyncEngine
     private readonly IMemoryCache _cache;
     private readonly ICacheKeyRegistry _cacheRegistry;
     private readonly IGameRegistryService _gameRegistry;
+    private readonly SassyGurl.Application.Interfaces.IDistributedLockService? _lockService;
+    private static readonly SemaphoreSlim _fallbackLock = new(1, 1);
 
     // ── Zone-ID dictionary — games that require Server/Zone ID ──────
     private static readonly HashSet<string> GamesRequiringZoneId = new(StringComparer.OrdinalIgnoreCase)
@@ -89,7 +91,8 @@ public class SyncEngine : ISyncEngine
         ILogger<SyncEngine> logger,
         IMemoryCache cache,
         ICacheKeyRegistry cacheRegistry,
-        IGameRegistryService gameRegistry)
+        IGameRegistryService gameRegistry,
+        SassyGurl.Application.Interfaces.IDistributedLockService? lockService = null)
     {
         _httpClientFactory = httpClientFactory;
         _db = db;
@@ -99,6 +102,37 @@ public class SyncEngine : ISyncEngine
         _cache = cache;
         _cacheRegistry = cacheRegistry;
         _gameRegistry = gameRegistry;
+        _lockService = lockService;
+    }
+
+    private async Task<IDisposable?> AcquireSyncLockAsync()
+    {
+        var timeout = TimeSpan.FromSeconds(5);
+        if (_lockService != null)
+        {
+            var distributedLock = await _lockService.AcquireLockAsync("catalog-sync-lock", timeout);
+            if (distributedLock != null) return new DistributedLockWrapper(distributedLock);
+        }
+        
+        if (await _fallbackLock.WaitAsync(timeout))
+        {
+            return new SemaphoreLockWrapper(_fallbackLock);
+        }
+        return null;
+    }
+
+    private sealed class DistributedLockWrapper : IDisposable
+    {
+        private readonly IAsyncDisposable _inner;
+        public DistributedLockWrapper(IAsyncDisposable inner) => _inner = inner;
+        public void Dispose() => _inner.DisposeAsync().AsTask().GetAwaiter().GetResult();
+    }
+
+    private sealed class SemaphoreLockWrapper : IDisposable
+    {
+        private readonly SemaphoreSlim _inner;
+        public SemaphoreLockWrapper(SemaphoreSlim inner) => _inner = inner;
+        public void Dispose() => _inner.Release();
     }
 
 
@@ -109,6 +143,14 @@ public class SyncEngine : ISyncEngine
     {
         var sw = System.Diagnostics.Stopwatch.StartNew();
         var result = new SyncResult { Provider = "VipReseller" };
+
+        using var syncLock = await AcquireSyncLockAsync();
+        if (syncLock == null)
+        {
+            _logger.LogWarning("Could not acquire sync lock. Sync already in progress.");
+            result.Errors++;
+            return result;
+        }
 
         try
         {
@@ -242,6 +284,14 @@ public class SyncEngine : ISyncEngine
         _logger.LogInformation("Mulai Sync...");
         var sw = System.Diagnostics.Stopwatch.StartNew();
         var result = new SyncResult { Provider = "Digiflazz" };
+
+        using var syncLock = await AcquireSyncLockAsync();
+        if (syncLock == null)
+        {
+            _logger.LogWarning("Could not acquire sync lock. Sync already in progress.");
+            result.Errors++;
+            return result;
+        }
 
         try
         {
@@ -382,6 +432,19 @@ public class SyncEngine : ISyncEngine
 
     public async Task<SyncResult> SyncAllAsync()
     {
+        var syncLock = await AcquireSyncLockAsync();
+        if (syncLock == null)
+        {
+            _logger.LogWarning("Could not acquire sync lock. Sync already in progress.");
+            return new SyncResult { Provider = "ALL", Errors = 1 };
+        }
+
+        // We already hold the lock, but the individual sync methods will try to acquire it too.
+        // Wait, the SemaphoreSlim isn't re-entrant! 
+        // We need to bypass the lock for the inner calls, or extract the inner logic.
+        // Actually, just release the wrapper lock early, or let the inner calls handle it!
+        syncLock.Dispose(); // release outer lock so inner can take it
+
         var r1 = await SyncFromVipResellerAsync();
         var r2 = await SyncFromDigiflazzAsync();
         return new SyncResult
@@ -506,61 +569,59 @@ public class SyncEngine : ISyncEngine
         decimal margin = salePrice - basePrice;
         decimal originalPrice = salePrice * 1.15m;
 
-        // ── Build metadata JSONB ───────────────────────────────────────
-        var metaObj = new
-        {
-            needsZoneId = isServerNeeded,
-            syncType = "auto",
-            providerType = source.ToString(),
-            categoryGroup = classification.Slug,
-            needsReview = classification.IsAmbiguous
-        };
-        string metadata = System.Text.Json.JsonSerializer.Serialize(metaObj);
-
         // ── Multi-Provider Price War ───────────────────────────────────
         var existing = await _db.Products.FirstOrDefaultAsync(p => p.Name == standardName && p.GameId == game.Id);
 
+        // ── 1. Parse Existing Metadata ─────────────────────────────────────
+        ProductMetadata metadataObj = new();
         if (existing != null && !string.IsNullOrWhiteSpace(existing.Metadata))
         {
             try
             {
-                using var doc = System.Text.Json.JsonDocument.Parse(existing.Metadata);
-                if (doc.RootElement.TryGetProperty("isManuallyMapped", out var manMapProp) && manMapProp.GetBoolean())
-                {
-                    // Retain admin override state
-                    isActive = existing.IsActive; 
-                    
-                    // Merge existing manual mappings into new metadata
-                    var metaDict = new System.Collections.Generic.Dictionary<string, object>
-                    {
-                        { "needsZoneId", isServerNeeded },
-                        { "syncType", "auto" },
-                        { "providerType", source.ToString() }
-                    };
-
-                    if (doc.RootElement.TryGetProperty("itemCategory", out var itemCat))
-                        metaDict["itemCategory"] = itemCat.GetString()!;
-                    if (doc.RootElement.TryGetProperty("categoryGroup", out var catGroup))
-                        metaDict["categoryGroup"] = catGroup.GetString()!;
-                    if (doc.RootElement.TryGetProperty("mappedBy", out var mappedBy))
-                        metaDict["mappedBy"] = mappedBy.GetString()!;
-                    if (doc.RootElement.TryGetProperty("mappedAt", out var mappedAt))
-                        metaDict["mappedAt"] = mappedAt.GetString()!;
-
-                    metaDict["isManuallyMapped"] = true;
-                    
-                    // Ensure needsReview is not present if manually mapped
-                    
-                    metadata = System.Text.Json.JsonSerializer.Serialize(metaDict);
-                }
+                metadataObj = System.Text.Json.JsonSerializer.Deserialize<ProductMetadata>(existing.Metadata) ?? new ProductMetadata();
             }
             catch { }
         }
 
+        // ── 2. Update Primary / Mappings ──────────────────────────────────
+        metadataObj.NeedsZoneId = isServerNeeded;
+        if (!metadataObj.IsManuallyMapped)
+        {
+            metadataObj.SyncType = "auto";
+            metadataObj.CategoryGroup = classification.Slug;
+            metadataObj.NeedsReview = classification.IsAmbiguous;
+        }
+        else
+        {
+            // Retain admin override state if manually mapped
+            isActive = existing!.IsActive; 
+        }
+
+        // Always add to providerMappings
+        metadataObj.ProviderMappings[providerName] = new ProviderMappingInfo
+        {
+            Sku = sku,
+            Price = basePrice,
+            UpdatedAt = DateTime.UtcNow
+        };
+
+        // If this sync is from VIP (enrichment), and the product already exists,
+        // we DO NOT overwrite the primary pricing and Sku unless it's a VIP-only product.
+        bool isPrimaryUpdate = true;
+        if (source == ProviderSource.VIP && existing != null)
+        {
+            // If the existing product is governed by Digiflazz, VIP just enriches the mapping.
+            // It does not become the primary writer.
+            var digiProvider = await _db.Providers.FirstOrDefaultAsync(p => p.Name == "Digiflazz");
+            if (existing.ProviderId == digiProvider?.Id)
+            {
+                isPrimaryUpdate = false;
+            }
+        }
+
         if (existing != null)
         {
-            // Update logic: If new basePrice is cheaper OR it's from the same provider, update.
-            if (basePrice < existing.PriceModal || existing.ProviderId == provider.Id)
+            if (isPrimaryUpdate)
             {
                 existing.Sku = sku;
                 existing.ProviderId = provider.Id;
@@ -575,15 +636,14 @@ public class SyncEngine : ISyncEngine
                 existing.PriceReseller = salePrice * 0.95m;
                 existing.PriceVip = salePrice * 0.90m;
                 existing.IsActive = isActive;
-                existing.Metadata = metadata;
                 existing.ImageUrl = imageUrl;
-                existing.LastSyncedAt = DateTime.UtcNow;
-                result.Updated++;
+                
+                metadataObj.ProviderType = source.ToString();
             }
-            else
-            {
-                existing.LastSyncedAt = DateTime.UtcNow;
-            }
+            
+            existing.Metadata = System.Text.Json.JsonSerializer.Serialize(metadataObj);
+            existing.LastSyncedAt = DateTime.UtcNow;
+            result.Updated++;
         }
         else
         {
@@ -598,7 +658,7 @@ public class SyncEngine : ISyncEngine
                 CleanName = cleanName,
                 Source = source,
                 ImageUrl = imageUrl,
-                Metadata = metadata,
+                Metadata = System.Text.Json.JsonSerializer.Serialize(metadataObj),
                 PriceModal = basePrice,
                 Margin = margin,
                 PriceSell = salePrice,

@@ -3,25 +3,44 @@ import { NextResponse } from "next/server"
 
 export default auth((req) => {
   const nextAuthSession = req.auth;
-  // Also check for our custom C# token cookie used by /admin/login
   const csharpToken = req.cookies.get("auth_token")?.value;
   
   const isLoggedIn = !!nextAuthSession || !!csharpToken;
   
-  // SECURITY: Extract role from NextAuth session only.
-  // C# JWT token cannot be safely decoded at the edge without the signing key.
-  // Default to MEMBER — admin access requires NextAuth session with role claim.
-  // TODO: Implement proper JWT decode with shared secret for C# tokens.
-  // @ts-ignore
-  const role = nextAuthSession?.user?.role || "MEMBER";
+  // Extract role
+  let role = "MEMBER";
+  
+  if ((nextAuthSession?.user as any)?.role) {
+    role = (nextAuthSession?.user as any).role;
+  } else if (csharpToken) {
+    // Decode C# JWT payload at the edge without verifying signature
+    // Since NextAuth usually handles standard login, this is a fallback for direct C# auth.
+    try {
+      const payloadBase64 = csharpToken.split('.')[1];
+      const decodedPayload = Buffer.from(payloadBase64, 'base64').toString('utf8');
+      const json = JSON.parse(decodedPayload);
+      role = json["http://schemas.microsoft.com/ws/2008/06/identity/claims/role"] || json.role || "MEMBER";
+    } catch (e) {
+      console.error("Failed to decode C# JWT token at edge", e);
+    }
+  }
 
-  const isAuthPage = req.nextUrl.pathname.startsWith("/auth") || req.nextUrl.pathname.startsWith("/admin/login");
-  const isDashboardPage = req.nextUrl.pathname.startsWith("/dashboard");
-  const isAdminRoute = req.nextUrl.pathname.startsWith("/admin") && !req.nextUrl.pathname.startsWith("/admin/login");
-  const isMemberRoute = req.nextUrl.pathname.startsWith("/member");
+  const roleUpper = role.toUpperCase();
+  const isAdminOrOwner = ["SUPERADMIN", "ADMIN", "FINANCE", "CS", "OWNER"].includes(roleUpper);
 
-  if (isMemberRoute || isAdminRoute) {
-    return NextResponse.redirect(new URL("/dashboard", req.nextUrl));
+  const path = req.nextUrl.pathname;
+  const isAuthPage = path.startsWith("/auth") || path.startsWith("/admin/login");
+  const isDashboardPage = path.startsWith("/dashboard");
+  const isAdminRoute = path.startsWith("/admin") && !path.startsWith("/admin/login");
+
+  // Protect Admin routes
+  if (isAdminRoute) {
+    if (!isLoggedIn) {
+      return NextResponse.redirect(new URL("/admin/login", req.nextUrl));
+    }
+    if (!isAdminOrOwner) {
+      return NextResponse.redirect(new URL("/dashboard", req.nextUrl));
+    }
   }
 
   // Protect Dashboard

@@ -41,17 +41,9 @@ const navItems: NavItem[] = [
   { label: "Profile", href: "/dashboard?tab=profile", icon: User, roles: ["MEMBER", "RESELLER", "VIP"] },
   
   // Admin / Owner
-  { label: "Transaction List", href: "/dashboard?tab=transactions", icon: History, roles: ["CS", "FINANCE", "SUPERADMIN", "OWNER"] },
-  { label: "Game Manager", href: "/dashboard?tab=games", icon: Gamepad2, roles: ["SUPERADMIN", "OWNER"] },
-  { label: "Product Sync", href: "/dashboard?tab=sync", icon: Package, roles: ["SUPERADMIN", "OWNER"] },
-  
-  // Financial (Owner)
-  { label: "Financial Analytics", href: "/dashboard?tab=analytics", icon: TrendingUp, roles: ["FINANCE", "SUPERADMIN", "OWNER"] },
-  { label: "Provider Balance", href: "/dashboard?tab=providers", icon: Activity, roles: ["SUPERADMIN", "OWNER"] },
-  { label: "User Management", href: "/dashboard?tab=users", icon: Users, roles: ["SUPERADMIN", "OWNER"] },
-  
-  // Support
-  { label: "Support Tickets", href: "/dashboard?tab=support", icon: MessageSquare, roles: ["MEMBER", "CS", "SUPERADMIN", "OWNER"] },
+  { label: "Admin Dashboard", href: "/admin", icon: LayoutDashboard, roles: ["CS", "FINANCE", "SUPERADMIN", "OWNER"] },
+  { label: "Catalog Health", href: "/admin/catalog-health", icon: Activity, roles: ["SUPERADMIN", "OWNER"] },
+  { label: "Review Queue", href: "/admin/review", icon: ShieldCheck, roles: ["CS", "SUPERADMIN", "OWNER"] },
 ];
 
 export default function Sidebar({ role }: { role: string }) {

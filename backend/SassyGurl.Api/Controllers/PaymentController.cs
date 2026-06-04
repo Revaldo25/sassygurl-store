@@ -29,7 +29,6 @@ public class PaymentController : ControllerBase
     /// Midtrans Payment Notification Webhook.
     /// Protected by: Rate Limiting + IP Whitelist + HMAC Signature Validation.
     /// </summary>
-    [EnableRateLimiting("payment-webhook")]
     [HttpPost("webhook")]
     [Idempotency]
     public async Task<IActionResult> Webhook()

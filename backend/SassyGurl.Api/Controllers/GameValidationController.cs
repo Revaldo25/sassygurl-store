@@ -6,6 +6,8 @@ using Microsoft.AspNetCore.Mvc;
 using SassyGurl.Api.Services;
 using System.Linq;
 
+using Microsoft.AspNetCore.RateLimiting;
+
 namespace SassyGurl.Api.Controllers;
 
 // ============================================================================
@@ -14,6 +16,7 @@ namespace SassyGurl.Api.Controllers;
 
 [ApiController]
 [Route("api/game")]
+[EnableRateLimiting("game-validation")]
 public class GameValidationController : ControllerBase
 {
     private readonly IHttpClientFactory _httpClientFactory;

@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { getGameProducts, getGroupedPayments, getRecentTransactions } from "@/lib/api-adapter";
 import CheckoutClient from "./CheckoutClient";
 import SiteHeader from "@/components/SiteHeader";
@@ -5,8 +6,48 @@ import GameHero from "@/components/game/GameHero";
 import FAQAccordion from "@/components/game/FAQAccordion";
 import RelatedGamesGrid from "@/components/game/RelatedGamesGrid";
 import GameSocialProof from "@/components/game/GameSocialProof";
+import Image from "next/image";
 import { notFound } from "next/navigation";
 
+// ── Dynamic SEO Metadata ─────────────────────────────────────────────────────
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ slug: string }>;
+}): Promise<Metadata> {
+  const { slug } = await params;
+  const { game } = await getGameProducts(slug);
+  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://sassygurlstore.com';
+
+  if (!game) {
+    return { title: 'Game Tidak Ditemukan' };
+  }
+
+  const title = `Top Up ${game.name} Termurah & Tercepat`;
+  const description = game.description || `Top up ${game.name} dengan harga termurah, proses otomatis 1-3 detik. Pembayaran lengkap: QRIS, E-Wallet, VA, Minimarket.`;
+
+  return {
+    title,
+    description,
+    openGraph: {
+      title,
+      description,
+      images: [{ url: game.banner, width: 1200, height: 630, alt: game.name }],
+      type: 'website',
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title,
+      description,
+      images: [game.banner],
+    },
+    alternates: {
+      canonical: `${baseUrl}/games/${slug}`,
+    },
+  };
+}
+
+// ── Page Component ───────────────────────────────────────────────────────────
 export default async function GameSlugPage({
   params,
 }: {
@@ -25,8 +66,47 @@ export default async function GameSlugPage({
   // Filter transactions for this specific game name (case insensitive)
   const gameTransactions = recentTransactions.filter(t => t.gameName && t.gameName.toLowerCase() === game.name.toLowerCase());
 
+  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://sassygurlstore.com';
+
   return (
     <div className="min-h-screen bg-[#09090b] text-white selection:bg-sakura/40 selection:text-white">
+      {/* JSON-LD Structured Data — Product */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            '@context': 'https://schema.org',
+            '@type': 'Product',
+            name: `Top Up ${game.name}`,
+            description: game.description,
+            image: game.banner,
+            brand: { '@type': 'Brand', name: 'SassyGurl Store' },
+            offers: {
+              '@type': 'AggregateOffer',
+              priceCurrency: 'IDR',
+              lowPrice: game.priceRange.min,
+              highPrice: game.priceRange.max,
+              offerCount: game.productCount,
+              availability: 'https://schema.org/InStock',
+            },
+          }),
+        }}
+      />
+      {/* JSON-LD Structured Data — Breadcrumbs */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            '@context': 'https://schema.org',
+            '@type': 'BreadcrumbList',
+            itemListElement: [
+              { '@type': 'ListItem', position: 1, name: 'Home', item: baseUrl },
+              { '@type': 'ListItem', position: 2, name: game.name, item: `${baseUrl}/games/${game.slug}` },
+            ],
+          }),
+        }}
+      />
+
       <SiteHeader />
 
       {/* ═══ Game Hero Section ═══ */}
@@ -46,11 +126,11 @@ export default async function GameSlugPage({
       <div className="max-w-7xl mx-auto px-4 sm:px-6 py-12 pb-32 lg:pb-24">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
 
-          {/* LEFT: Sidebar — Game Info & Instructions */}
-          <aside className="lg:col-span-4 space-y-6 lg:sticky lg:top-24">
+          {/* LEFT: Sidebar — Game Info & Instructions (appears AFTER checkout on mobile) */}
+          <aside className="lg:col-span-4 space-y-6 lg:sticky lg:top-24 order-2 lg:order-1">
             <div className="rounded-[2.5rem] border border-white/5 bg-gradient-to-br from-white/[0.03] to-transparent backdrop-blur-xl p-8 shadow-2xl">
               <div className="flex items-center gap-4 mb-8">
-                <img src={game.icon} alt={game.name} className="w-16 h-16 rounded-3xl shadow-lg border border-white/10" />
+                <Image src={game.icon} alt={game.name} width={64} height={64} className="rounded-3xl shadow-lg border border-white/10" />
                 <div>
                   <h2 className="text-xl font-black text-white leading-tight">{game.name}</h2>
                   <p className="text-xs font-bold text-sakura uppercase tracking-widest">{game.publisher}</p>
@@ -81,7 +161,7 @@ export default async function GameSlugPage({
 
                 <div className="pt-6 border-t border-white/5">
                   <p className="text-sm text-white/40 font-medium leading-relaxed mb-6">
-                    {game.description || "Top up game favoritmu dengan harga termurah dan pengiriman instan hanya di SassyGurl Store Ultra."}
+                    {game.description || "Top up game favoritmu dengan harga termurah dan pengiriman instan hanya di SassyGurl Store."}
                   </p>
                   
                   <div className="flex flex-wrap gap-2">
@@ -94,11 +174,11 @@ export default async function GameSlugPage({
             </div>
 
             {/* Promo Card */}
-            <div className="rounded-[2rem] bg-sakura p-6 overflow-hidden relative group cursor-pointer">
-               <div className="absolute top-0 right-0 -mr-8 -mt-8 w-32 h-32 bg-white/20 rounded-full blur-3xl group-hover:scale-150 transition-transform duration-700" />
+            <div className="rounded-[2rem] bg-sakura p-6 overflow-hidden relative">
+               <div className="absolute top-0 right-0 -mr-8 -mt-8 w-32 h-32 bg-white/20 rounded-full blur-xl" />
                <h4 className="text-zinc-950 text-lg font-black leading-tight mb-1 relative z-10">Mau Diskon Lebih?</h4>
                <p className="text-zinc-950/60 text-xs font-bold relative z-10 mb-4">Daftar jadi Member VIP sekarang juga!</p>
-               <button className="w-full py-3 bg-zinc-950 text-white rounded-2xl font-black text-xs tracking-widest relative z-10 hover:scale-105 transition-transform">
+               <button className="w-full py-3 bg-zinc-950 text-white rounded-2xl font-black text-xs tracking-widest relative z-10 hover:bg-zinc-800 transition-colors" aria-label="Daftar Member VIP">
                  DAFTAR SEKARANG
                </button>
             </div>
@@ -106,7 +186,7 @@ export default async function GameSlugPage({
             <GameSocialProof transactions={gameTransactions} />
           </aside>
 
-          {/* RIGHT: Checkout Flow, FAQ, and Related Games */}
+          {/* RIGHT: Checkout Flow, FAQ, and Related Games (appears FIRST on mobile) */}
           <main className="lg:col-span-8 order-1 lg:order-2 space-y-6">
             <CheckoutClient
               game={game}
@@ -122,4 +202,3 @@ export default async function GameSlugPage({
     </div>
   );
 }
-

@@ -1,7 +1,10 @@
 import { cookies } from 'next/headers';
 import { auth } from './auth';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL;
+if (!API_BASE_URL) {
+  throw new Error("NEXT_PUBLIC_API_URL is not defined in environment variables");
+}
 
 export async function fetchApi<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
   const cookieStore = await cookies();
@@ -37,6 +40,13 @@ export async function fetchApi<T>(endpoint: string, options: RequestInit = {}): 
         console.error(`[API] Failed to parse JSON from ${endpoint}:`, e);
         throw new Error(`Invalid JSON response from ${endpoint}`);
       }
+    }
+
+    if (response.status === 401) {
+      if (typeof window !== 'undefined') {
+        window.location.href = '/auth/login?expired=true';
+      }
+      throw new Error("Session expired. Please log in again.");
     }
 
     if (!response.ok) {

@@ -113,6 +113,8 @@ coverage/
 *.ldf
 *.ndf
 healthchecksdb
+*.dump
+/backups/
 
 # ── Runtime ──────────────────────────────────────────────────────────────────
 pids/

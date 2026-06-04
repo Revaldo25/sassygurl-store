@@ -58,9 +58,9 @@ public class DashboardController : ControllerBase
 
     [Authorize(Roles = "SUPERADMIN,CS,FINANCE")]
     [HttpGet("admin/transactions")]
-    public async Task<ActionResult<ApiResponse<PaginatedResponse<RecentTransactionDto>>>> GetAdminTransactions([FromQuery] string filter = "ALL", [FromQuery] string search = "")
+    public async Task<ActionResult<ApiResponse<PaginatedResponse<RecentTransactionDto>>>> GetAdminTransactions([FromQuery] string filter = "ALL", [FromQuery] string search = "", [FromQuery] int page = 1, [FromQuery] int limit = 20)
     {
-        var result = await _dashboardService.GetAdminTransactionsAsync(filter, search);
+        var result = await _dashboardService.GetAdminTransactionsAsync(filter, search, page, limit);
         return Ok(result);
     }
 }
