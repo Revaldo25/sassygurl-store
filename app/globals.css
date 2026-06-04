@@ -28,15 +28,22 @@
   ::-webkit-scrollbar-thumb:hover {
     background: #fdb0c0;
   }
+
+  /* Focus ring for keyboard navigation */
+  *:focus-visible {
+    outline: 2px solid rgba(253, 176, 192, 0.6);
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
 }
 
 @layer components {
   .glass-panel {
-    @apply border border-white/10 bg-white/5 backdrop-blur-3xl shadow-[0_0_40px_rgba(0,0,0,0.35)];
+    @apply border border-white/10 bg-white/5 backdrop-blur-xl shadow-[0_0_40px_rgba(0,0,0,0.35)];
   }
 
   .glass-card {
-    @apply rounded-[1.6rem] border border-white/10 bg-white/5 backdrop-blur-3xl;
+    @apply rounded-[1.6rem] border border-white/10 bg-white/5 backdrop-blur-xl;
   }
 
   .neon-border {
@@ -51,6 +58,26 @@
 @layer utilities {
   .text-balance {
     text-wrap: balance;
+  }
+
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+
+  .pb-safe {
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
   }
 }
 

@@ -1,102 +1,145 @@
 "use client";
 
-import { useState, useTransition } from "react";
-import { trackOrderAction, TrackResult } from "@/app/actions/track";
+import { useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { Search, Package, Clock, CheckCircle2, XCircle, ArrowRight, ShieldCheck } from "lucide-react";
+import SiteHeader from "@/components/SiteHeader";
+import { trackOrderAction } from "@/app/actions/track";
 
-export default function TrackOrderPage() {
-  const [query, setQuery] = useState("");
-  const [results, setResults] = useState<TrackResult[]>([]);
-  const [message, setMessage] = useState("");
-  const [isPending, startTransition] = useTransition();
+export default function CekPesanan() {
+  const [invoice, setInvoice] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const [result, setResult] = useState<any>(null);
+  const [error, setError] = useState("");
 
-  const handleTrack = (e: React.FormEvent) => {
+  const handleCek = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!query) return;
+    setIsLoading(true);
+    setError("");
+    setResult(null);
 
-    startTransition(async () => {
-      const res = await trackOrderAction(query);
-        if (res.success && res.data) {
-        setResults([res.data]); // TrackResult is an object, but state is array so wrap it
-        setMessage("");
+    try {
+      const data = await trackOrderAction(invoice);
+      if (data.success && data.data) {
+        setResult(data.data);
       } else {
-        setResults([]);
-        setMessage(res.message || "Data tidak ditemukan");
+        setError(data.message || "Invoice tidak ditemukan.");
       }
-    });
+    } catch (err) {
+      setError("Gagal menghubungi server. Silakan coba lagi.");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  const getStatusColor = (status: string) => {
-    if (status === "SUCCESS") return "#22c55e";
-    if (status === "FAILED") return "#ef4444";
-    return "#eab308"; // PENDING
+  const formatDate = (dateString: string) => {
+    return new Intl.DateTimeFormat('id-ID', { 
+      day: 'numeric', month: 'long', year: 'numeric', 
+      hour: '2-digit', minute: '2-digit' 
+    }).format(new Date(dateString)) + ' WIB';
+  };
+
+  const getStatusConfig = (status: string) => {
+    if (status === 'SUCCESS') return { color: "text-emerald-400 bg-emerald-500/10 border-emerald-500/20", icon: CheckCircle2 };
+    if (status === 'FAILED') return { color: "text-red-400 bg-red-500/10 border-red-500/20", icon: XCircle };
+    return { color: "text-amber-400 bg-amber-500/10 border-amber-500/20", icon: Clock };
   };
 
   return (
-    <div style={{ minHeight: '100vh', backgroundColor: '#0a0a0f', color: '#fff', paddingTop: '120px', paddingBottom: '80px', fontFamily: 'Inter, sans-serif' }}>
+    <main className="min-h-screen bg-zinc-950 text-white relative overflow-hidden">
+      <SiteHeader />
       
-      {/* DEKORASI LIGHT ORB */}
-      <div style={{ position: 'absolute', top: '0', right: '0', width: '300px', height: '300px', background: '#7c3aed', filter: 'blur(100px)', opacity: 0.1, zIndex: 0 }} />
+      {/* Background Decor */}
+      <div className="pointer-events-none fixed left-1/2 top-0 h-[600px] w-[800px] -translate-x-1/2 rounded-full bg-brand-cyan/5 blur-[150px]" />
 
-      <div style={{ maxWidth: '700px', margin: '0 auto', padding: '0 20px', position: 'relative', zIndex: 10 }}>
-        
-        <div style={{ textAlign: 'center', marginBottom: '40px' }}>
-          <h1 style={{ fontSize: '32px', fontWeight: 900, marginBottom: '12px' }}>Lacak <span style={{ color: '#ec4899' }}>Pesanan</span></h1>
-          <p style={{ color: '#94a3b8', fontSize: '14px' }}>Masukkan Nomor Invoice atau WhatsApp Anda untuk melihat status transaksi.</p>
-        </div>
+      <div className="relative z-10 mx-auto max-w-2xl px-4 py-20 sm:px-6">
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="text-center mb-10">
+          <div className="mb-4 inline-flex items-center justify-center rounded-full bg-sakura/10 p-3 text-sakura">
+            <Package className="h-6 w-6" />
+          </div>
+          <h1 className="text-3xl font-black tracking-tight md:text-5xl">Lacak Pesanan</h1>
+          <p className="mt-3 text-sm text-zinc-400">Masukkan nomor invoice Anda untuk melihat status top-up secara real-time.</p>
+        </motion.div>
 
-        {/* SEARCH BOX GLASSMORPHISM */}
-        <form onSubmit={handleTrack} style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', padding: '8px', borderRadius: '24px', display: 'flex', gap: '8px', marginBottom: '40px', backdropFilter: 'blur(16px)' }}>
-          <input 
-            type="text" placeholder="INV-SGY-XXXXXXXX atau 0812..." value={query} onChange={(e) => setQuery(e.target.value)}
-            style={{ flex: 1, background: 'transparent', border: 'none', padding: '16px 20px', color: '#fff', fontSize: '15px', outline: 'none' }}
-          />
-          <button type="submit" disabled={isPending} style={{ background: '#ec4899', border: 'none', padding: '0 30px', borderRadius: '18px', color: '#fff', fontWeight: 800, cursor: 'pointer', transition: '0.3s' }}>
-            {isPending ? 'MENCARI...' : 'TRACK'}
-          </button>
-        </form>
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
+          <form onSubmit={handleCek} className="relative mb-8 rounded-[2rem] border border-white/10 bg-zinc-900/40 p-2 shadow-2xl backdrop-blur-2xl transition focus-within:border-sakura/50">
+            <div className="flex flex-col sm:flex-row items-center gap-2">
+              <div className="relative flex-1 w-full pl-4 flex items-center">
+                <Search className="h-5 w-5 text-zinc-500 absolute" />
+                <input 
+                  type="text" 
+                  placeholder="Contoh: SGY-123456" 
+                  value={invoice}
+                  onChange={(e) => setInvoice(e.target.value)}
+                  className="w-full bg-transparent py-4 pl-8 pr-4 text-sm font-bold text-white outline-none placeholder:text-zinc-600 uppercase tracking-widest"
+                  required
+                />
+              </div>
+              <button 
+                type="submit" 
+                disabled={isLoading}
+                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-[1.5rem] bg-sakura px-8 py-4 text-xs font-black text-zinc-950 transition-all hover:scale-[1.02] disabled:opacity-50"
+              >
+                {isLoading ? "MENCARI..." : "LACAK SEKARANG"}
+                <ArrowRight className="h-4 w-4" />
+              </button>
+            </div>
+          </form>
 
-        {/* HASIL PENCARIAN */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-          {message && <div style={{ textAlign: 'center', color: '#ef4444', fontWeight: 700, background: 'rgba(239,68,68,0.1)', padding: '15px', borderRadius: '16px' }}>{message}</div>}
-          
-          {results.map((trx) => (
-            <div key={trx.invoiceId} style={{ background: '#12121a', border: '1px solid rgba(255,255,255,0.05)', borderRadius: '24px', padding: '24px', position: 'relative', overflow: 'hidden' }}>
-              {/* INDIKATOR STATUS GLOWING */}
-              <div style={{ position: 'absolute', top: 0, left: 0, width: '4px', height: '100%', backgroundColor: getStatusColor(trx.orderStatus) }} />
-              
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '20px' }}>
-                <div>
-                  <div style={{ fontSize: '12px', fontWeight: 800, color: '#475569', marginBottom: '4px', letterSpacing: '1px' }}>INVOICE ID</div>
-                  <div style={{ fontSize: '16px', fontWeight: 900 }}>{trx.invoiceId}</div>
-                </div>
-                <div style={{ textAlign: 'right' }}>
-                  <div style={{ fontSize: '10px', fontWeight: 900, padding: '6px 12px', borderRadius: '10px', backgroundColor: `${getStatusColor(trx.orderStatus)}20`, color: getStatusColor(trx.orderStatus), border: `1px solid ${getStatusColor(trx.orderStatus)}40` }}>
-                    {trx.orderStatus}
+          <AnimatePresence mode="wait">
+            {error && (
+              <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="mb-8 rounded-2xl border border-red-500/20 bg-red-500/10 p-4 text-center text-sm font-bold text-red-400">
+                {error}
+              </motion.div>
+            )}
+
+            {result && (
+              <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="rounded-[2rem] border border-white/10 bg-zinc-900/60 p-6 backdrop-blur-3xl md:p-8">
+                <div className="mb-6 flex flex-col items-center justify-between gap-4 border-b border-white/5 pb-6 sm:flex-row">
+                  <div>
+                    <p className="text-[10px] font-black uppercase tracking-widest text-zinc-500">Invoice ID</p>
+                    <p className="mt-1 font-mono text-lg font-black text-white">{result.invoiceId}</p>
+                  </div>
+                  <div className={`inline-flex items-center gap-2 rounded-full border px-4 py-2 text-xs font-black ${getStatusConfig(result.orderStatus).color}`}>
+                    {getStatusConfig(result.orderStatus).icon({ className: "h-4 w-4" })}
+                    {result.orderStatus}
                   </div>
                 </div>
-              </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', padding: '20px', background: 'rgba(255,255,255,0.02)', borderRadius: '16px', marginBottom: '20px' }}>
-                <div>
-                  <div style={{ fontSize: '11px', color: '#475569', fontWeight: 800, marginBottom: '4px' }}>PRODUK</div>
-                  <div style={{ fontSize: '14px', fontWeight: 700 }}>{trx.gameName}</div>
-                  <div style={{ fontSize: '12px', color: '#94a3b8' }}>{trx.productName}</div>
+                <div className="grid gap-6 sm:grid-cols-2">
+                  <div>
+                    <p className="text-[10px] font-black uppercase tracking-widest text-zinc-500">Waktu Pembelian</p>
+                    <p className="mt-1 text-sm font-bold text-white">{formatDate(result.createdAt)}</p>
+                  </div>
+                  <div>
+                    <p className="text-[10px] font-black uppercase tracking-widest text-zinc-500">Game & Produk</p>
+                    <p className="mt-1 text-sm font-bold text-white">{result.gameName}</p>
+                    <p className="text-[11px] text-zinc-400">{result.productName}</p>
+                  </div>
+                  <div>
+                    <p className="text-[10px] font-black uppercase tracking-widest text-zinc-500">Target ID</p>
+                    <p className="mt-1 font-mono text-sm font-bold text-white">{result.targetId} {result.targetZone ? `(${result.targetZone})` : ""}</p>
+                  </div>
+                  <div>
+                    <p className="text-[10px] font-black uppercase tracking-widest text-zinc-500">Metode Pembayaran</p>
+                    <p className="mt-1 text-sm font-bold text-white">{result.paymentMethod.toUpperCase()}</p>
+                  </div>
                 </div>
-                <div>
-                  <div style={{ fontSize: '11px', color: '#475569', fontWeight: 800, marginBottom: '4px' }}>TARGET ID</div>
-                  <div style={{ fontSize: '14px', fontWeight: 700 }}>{trx.targetId} {trx.zoneId ? `(${trx.zoneId})` : ""}</div>
+
+                <div className="mt-8 flex items-center justify-between rounded-2xl border border-sakura/20 bg-sakura/5 p-4 sm:p-6">
+                  <div className="flex items-center gap-2">
+                    <ShieldCheck className="h-5 w-5 text-sakura" />
+                    <span className="text-xs font-black uppercase tracking-widest text-white">Total Bayar</span>
+                  </div>
+                  <p className="text-2xl font-black text-sakura">
+                    Rp {result.totalAmount.toLocaleString('id-ID')}
+                  </p>
                 </div>
-              </div>
-
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <div style={{ color: '#475569', fontSize: '12px' }}>{new Date(trx.createdAt).toLocaleString('id-ID')}</div>
-                <div style={{ fontSize: '18px', fontWeight: 900, color: '#fff' }}>Rp {Number(trx.totalAmount).toLocaleString('id-ID')}</div>
-              </div>
-            </div>
-          ))}
-        </div>
-
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </motion.div>
       </div>
-    </div>
+    </main>
   );
 }

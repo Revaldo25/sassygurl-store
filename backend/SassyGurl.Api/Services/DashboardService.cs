@@ -11,7 +11,7 @@ public interface IDashboardService
     Task<ApiResponse<MemberStatsDto>> GetMemberStatsAsync(string userId);
     Task<ApiResponse<PaginatedResponse<RecentTransactionDto>>> GetMemberTransactionsAsync(string userId, string filter, string search);
     Task<ApiResponse<AdminStatsDto>> GetAdminStatsAsync();
-    Task<ApiResponse<PaginatedResponse<RecentTransactionDto>>> GetAdminTransactionsAsync(string filter, string search);
+    Task<ApiResponse<PaginatedResponse<RecentTransactionDto>>> GetAdminTransactionsAsync(string filter, string search, int page, int limit);
     Task<ApiResponse<OwnerStatsDto>> GetOwnerStatsAsync();
 }
 
@@ -132,7 +132,7 @@ public class DashboardService : IDashboardService
         return ApiResponse<AdminStatsDto>.Ok(stats);
     }
 
-    public async Task<ApiResponse<PaginatedResponse<RecentTransactionDto>>> GetAdminTransactionsAsync(string filter, string search)
+    public async Task<ApiResponse<PaginatedResponse<RecentTransactionDto>>> GetAdminTransactionsAsync(string filter, string search, int page, int limit)
     {
         var query = _context.Transactions
             .AsNoTracking()
@@ -155,9 +155,19 @@ public class DashboardService : IDashboardService
                                      EF.Functions.ILike(t.TargetId, searchPattern));
         }
 
+        var total = await query.CountAsync();
+        
+        // Normalize page and limit
+        if (page < 1) page = 1;
+        if (limit < 1) limit = 20;
+        if (limit > 100) limit = 100;
+        
+        var skip = (page - 1) * limit;
+
         var dto = await query
             .OrderByDescending(t => t.CreatedAt)
-            .Take(50)
+            .Skip(skip)
+            .Take(limit)
             .Select(t => new RecentTransactionDto
             {
                 Id = t.Id,
@@ -177,9 +187,9 @@ public class DashboardService : IDashboardService
         return ApiResponse<PaginatedResponse<RecentTransactionDto>>.Ok(new PaginatedResponse<RecentTransactionDto>
         {
             Data = dto,
-            Total = dto.Count,
-            Page = 1,
-            PerPage = 50
+            Total = total,
+            Page = page,
+            PerPage = limit
         });
     }
 

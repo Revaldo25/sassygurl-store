@@ -31,6 +31,17 @@ public class AuthController : ControllerBase
     }
 
     [EnableRateLimiting("auth")]
+    [HttpPost("social-login")]
+    public async Task<ActionResult<ApiResponse<AuthResponseDto>>> SocialLogin([FromBody] SocialLoginRequestDto request)
+    {
+        if (!ModelState.IsValid) return BadRequest(ApiResponse<object>.Fail("Invalid data"));
+
+        var result = await _authService.SocialLoginAsync(request);
+        if (!result.Success) return BadRequest(result);
+        return Ok(result);
+    }
+
+    [EnableRateLimiting("auth")]
     [HttpPost("register")]
     public async Task<ActionResult<ApiResponse<string>>> Register([FromBody] RegisterRequestDto request)
     {

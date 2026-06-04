@@ -1,13 +1,10 @@
 import Link from "next/link";
-import Image from "next/image";
-import { Compass, Zap, ShieldCheck, Gem } from "lucide-react";
+import { Compass, Zap, ShieldCheck, HelpCircle, ChevronDown } from "lucide-react";
 import SiteHeader from "@/components/SiteHeader";
 import BannerCarousel from "@/components/BannerCarousel";
 import GameCatalogClient from "@/components/GameCatalogClient";
 import LiveTransactionFeed from "@/components/LiveTransactionFeed";
-import { formatIDR } from "@/lib/catalog";
 import { getAllGamesNormalized } from "@/lib/api-adapter";
-
 import { fetchApi } from "@/lib/api-client";
 import { PublicTransaction } from "@/components/LiveTransactionFeed";
 
@@ -34,71 +31,71 @@ export default async function HomePage() {
     <main className="min-h-screen bg-[#09090b] text-white">
       <SiteHeader />
       
-      {/* Hero / Banner Carousel */}
+      {/* Hero / Banner Carousel (Shorter height) */}
       <BannerCarousel />
 
-      {/* Feature Highlights (UX Trust Signals) */}
-      <section className="mx-auto max-w-7xl px-4 py-8 md:px-6">
-        <div className="grid gap-3 md:grid-cols-3">
+      {/* Trust Strip (Compact) */}
+      <section className="mx-auto max-w-7xl px-4 py-6 md:px-6">
+        <div className="grid gap-3 grid-cols-1 sm:grid-cols-3">
           {[
-            // Zap: Kognitif mapping untuk "Instan/Frictionless"
-            { icon: Zap, title: "Proses Otomatis", desc: "1-3 Detik masuk" },
-            // ShieldCheck: Psikologi keamanan, mengurangi "Friction of Trust" saat checkout
-            { icon: ShieldCheck, title: "100% Aman & Legal", desc: "Garansi anti-banned" },
-            // Compass: Navigasi cerdas, menemukan rute/harga terbaik secara presisi
-            { icon: Compass, title: "Routing Cerdas", desc: "Harga selalu termurah" },
+            { icon: Zap, title: "Proses Instan", desc: "Masuk dalam 1-3 Detik" },
+            { icon: ShieldCheck, title: "100% Aman & Resmi", desc: "Anti-banned & legal" },
+            { icon: Compass, title: "Rute Termurah", desc: "Harga distributor langsung" },
           ].map((feat, i) => (
-            <div key={i} className="flex items-center gap-4 rounded-2xl border border-white/5 bg-white/[0.02] p-4 backdrop-blur-sm">
+            <div
+              key={i}
+              className="flex items-center gap-4 rounded-2xl border border-white/5 bg-white/[0.02] p-4 backdrop-blur-sm transition-colors hover:bg-white/[0.04] opacity-0 animate-[fadeInUp_0.5s_ease-out_forwards]"
+              style={{ animationDelay: `${i * 100 + 200}ms` }}
+            >
               <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-sakura/10 text-sakura">
                 <feat.icon className="h-5 w-5" />
               </div>
               <div>
                 <p className="text-sm font-bold text-white">{feat.title}</p>
-                <p className="text-xs text-white/50">{feat.desc}</p>
+                <p className="text-xs font-medium text-white/50">{feat.desc}</p>
               </div>
             </div>
           ))}
         </div>
       </section>
 
-      {/* Game Catalog (Ditusi Style Grid + Search/Filter) */}
+      {/* Game Catalog (Core Product Discovery) */}
       <GameCatalogClient games={games} />
 
-      {/* Live Transactions + Why Premium */}
-      <section className="mx-auto max-w-7xl px-4 py-8 pb-20 md:px-6 md:py-12">
-        <div className="grid gap-6 lg:grid-cols-[1fr_1fr]">
+      {/* Live Transactions & Compact FAQ */}
+      <section className="mx-auto max-w-7xl px-4 py-8 pb-20 md:px-6">
+        <div className="grid gap-6 lg:grid-cols-2 items-start">
           {/* Live Transactions */}
           <LiveTransactionFeed initialData={initialTransactions} />
 
-          {/* Why Premium */}
-          <div className="relative overflow-hidden rounded-[2rem] border border-white/5 bg-zinc-900/30 p-6 backdrop-blur-3xl">
-            <div className="absolute -right-20 -top-20 h-64 w-64 rounded-full bg-sakura/10 blur-[80px]" />
-            
-            <p className="relative text-[10px] font-bold tracking-[0.4em] text-sakura/75">SASSYGURL STORE ULTRA</p>
-            <h3 className="relative mt-2 text-2xl font-black">Bukan hanya top-up, tapi experience</h3>
-            
-            <div className="relative mt-6 grid gap-4 sm:grid-cols-2">
-              {[
-                ["Desain Premium", "Glassmorphism, glow effect, dan layout responsif yang memanjakan mata."],
-                ["Smart Routing", "Sistem memilih provider termurah secara otomatis secara realtime."],
-                ["Pembayaran Lengkap", "Dukung QRIS, E-Wallet, VA, dan minimarket dengan auto-deteksi fee."],
-                ["Katalog Dinamis", "Mendukung ratusan produk dari berbagai game dengan kategori pintar."],
-              ].map(([title, text]) => (
-                <div key={title} className="rounded-2xl border border-white/5 bg-white/[0.02] p-4 transition hover:bg-white/[0.04]">
-                  <p className="text-sm font-bold text-white">{title}</p>
-                  <p className="mt-2 text-xs leading-5 text-white/50">{text}</p>
-                </div>
-              ))}
+          {/* Compact FAQ Block instead of massive marketing */}
+          <div className="rounded-[2rem] border border-white/5 bg-zinc-900/30 p-6 backdrop-blur-xl">
+            <div className="flex items-center gap-3 mb-6">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/5">
+                <HelpCircle className="h-5 w-5 text-sakura" />
+              </div>
+              <div>
+                <h3 className="text-lg font-black text-white">Pertanyaan Umum</h3>
+                <p className="text-xs text-white/50">Info singkat seputar SassyGurl Store</p>
+              </div>
             </div>
 
-            <div className="relative mt-6 flex items-center justify-between rounded-2xl border border-sakura/20 bg-sakura/10 px-5 py-4">
-               <div>
-                 <p className="text-xs font-bold text-sakura">Mulai dari {formatIDR(1200)}</p>
-                 <p className="text-[10px] text-white/60">Untuk entry item MLBB</p>
-               </div>
-               <Link href="/games/mlbb" className="rounded-full bg-sakura px-4 py-2 text-xs font-black text-zinc-950">
-                 Coba Sekarang
-               </Link>
+            <div className="space-y-3">
+              {[
+                ["Berapa lama proses pesanan?", "Pesanan diproses otomatis dalam 1-3 detik setelah pembayaran berhasil dikonfirmasi oleh sistem."],
+                ["Metode pembayaran apa saja?", "Kami menerima QRIS, E-Wallet (GoPay, OVO, Dana), Virtual Account, dan Minimarket."],
+                ["Apakah akun saya aman?", "100% aman. Kami hanya membutuhkan User ID/Server tanpa perlu login atau password Anda."],
+              ].map(([q, a], i) => (
+                <details key={i} className="group rounded-2xl border border-white/5 bg-white/[0.02] [&_summary::-webkit-details-marker]:hidden">
+                  <summary className="flex cursor-pointer items-center justify-between gap-4 p-4 text-sm font-bold text-white outline-none">
+                    {q}
+                    <ChevronDown className="h-4 w-4 text-white/40 transition-transform group-open:rotate-180" />
+                  </summary>
+                  <div className="px-4 pb-4 text-xs leading-relaxed text-white/60">
+                    {a}
+                  </div>
+                </details>
+              ))}
             </div>
           </div>
         </div>

@@ -3,7 +3,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ShieldCheck, User, Loader2, BadgeCheck, Lock, ChevronRight, AlertCircle } from "lucide-react";
-import { simulateUsername } from "@/lib/catalog";
 import { z } from "zod";
 
 // Zod Schema for strict input validation
@@ -132,6 +131,7 @@ export default function AccountInput({
               placeholder="Masukkan User ID"
               className="w-full bg-transparent text-sm text-white outline-none placeholder:text-white/25"
               inputMode="numeric"
+              autoComplete="off"
             />
           </div>
         </label>
@@ -182,7 +182,7 @@ export default function AccountInput({
         )}
       </AnimatePresence>
 
-      <div className="mt-4 rounded-2xl border border-white/5 bg-black/10 p-4">
+      <div className="mt-4 rounded-2xl border border-white/5 bg-black/10 p-4" aria-live="polite">
         <div className="flex items-center justify-between gap-4">
           <div>
             <p className="text-[10px] uppercase tracking-wider text-white/40">Nickname</p>

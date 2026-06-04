@@ -4,6 +4,7 @@ using SassyGurl.Api.Data;
 using SassyGurl.Api.DTOs.Auth;
 using SassyGurl.Api.DTOs.Common;
 using SassyGurl.Api.Models;
+using SassyGurl.Api.Models.Enums;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
@@ -15,6 +16,7 @@ public interface IAuthService
     Task<ApiResponse<AuthResponseDto>> LoginAsync(LoginRequestDto request);
     Task<ApiResponse<string>> RegisterAsync(RegisterRequestDto request);
     Task<ApiResponse<AuthResponseDto>> VerifyOtpAsync(VerifyOtpRequestDto request);
+    Task<ApiResponse<AuthResponseDto>> SocialLoginAsync(SocialLoginRequestDto request);
 }
 
 public class AuthService : IAuthService
@@ -35,7 +37,9 @@ public class AuthService : IAuthService
     public async Task<ApiResponse<AuthResponseDto>> LoginAsync(LoginRequestDto request)
     {
         var user = await _context.Users
-            .FirstOrDefaultAsync(u => u.Email == request.Email || u.Phone == request.Phone);
+            .FirstOrDefaultAsync(u => 
+                (!string.IsNullOrEmpty(request.Email) && u.Email == request.Email) || 
+                (!string.IsNullOrEmpty(request.Phone) && u.Phone == request.Phone));
 
         if (user == null) return ApiResponse<AuthResponseDto>.Fail("Akun tidak ditemukan.");
         if (!user.IsVerified) return ApiResponse<AuthResponseDto>.Fail("Akun belum aktif! Silakan verifikasi OTP.");
@@ -69,6 +73,55 @@ public class AuthService : IAuthService
             Name = user.Name ?? "Member",
             Role = user.Role.ToString()
         }, "Login Berhasil!");
+    }
+
+    public async Task<ApiResponse<AuthResponseDto>> SocialLoginAsync(SocialLoginRequestDto request)
+    {
+        var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == request.Email);
+        
+        if (user == null)
+        {
+            user = new User
+            {
+                Name = string.IsNullOrWhiteSpace(request.Name) ? "Member" : request.Name,
+                Email = request.Email,
+                IsVerified = true,
+                Role = Role.MEMBER
+            };
+            _context.Users.Add(user);
+            await _context.SaveChangesAsync();
+        }
+
+        var account = await _context.Accounts.FirstOrDefaultAsync(a => a.UserId == user.Id && a.Provider == request.Provider);
+        if (account == null)
+        {
+            account = new Account
+            {
+                Id = Guid.NewGuid().ToString(),
+                UserId = user.Id,
+                Type = "oauth",
+                Provider = request.Provider,
+                ProviderAccountId = request.ProviderAccountId
+            };
+            _context.Accounts.Add(account);
+            await _context.SaveChangesAsync();
+        }
+
+        var token = GenerateJwtToken(user);
+        var refreshToken = GenerateRefreshToken();
+
+        account.RefreshToken = refreshToken;
+        account.ExpiresAt = (int)DateTimeOffset.UtcNow.AddDays(7).ToUnixTimeSeconds();
+        await _context.SaveChangesAsync();
+
+        return ApiResponse<AuthResponseDto>.Ok(new AuthResponseDto
+        {
+            Token = token,
+            RefreshToken = refreshToken,
+            UserId = user.Id,
+            Name = user.Name ?? "Member",
+            Role = user.Role.ToString()
+        }, "Social Login Berhasil!");
     }
 
     private string GenerateRefreshToken()

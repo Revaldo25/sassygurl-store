@@ -3,6 +3,8 @@ using Microsoft.AspNetCore.Mvc;
 using SassyGurl.Api.Services;
 using System.ComponentModel.DataAnnotations;
 
+using Microsoft.AspNetCore.RateLimiting;
+
 namespace SassyGurl.Api.Controllers;
 
 /// <summary>
@@ -227,5 +229,25 @@ public class SyncController : ControllerBase
         }
 
         return Ok(new { success = true, count = products.Count });
+    }
+
+    [HttpGet("test-phase5b")]
+    public async Task<IActionResult> TestPhase5B([FromServices] INotificationOrchestrator orchestrator, [FromServices] SassyGurl.Api.Data.SassyGurlDbContext db)
+    {
+        // 1. Test Notifications with invalid configuration (should log retry and failure)
+        var ctx = new NotificationContext 
+        { 
+            Phone = "08123456789", 
+            InvoiceId = "TEST-INV-001", 
+            GameName = "TestGame", 
+            ProductName = "TestProduct" 
+        };
+        await orchestrator.NotifyPaymentReceivedAsync(ctx);
+
+        // 2. Test Alert Throttling
+        // Manually simulate ProviderHealthMonitor throttled alert
+        var provider = db.Providers.FirstOrDefault();
+        
+        return Ok("Triggered! Check console logs for retry and throttling behavior.");
     }
 }

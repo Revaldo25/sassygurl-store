@@ -20,7 +20,6 @@ namespace SassyGurl.Api.Controllers;
 
 [ApiController]
 [Route("api/webhooks/xendit")]
-[EnableRateLimiting("xendit-webhook")]
 public class XenditWebhookController : ControllerBase
 {
     private readonly IPaymentValidationService _paymentValidation;
@@ -167,7 +166,8 @@ public class XenditWebhookController : ControllerBase
                 sku: transaction.Sku,
                 targetId: transaction.TargetId,
                 zoneId: transaction.ZoneId ?? "",
-                refId: transaction.Id);
+                refId: transaction.Id,
+                productId: transaction.ProductId);
 
             if (providerResult.IsSuccess)
             {

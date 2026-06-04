@@ -7,8 +7,10 @@ import { fetchApi } from "./api-client";
 import { cookies } from "next/headers";
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
-  // No more Prisma Adapter - we rely entirely on ASP.NET Core for database operations
-  session: { strategy: "jwt" }, 
+  session: { 
+    strategy: "jwt",
+    maxAge: 7 * 24 * 60 * 60, // 7 Days (Aligns with C# Jwt:ExpireDays)
+  }, 
   providers: [
     Google({
       clientId: process.env.GOOGLE_CLIENT_ID,
@@ -72,10 +74,25 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         token.apiToken = user.apiToken;
         
         // For Google/Facebook (Social Logins)
-        // In a real app, you would send this to C# API to sync the user
         if (account?.provider === "google" || account?.provider === "facebook") {
-            // Simulated role for social logins
-            token.role = "MEMBER";
+            try {
+              const response = await fetchApi<any>('/auth/social-login', {
+                method: 'POST',
+                body: JSON.stringify({
+                  provider: account.provider,
+                  providerAccountId: account.providerAccountId,
+                  email: user.email,
+                  name: user.name
+                })
+              });
+              
+              if (response.success && response.data) {
+                token.role = response.data.role;
+                token.apiToken = response.data.token;
+              }
+            } catch (err) {
+              console.error("Social sync error:", err);
+            }
         }
       }
       return token;

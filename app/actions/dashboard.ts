@@ -144,6 +144,8 @@ export async function getAdminTransactions(
     const params = new URLSearchParams();
     if (filter && filter !== "ALL") params.append("filter", filter);
     if (search) params.append("search", search);
+    params.append("page", page.toString());
+    params.append("limit", perPage.toString());
 
     const response = await fetchApi<ApiResponse<PaginatedResponse<AdminTransaction>>>(`/Dashboard/admin/transactions?${params.toString()}`);
     if (response.success && response.data) {

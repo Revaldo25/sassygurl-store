@@ -1,4 +1,4 @@
-import { Zap, ShieldCheck, Clock, Crown, Users, Diamond } from "lucide-react";
+import { Zap, ShieldCheck, Clock, Package } from "lucide-react";
 import Image from "next/image";
 
 type Props = {
@@ -33,9 +33,8 @@ export default function GameHero({
           alt={`${name} banner`}
           fill
           sizes="100vw"
-          className="object-cover scale-105 blur-[2px] opacity-40"
+          className="object-cover blur-[1px] opacity-40"
           priority
-          loading="eager"
         />
         <div className="absolute inset-0 bg-gradient-to-b from-zinc-950/20 via-zinc-950/50 to-[#09090b]" />
         <div
@@ -49,7 +48,7 @@ export default function GameHero({
       <div className="relative z-10 mx-auto max-w-7xl px-4 pb-6 pt-6 sm:px-6 lg:px-8">
         <div className="flex flex-col lg:flex-row gap-6 items-end justify-between">
           
-          {/* Left Column — Brand & Stats */}
+          {/* Left Column — Brand & Info */}
           <div className="flex flex-col gap-5">
             <div className="flex flex-wrap items-center gap-2">
               <span
@@ -74,10 +73,12 @@ export default function GameHero({
 
             <div>
               <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black leading-tight tracking-tight text-white flex items-center gap-3">
-                <img
+                <Image
                   src={icon}
                   alt={name}
-                  className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl object-cover border border-white/10 shadow-lg"
+                  width={56}
+                  height={56}
+                  className="rounded-2xl object-cover border border-white/10 shadow-lg"
                 />
                 {name}
               </h1>
@@ -86,17 +87,16 @@ export default function GameHero({
               </p>
             </div>
 
-            {/* Quick stats badges */}
+            {/* Trust indicators — real data only */}
             <div className="flex flex-wrap gap-2 max-w-2xl">
               {[
-                { icon: Diamond, label: "Item Terjual", value: "99K+" },
-                { icon: Users, label: "Aktif Online", value: "8,400+" },
-                { icon: Crown, label: "Rating Toko", value: "4.9 ★" },
-                { icon: Zap, label: "Rata Waktu", value: "≤ 1 menit" },
+                { icon: Package, label: "Produk Tersedia", value: `${productCount} Item` },
+                { icon: Zap, label: "Proses Otomatis", value: "Instan" },
+                { icon: ShieldCheck, label: "Pembayaran", value: "Aman & Legal" },
               ].map((stat, i) => (
                 <div
                   key={i}
-                  className="flex items-center gap-2.5 rounded-xl border border-white/5 bg-zinc-900/30 px-3 py-2 backdrop-blur-xl transition duration-300 hover:border-white/10"
+                  className="flex items-center gap-2.5 rounded-xl border border-white/5 bg-zinc-900/30 px-3 py-2 backdrop-blur-sm transition duration-300 hover:border-white/10"
                 >
                   <stat.icon className="h-3.5 w-3.5 shrink-0" style={{ color: accent }} />
                   <div>
@@ -120,7 +120,7 @@ export default function GameHero({
           ].map((b, i) => (
             <div
               key={i}
-              className="flex items-center gap-4 rounded-3xl border border-white/5 bg-zinc-900/50 p-4.5 backdrop-blur-xl shadow-xl hover:border-white/10 transition duration-300"
+              className="flex items-center gap-4 rounded-3xl border border-white/5 bg-zinc-900/50 p-4 backdrop-blur-sm shadow-xl hover:border-white/10 transition duration-300"
             >
               <div
                 className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"

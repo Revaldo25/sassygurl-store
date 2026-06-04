@@ -42,59 +42,72 @@ public class NotificationOrchestrator : INotificationOrchestrator
         _logger = logger;
     }
 
-    public async Task NotifyPaymentReceivedAsync(NotificationContext ctx)
+    private void FireAndForget(Func<Task> action, string notificationName, string contextId)
     {
-        // WhatsApp → Customer
-        _ = _whatsApp.SendPaymentReceivedAsync(ctx.Phone, ctx.InvoiceId, ctx.GameName, ctx.ProductName);
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                for (int i = 0; i < 2; i++)
+                {
+                    try
+                    {
+                        await action();
+                        return;
+                    }
+                    catch (Exception) when (i == 0)
+                    {
+                        // Minimal retry
+                        await Task.Delay(1000);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                // No silent swallowed failures. Must log.
+                _logger.LogError(ex, "Notification {NotificationName} failed for {ContextId} after retries.", notificationName, contextId);
+            }
+        });
+    }
 
-        // Telegram → Admin
-        _ = _telegram.SendAdminReportAsync(
-            ctx.GameName, ctx.ProductName, ctx.Margin, 
-            "💳 Payment Received — Triggering Provider", ctx.InvoiceId);
+    public Task NotifyPaymentReceivedAsync(NotificationContext ctx)
+    {
+        FireAndForget(() => _whatsApp.SendPaymentReceivedAsync(ctx.Phone, ctx.InvoiceId, ctx.GameName, ctx.ProductName), "WhatsApp.PaymentReceived", ctx.InvoiceId);
+        FireAndForget(() => _telegram.SendAdminReportAsync(ctx.GameName, ctx.ProductName, ctx.Margin, "💳 Payment Received — Triggering Provider", ctx.InvoiceId), "Telegram.AdminReport", ctx.InvoiceId);
 
         _logger.LogInformation("Payment notification dispatched for {Invoice}", ctx.InvoiceId);
-        await Task.CompletedTask;
+        return Task.CompletedTask;
     }
 
-    public async Task NotifyOrderSuccessAsync(NotificationContext ctx)
+    public Task NotifyOrderSuccessAsync(NotificationContext ctx)
     {
-        // WhatsApp → Customer (with digital receipt showing voucher savings)
-        _ = _whatsApp.SendOrderSuccessAsync(ctx.Phone, ctx.InvoiceId, ctx.GameName, ctx.ProductName, ctx.Sn, ctx.Savings);
-
-        // Telegram → Admin
-        _ = _telegram.SendAdminReportAsync(
-            ctx.GameName, ctx.ProductName, ctx.Margin,
-            $"✅ Success | SN: {ctx.Sn ?? "N/A"}", ctx.InvoiceId);
+        FireAndForget(() => _whatsApp.SendOrderSuccessAsync(ctx.Phone, ctx.InvoiceId, ctx.GameName, ctx.ProductName, ctx.Sn, ctx.Savings), "WhatsApp.OrderSuccess", ctx.InvoiceId);
+        FireAndForget(() => _telegram.SendAdminReportAsync(ctx.GameName, ctx.ProductName, ctx.Margin, $"✅ Success | SN: {ctx.Sn ?? "N/A"}", ctx.InvoiceId), "Telegram.AdminReport", ctx.InvoiceId);
 
         _logger.LogInformation("Success notification dispatched for {Invoice}", ctx.InvoiceId);
-        await Task.CompletedTask;
+        return Task.CompletedTask;
     }
 
-    public async Task NotifyOrderFailedAsync(NotificationContext ctx)
+    public Task NotifyOrderFailedAsync(NotificationContext ctx)
     {
-        // WhatsApp → Customer
-        _ = _whatsApp.SendOrderFailedAsync(ctx.Phone, ctx.InvoiceId, ctx.ProviderStatus);
-
-        // Telegram → Admin  
-        _ = _telegram.SendAdminReportAsync(
-            ctx.GameName, ctx.ProductName, ctx.Margin,
-            $"❌ FAILED: {ctx.ProviderStatus}", ctx.InvoiceId);
+        FireAndForget(() => _whatsApp.SendOrderFailedAsync(ctx.Phone, ctx.InvoiceId, ctx.ProviderStatus), "WhatsApp.OrderFailed", ctx.InvoiceId);
+        FireAndForget(() => _telegram.SendAdminReportAsync(ctx.GameName, ctx.ProductName, ctx.Margin, $"❌ FAILED: {ctx.ProviderStatus}", ctx.InvoiceId), "Telegram.AdminReport", ctx.InvoiceId);
 
         _logger.LogWarning("Failure notification dispatched for {Invoice}", ctx.InvoiceId);
-        await Task.CompletedTask;
+        return Task.CompletedTask;
     }
 
-    public async Task NotifyLowBalanceAsync(string providerName, decimal balance, decimal threshold)
+    public Task NotifyLowBalanceAsync(string providerName, decimal balance, decimal threshold)
     {
-        _ = _telegram.SendLowBalanceAlertAsync(providerName, balance, threshold);
+        FireAndForget(() => _telegram.SendLowBalanceAlertAsync(providerName, balance, threshold), "Telegram.LowBalance", providerName);
         _logger.LogWarning("Low balance notification dispatched for {Provider}", providerName);
-        await Task.CompletedTask;
+        return Task.CompletedTask;
     }
 
-    public async Task NotifySystemErrorAsync(string context, string errorMessage)
+    public Task NotifySystemErrorAsync(string context, string errorMessage)
     {
-        _ = _telegram.SendSystemErrorAlertAsync(context, errorMessage);
+        FireAndForget(() => _telegram.SendSystemErrorAlertAsync(context, errorMessage), "Telegram.SystemError", context);
         _logger.LogWarning("System error notification dispatched for {Context}", context);
-        await Task.CompletedTask;
+        return Task.CompletedTask;
     }
 }

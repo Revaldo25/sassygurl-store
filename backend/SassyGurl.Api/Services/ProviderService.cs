@@ -2,13 +2,17 @@ using System.Net.Http.Json;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
+using SassyGurl.Api.Data;
+using SassyGurl.Api.Models;
+using SassyGurl.Api.Services.Providers;
 
 namespace SassyGurl.Api.Services;
 
 public interface IProviderService
 {
-    Task<ProviderOrderResponse> PlaceOrderAsync(string sku, string targetId, string zoneId, string refId);
+    Task<ProviderOrderResponse> PlaceOrderAsync(string sku, string targetId, string zoneId, string refId, string? productId = null);
     Task<ProviderBalanceResponse> GetDigiflazzBalanceAsync();
 }
 
@@ -18,22 +22,27 @@ public class ProviderService : IProviderService
     private readonly IConfiguration _configuration;
     private readonly ILogger<ProviderService> _logger;
     private readonly IMemoryCache _cache;
+    private readonly IServiceProvider _serviceProvider;
 
     public ProviderService(
         IHttpClientFactory httpClientFactory,
         IConfiguration configuration,
         ILogger<ProviderService> logger,
-        IMemoryCache cache)
+        IMemoryCache cache,
+        IServiceProvider serviceProvider)
     {
         _httpClientFactory = httpClientFactory;
         _configuration = configuration;
         _logger = logger;
         _cache = cache;
+        _serviceProvider = serviceProvider;
     }
 
-    public async Task<ProviderOrderResponse> PlaceOrderAsync(string sku, string targetId, string zoneId, string refId)
+    public async Task<ProviderOrderResponse> PlaceOrderAsync(string sku, string targetId, string zoneId, string refId, string? productId = null)
     {
         _logger.LogInformation("Processing order {RefId} for SKU {Sku}", refId, sku);
+
+        var enableSmartFailover = _configuration.GetValue<bool>("Features:EnableSmartFailover", false);
 
         // ── Phase 3: Balance check before transaction ──────────────────
         var balanceCheck = await GetDigiflazzBalanceAsync();
@@ -47,7 +56,76 @@ public class ProviderService : IProviderService
             }
         }
 
-        // Attempt 1: Digiflazz (Primary Provider)
+        if (!enableSmartFailover || string.IsNullOrEmpty(productId))
+        {
+            _logger.LogInformation("Smart Failover disabled or productId missing. Using legacy path for {RefId}", refId);
+            return await ExecuteLegacyPath(sku, targetId, zoneId, refId);
+        }
+
+        // SMART FAILOVER PATH
+        using var scope = _serviceProvider.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<SassyGurlDbContext>();
+        var product = await db.Products.FirstOrDefaultAsync(p => p.Id == productId);
+        
+        string digiflazzSku = sku;
+        string vipSku = sku;
+        
+        if (product != null && !string.IsNullOrWhiteSpace(product.Metadata))
+        {
+            try
+            {
+                var metadata = System.Text.Json.JsonSerializer.Deserialize<ProductMetadata>(product.Metadata);
+                if (metadata != null && metadata.ProviderMappings != null)
+                {
+                    if (metadata.ProviderMappings.TryGetValue("Digiflazz", out var digiMap))
+                    {
+                        digiflazzSku = digiMap.Sku;
+                    }
+                    if (metadata.ProviderMappings.TryGetValue("VIP Reseller", out var vipMap))
+                    {
+                        vipSku = vipMap.Sku;
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to parse product metadata for failover mapping on product {ProductId}", productId);
+            }
+        }
+
+        var digiflazzAdapter = scope.ServiceProvider.GetRequiredService<DigiflazzAdapter>();
+        var vipAdapter = scope.ServiceProvider.GetRequiredService<VipResellerAdapter>();
+
+        // Attempt 1: Digiflazz
+        _logger.LogInformation("Attempting Digiflazz with mapped SKU: {Sku}", digiflazzSku);
+        var digiflazzResult = await digiflazzAdapter.PlaceOrderAsync(digiflazzSku, targetId, zoneId, refId);
+        if (digiflazzResult.IsSuccess)
+        {
+            return MapToResponse(digiflazzResult);
+        }
+
+        _logger.LogWarning("Digiflazz failed for {RefId}: {Error}. Attempting fallback to VIP Reseller with mapped SKU: {Sku}", refId, digiflazzResult.Message, vipSku);
+
+        // Attempt 2: VIP Reseller
+        var vipResult = await vipAdapter.PlaceOrderAsync(vipSku, targetId, zoneId, refId);
+        return MapToResponse(vipResult);
+    }
+
+    private ProviderOrderResponse MapToResponse(ProviderOrderResult result)
+    {
+        return new ProviderOrderResponse
+        {
+            IsSuccess = result.IsSuccess,
+            ProviderName = result.ProviderName,
+            ProviderRef = result.ProviderRef,
+            Sn = result.Sn,
+            Message = result.Message
+        };
+    }
+
+    private async Task<ProviderOrderResponse> ExecuteLegacyPath(string sku, string targetId, string zoneId, string refId)
+    {
+        // Legacy Attempt 1: Digiflazz (Primary Provider)
         var digiflazzResult = await OrderViaDigiflazzAsync(sku, targetId, zoneId, refId);
         
         if (digiflazzResult.IsSuccess)
@@ -55,9 +133,9 @@ public class ProviderService : IProviderService
             return digiflazzResult;
         }
 
-        _logger.LogWarning("Digiflazz failed for {RefId}: {Error}. Attempting fallback to VIP Reseller...", refId, digiflazzResult.Message);
+        _logger.LogWarning("Digiflazz legacy failed for {RefId}: {Error}. Attempting fallback to VIP Reseller...", refId, digiflazzResult.Message);
 
-        // Auto Fallback Logic: Attempt 2: VIP Reseller
+        // Legacy Fallback Logic: Attempt 2: VIP Reseller (using same SKU!)
         var vipResult = await OrderViaVipResellerAsync(sku, targetId, zoneId, refId);
         
         return vipResult;

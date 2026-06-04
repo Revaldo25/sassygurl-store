@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import { getAllGamesNormalized } from "@/lib/api-adapter";
 import { Compass } from "lucide-react";
 
@@ -44,9 +45,11 @@ export default async function RelatedGamesGrid({ currentSlug }: Props) {
             className="group flex items-center gap-4 rounded-2xl border border-white/5 bg-zinc-950/40 p-4 transition-all duration-300 hover:border-sakura/20 hover:bg-sakura/[0.02] hover:translate-x-1"
           >
             <div className="h-12 w-12 shrink-0 overflow-hidden rounded-xl border border-white/10 transition-transform duration-500 group-hover:scale-105">
-              <img
+              <Image
                 src={game.icon}
                 alt={game.name}
+                width={48}
+                height={48}
                 className="h-full w-full object-cover"
               />
             </div>

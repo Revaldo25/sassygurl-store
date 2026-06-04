@@ -37,32 +37,39 @@ import {
   deleteGame,
 } from "@/app/actions/dashboard";
 import { ProviderStatus } from "@/lib/api-adapter";
+import OpsStatusView from "./components/OpsStatusView";
 
 type Props = {
   initialStats: OwnerStats | AdminStats;
   initialTransactions: AdminTransaction[];
+  initialTotal?: number;
   providerStatuses: ProviderStatus[];
   initialGames: any[];
   role: string;
 };
 
-export default function AdminDashboardClient({ initialStats, initialTransactions, providerStatuses, initialGames, role }: Props) {
+export default function AdminDashboardClient({ initialStats, initialTransactions, initialTotal = 0, providerStatuses, initialGames, role }: Props) {
   const isOwner = role?.toUpperCase() === "SUPERADMIN" || role?.toUpperCase() === "OWNER";
   const ownerStats = initialStats as OwnerStats;
   const adminStats = initialStats as AdminStats;
 
   const [stats] = useState(initialStats);
   const [transactions, setTransactions] = useState(initialTransactions);
+  const [providerStatusesList, setProviderStatusesList] = useState(providerStatuses);
   const [games, setGames] = useState(initialGames);
+  const [page, setPage] = useState(1);
+  const [perPage] = useState(15);
+  const [totalTransactions, setTotalTransactions] = useState(initialTotal);
+  
   const searchParams = useSearchParams();
   const tabParam = searchParams.get("tab") as any;
   
-  const [activeTab, setActiveTab] = useState<"overview" | "transactions" | "games" | "payments" | "providers">(
-    ["overview", "transactions", "games", "payments", "providers"].includes(tabParam) ? tabParam : "overview"
+  const [activeTab, setActiveTab] = useState<"overview" | "transactions" | "games" | "payments" | "providers" | "ops">(
+    ["overview", "transactions", "games", "payments", "providers", "ops"].includes(tabParam) ? tabParam : "overview"
   );
 
   useEffect(() => {
-    if (tabParam && ["overview", "transactions", "games", "payments", "providers"].includes(tabParam)) {
+    if (tabParam && ["overview", "transactions", "games", "payments", "providers", "ops"].includes(tabParam)) {
       setActiveTab(tabParam);
     }
   }, [tabParam]);
@@ -163,6 +170,37 @@ export default function AdminDashboardClient({ initialStats, initialTransactions
       });
     });
 
+    connection.on("ProviderStatusChanged", (data: any) => {
+      setProviderStatusesList((prev) => {
+        const idx = prev.findIndex((p) => p.name === data.providerName);
+        if (idx !== -1) {
+          const updated = [...prev];
+          const oldStatus = updated[idx].isActive;
+          updated[idx] = { 
+            ...updated[idx], 
+            isActive: data.isActive, 
+            avgLatency: data.latency, 
+            successRate: data.successRate 
+          };
+          
+          if (oldStatus !== data.isActive) {
+            if (data.isActive) toast.success(`Provider ${data.providerName} is back ONLINE!`);
+            else toast.error(`Provider ${data.providerName} is OFFLINE!`);
+          }
+          return updated;
+        }
+        // If not found in initial array, append it (unlikely but safe)
+        return [...prev, {
+            name: data.providerName,
+            isActive: data.isActive,
+            balance: 0,
+            avgLatency: data.latency,
+            successRate: data.successRate,
+            lastChecked: data.checkedAt
+        }];
+      });
+    });
+
     return () => {
       connection.stop();
     };
@@ -170,17 +208,31 @@ export default function AdminDashboardClient({ initialStats, initialTransactions
 
   function handleFilterChange(newFilter: string) {
     setFilter(newFilter);
+    setPage(1);
     startTransition(async () => {
-      const { transactions: result } = await getAdminTransactions(newFilter, search);
+      const { transactions: result, total } = await getAdminTransactions(newFilter, search, 1, perPage);
       setTransactions(result);
+      setTotalTransactions(total);
     });
   }
 
   function handleSearch(value: string) {
     setSearch(value);
+    setPage(1);
     startTransition(async () => {
-      const { transactions: result } = await getAdminTransactions(filter, value);
+      const { transactions: result, total } = await getAdminTransactions(filter, value, 1, perPage);
       setTransactions(result);
+      setTotalTransactions(total);
+    });
+  }
+  
+  function handlePageChange(newPage: number) {
+    if (newPage < 1 || newPage > Math.ceil(totalTransactions / perPage)) return;
+    setPage(newPage);
+    startTransition(async () => {
+      const { transactions: result, total } = await getAdminTransactions(filter, search, newPage, perPage);
+      setTransactions(result);
+      setTotalTransactions(total);
     });
   }
 
@@ -259,6 +311,7 @@ export default function AdminDashboardClient({ initialStats, initialTransactions
             ...(isOwner ? [
               { id: "games", label: "Kelola Game", icon: Gamepad2 },
               { id: "providers", label: "Provider Status", icon: Megaphone },
+              { id: "ops", label: "Ops Status", icon: Zap },
             ] : []),
           ].map((tab) => (
             <button
@@ -285,7 +338,7 @@ export default function AdminDashboardClient({ initialStats, initialTransactions
                     <Activity className="h-5 w-5 text-sakura" /> System Health & Provider Balance
                   </h3>
                   <div className="grid gap-4 sm:grid-cols-2">
-                    {providerStatuses.map((ps: any) => (
+                    {providerStatusesList.map((ps: any) => (
                       <div key={ps.name} className="group flex items-center justify-between rounded-2xl border border-white/5 bg-white/[0.02] p-5 transition-all hover:bg-white/[0.05]">
                         <div className="flex items-center gap-4">
                           <div className={`h-3 w-3 rounded-full ${ps.isActive ? "bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.5)]" : "bg-red-500 animate-pulse"}`} />
@@ -311,10 +364,14 @@ export default function AdminDashboardClient({ initialStats, initialTransactions
                       <span>Sync Catalog</span>
                       <RefreshCw className={`h-4 w-4 ${isSyncing ? "animate-spin" : ""}`} />
                     </button>
-                    <button className="flex w-full items-center justify-between rounded-xl bg-white/5 p-4 text-xs font-bold text-white transition-all hover:bg-white/10">
-                      <span>Clear Cache</span>
-                      <Zap className="h-4 w-4 text-amber-400" />
-                    </button>
+                    <a href="/admin/catalog-health" className="flex w-full items-center justify-between rounded-xl bg-white/5 p-4 text-xs font-bold text-white transition-all hover:bg-white/10">
+                      <span>Catalog Health</span>
+                      <Activity className="h-4 w-4 text-emerald-400" />
+                    </a>
+                    <a href="/admin/review" className="flex w-full items-center justify-between rounded-xl bg-white/5 p-4 text-xs font-bold text-white transition-all hover:bg-white/10">
+                      <span>Review Queue</span>
+                      <ShieldCheck className="h-4 w-4 text-amber-400" />
+                    </a>
                   </div>
                 </div>
               </motion.div>
@@ -518,6 +575,31 @@ export default function AdminDashboardClient({ initialStats, initialTransactions
                   <div className="py-16 text-center">
                     <Search className="mx-auto h-8 w-8 text-zinc-700" />
                     <p className="mt-4 text-xs font-black uppercase tracking-widest text-zinc-600">Tidak ada data</p>
+                  </div>
+                )}
+                
+                {transactions.length > 0 && (
+                  <div className="flex items-center justify-between border-t border-white/5 bg-zinc-900/50 p-4 backdrop-blur-md">
+                    <span className="text-xs font-bold text-zinc-500">
+                      Menampilkan {(page - 1) * perPage + 1} - {Math.min(page * perPage, totalTransactions)} dari {totalTransactions} transaksi
+                    </span>
+                    <div className="flex items-center gap-2">
+                      <button 
+                        disabled={page === 1}
+                        onClick={() => handlePageChange(page - 1)}
+                        className="rounded-lg bg-white/5 px-4 py-2 text-xs font-bold text-white transition hover:bg-white/10 disabled:opacity-30"
+                      >
+                        Prev
+                      </button>
+                      <span className="text-xs font-bold text-white px-2">Page {page}</span>
+                      <button 
+                        disabled={page >= Math.ceil(totalTransactions / perPage)}
+                        onClick={() => handlePageChange(page + 1)}
+                        className="rounded-lg bg-white/5 px-4 py-2 text-xs font-bold text-white transition hover:bg-white/10 disabled:opacity-30"
+                      >
+                        Next
+                      </button>
+                    </div>
                   </div>
                 )}
               </div>
@@ -824,11 +906,15 @@ export default function AdminDashboardClient({ initialStats, initialTransactions
                     <div className="grid grid-cols-2 gap-4">
                       <div className="rounded-2xl border border-white/5 bg-zinc-950/50 p-4">
                         <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">Success Rate</p>
-                        <p className="mt-2 text-2xl font-black text-emerald-400">{provider.successRate}%</p>
+                        <p className="mt-2 text-2xl font-black text-emerald-400">
+                          {provider.successRate < 0 ? "N/A" : `${provider.successRate}%`}
+                        </p>
                       </div>
                       <div className="rounded-2xl border border-white/5 bg-zinc-950/50 p-4">
                         <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">Avg Latency</p>
-                        <p className="mt-2 text-2xl font-black text-white">{provider.avgLatency}</p>
+                        <p className="mt-2 text-2xl font-black text-white">
+                          {provider.avgLatency < 0 ? "N/A" : `${provider.avgLatency}ms`}
+                        </p>
                       </div>
                     </div>
                     <p className="mt-4 text-[10px] text-zinc-600">
@@ -837,6 +923,19 @@ export default function AdminDashboardClient({ initialStats, initialTransactions
                   </div>
                 ))}
               </div>
+            </motion.div>
+          )}
+
+          {/* ═══════════════ TAB: OPS ═══════════════ */}
+          {activeTab === "ops" && (
+            <motion.div
+              key="ops"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              className="space-y-6"
+            >
+              <OpsStatusView />
             </motion.div>
           )}
         </AnimatePresence>

@@ -107,6 +107,7 @@ export default function PaymentAccordion({
               {/* Group header */}
               <button
                 onClick={() => toggleGroup(group.groupKey)}
+                aria-expanded={isOpen}
                 className="flex w-full items-center justify-between gap-4 px-5 py-4 text-left transition-colors hover:bg-white/[0.03] md:px-7"
               >
                 <div className="flex items-center gap-3">
@@ -229,7 +230,7 @@ export default function PaymentAccordion({
       </div>
 
       {/* ── Promo Code ────────────────────────────────────────────── */}
-      <div className="border-t border-white/8 px-5 py-5 md:px-7">
+      <div className="border-t border-white/[0.08] px-5 py-5 md:px-7">
         <p className="mb-3 flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.28em] text-white/35">
           <Tag className="h-3 w-3 text-sakura/60" />
           Kode Promo

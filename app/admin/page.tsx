@@ -21,7 +21,7 @@ export default async function AdminPage() {
     redirect("/");
   }
 
-  const [stats, { transactions }, providerStatuses, games] = await Promise.all([
+  const [stats, { transactions, total }, providerStatuses, games] = await Promise.all([
     role === "SUPERADMIN" ? getOwnerStats() : getAdminStats(),
     getAdminTransactions("ALL", "", 1, 15),
     getProviderStatuses(),
@@ -34,6 +34,7 @@ export default async function AdminPage() {
       <AdminDashboardClient 
         initialStats={stats} 
         initialTransactions={transactions} 
+        initialTotal={total}
         providerStatuses={providerStatuses} 
         initialGames={games}
         role={role} 

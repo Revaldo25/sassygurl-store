@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
+import Script from "next/script";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   CheckCircle2, AlertCircle, Search,
@@ -170,19 +171,13 @@ export default function CheckoutClient({ game, groupedByCategory, paymentGroups 
   const StepHeader = ({ num, title, done }: { num: number; title: string; done?: boolean }) => (
     <div className="flex items-center gap-4 mb-8">
       <div 
-        className={`relative w-10 h-10 rounded-2xl flex items-center justify-center text-sm font-black transition-all duration-500`}
+        className="relative w-10 h-10 rounded-2xl flex items-center justify-center text-sm font-black transition-all duration-500"
         style={done 
           ? { backgroundColor: "#10b981", color: "#ffffff", boxShadow: "0 0 20px rgba(16,185,129,0.4)" } 
-          : { backgroundColor: `${accent}15`, color: accent, border: `1px solid ${accent}25` }
+          : { backgroundColor: `${accent}15`, color: accent, border: `1px solid ${accent}25`, boxShadow: `0 0 0 3px ${accent}10` }
         }
       >
         {done ? <CheckCircle2 className="w-5 h-5" /> : num}
-        {!done && (
-          <div 
-            className="absolute inset-0 rounded-2xl animate-ping opacity-25"
-            style={{ backgroundColor: accent }}
-          />
-        )}
       </div>
       <div>
         <h2 className="text-lg font-black text-white tracking-tight leading-none mb-1">{title}</h2>
@@ -289,7 +284,7 @@ export default function CheckoutClient({ game, groupedByCategory, paymentGroups 
                 filteredGroups.map((group, idx) => {
                   const isCurrency = group.category.slug.toUpperCase() === "CURRENCY";
                   return (
-                  <div key={idx} className="mb-8 last:mb-0 animate-[fadeInUp_0.3s_ease-out]">
+                  <div key={idx} className="mb-8 last:mb-0">
                     <h3 className={`flex items-center gap-2 font-black uppercase tracking-widest mb-4 ${isCurrency ? "text-sm text-white/80" : "text-xs text-zinc-500"}`}>
                       {group.category.icon && <span className={isCurrency ? "text-lg" : "text-sm"}>{group.category.icon}</span>}
                       {group.category.label}
@@ -304,25 +299,29 @@ export default function CheckoutClient({ game, groupedByCategory, paymentGroups 
                         return (
                           <button
                             key={product.id}
+                            role="radio"
+                            aria-checked={active}
                             onClick={() => {
                               setSelectedProduct(product);
                               if (typeof navigator !== "undefined" && navigator.vibrate) {
                                 navigator.vibrate(15);
                               }
                             }}
-                            className={`group relative flex items-center gap-3 p-3 rounded-[1.2rem] border text-left transition-all duration-300 overflow-hidden ${
+                            className={`group relative flex items-center gap-3 p-3 rounded-[1.2rem] border text-left transition-all duration-200 overflow-hidden ${
                               active
-                                ? "bg-white/[0.04] scale-[1.02]"
-                                : "border-white/5 bg-white/[0.015] hover:border-white/20 hover:bg-white/[0.04] hover:translate-y-[-2px]"
+                                ? "bg-white/[0.06] scale-[1.02] ring-2 ring-white/10"
+                                : selectedProduct && !active
+                                  ? "border-white/5 bg-white/[0.01] opacity-55 hover:opacity-90 hover:border-white/15"
+                                  : "border-white/5 bg-white/[0.015] hover:border-white/20 hover:bg-white/[0.04] hover:translate-y-[-1px]"
                             }`}
-                            style={active ? { borderColor: accent, boxShadow: `0 8px 25px -10px ${accent}20` } : {}}
+                            style={active ? { borderColor: accent, boxShadow: `0 4px 20px -8px ${accent}30` } : {}}
                           >
                             {/* Product Icon */}
                             <div className={`shrink-0 rounded-xl bg-zinc-950/50 border border-white/5 flex items-center justify-center transition-transform duration-300 group-hover:scale-105 ${isCurrency ? "w-14 h-14 p-2" : "w-10 h-10 p-1.5"}`}>
                                <img 
                                  src={imageSrc} 
                                  alt={product.name} 
-                                 className="w-full h-full object-contain filter drop-shadow-[0_0_8px_rgba(255,255,255,0.1)]"
+                                 className="w-full h-full object-contain"
                                  onError={(e) => {
                                    const target = e.target as HTMLImageElement;
                                    target.onerror = null; // Prevent infinite loop
@@ -425,7 +424,7 @@ export default function CheckoutClient({ game, groupedByCategory, paymentGroups 
               initial={{ opacity: 0, height: 0, marginTop: 0 }}
               animate={{ opacity: 1, height: "auto", marginTop: 12 }}
               exit={{ opacity: 0, height: 0, marginTop: 0 }}
-              className="rounded-[2rem] border border-white/5 bg-white/[0.02] backdrop-blur-sm p-4 md:p-6 overflow-hidden mb-28 lg:mb-0"
+              className="rounded-[2rem] border border-white/5 bg-white/[0.02] backdrop-blur-sm p-4 md:p-6 overflow-hidden mb-32 lg:mb-0"
             >
               <StepHeader num={4} title="Informasi Kontak" />
 
@@ -484,9 +483,9 @@ export default function CheckoutClient({ game, groupedByCategory, paymentGroups 
             initial={{ y: 100 }}
             animate={{ y: 0 }}
             exit={{ y: 100 }}
-            className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[50] w-[95%] max-w-4xl"
+            className="fixed bottom-4 left-1/2 -translate-x-1/2 z-[50] w-[95%] max-w-4xl pb-safe"
           >
-            <div className="bg-zinc-900/80 backdrop-blur-3xl border border-white/10 rounded-[2.5rem] p-3 pl-8 shadow-[0_25px_50px_-12px_rgba(0,0,0,0.5)] flex items-center justify-between gap-4">
+            <div className="bg-zinc-900/90 backdrop-blur-xl border border-white/10 rounded-[2rem] p-3 pl-6 shadow-[0_20px_40px_-12px_rgba(0,0,0,0.6)] flex items-center justify-between gap-4">
               <div className="hidden sm:flex items-center gap-4 min-w-0">
                 <div 
                   className="w-12 h-12 rounded-2xl flex items-center justify-center border shrink-0 bg-white/5"
@@ -528,84 +527,179 @@ export default function CheckoutClient({ game, groupedByCategory, paymentGroups 
           ══════════════════════════════════════════════════════════════════════ */}
       <AnimatePresence>
         {showConfirmModal && selectedProduct && selectedPayment && (
-          <div className="fixed inset-0 z-[60] flex items-center justify-center px-4">
-            <motion.div
-              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-              className="absolute inset-0 bg-black/80 backdrop-blur-sm"
-              onClick={() => setShowConfirmModal(false)}
-            />
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95, y: 16 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: 16 }}
-              className="relative w-full max-w-md bg-zinc-900 border border-white/10 rounded-3xl p-6 shadow-2xl overflow-hidden"
-            >
-              {/* Neon border highlight */}
-              <div className="absolute top-0 left-0 right-0 h-1" style={{ backgroundColor: accent }} />
-
-              <h3 className="text-lg font-black text-center text-white mb-5">Rincian & Konfirmasi</h3>
-
-              <div className="space-y-3 mb-6 text-xs">
-                {[
-                  ["Game", game.name],
-                  ["Target ID / Server", `${userId}${zoneId ? ` (${zoneId})` : ""}`],
-                  ...(validatedName ? [["Nickname Akun", validatedName]] : []),
-                  ["Nama Item", selectedProduct.name],
-                  ["Metode Pembayaran", selectedPayment.name],
-                  ["WhatsApp Notifikasi", whatsapp],
-                ].map(([label, val], i) => (
-                  <div key={i} className="flex justify-between py-2 border-b border-white/5 last:border-0 items-center">
-                    <span className="text-white/40 font-semibold">{label}</span>
-                    <span className={`font-black ${label === "Nickname Akun" ? "text-emerald-400" : "text-white"}`}>{val}</span>
-                  </div>
-                ))}
-
-                <div className="pt-4 border-t border-white/10 space-y-2">
-                  <div className="flex justify-between text-white/40">
-                    <span>Harga Item</span>
-                    <span className="font-semibold">{formatIDR(selectedProduct.displayPrice)}</span>
-                  </div>
-                  <div className="flex justify-between text-white/40">
-                    <span>Biaya Admin Gateway</span>
-                    <span className="font-semibold">{formatIDR(paymentFee)}</span>
-                  </div>
-                </div>
-
-                <div className="flex justify-between items-center pt-4 border-t border-white/10">
-                  <span className="text-white font-bold">Total Pembayaran</span>
-                  <span className="text-lg font-black" style={{ color: accent }}>{formatIDR(finalPrice!)}</span>
-                </div>
-              </div>
-
-              {/* Warning label */}
-              <div className="rounded-xl bg-orange-500/10 border border-orange-500/20 p-3 mb-6 flex items-start gap-2">
-                <AlertCircle className="w-4 h-4 text-orange-400 shrink-0 mt-0.5" />
-                <p className="text-[10px] text-orange-300 font-semibold leading-relaxed">
-                  Harap periksa kembali target ID dan server Anda. Kesalahan pengisian di luar tanggung jawab SassyGurl Store.
-                </p>
-              </div>
-
-              <div className="flex gap-3">
-                <button
-                  onClick={() => setShowConfirmModal(false)}
-                  disabled={isCheckingOut}
-                  className="flex-1 py-3.5 bg-white/5 hover:bg-white/10 border border-white/10 text-white rounded-xl font-black text-xs tracking-wider uppercase transition-colors"
-                >
-                  Batal
-                </button>
-                <button
-                  onClick={handleCheckout}
-                  disabled={isCheckingOut}
-                  className="flex-1 py-3.5 text-zinc-950 rounded-xl font-black text-xs tracking-wider uppercase transition-all flex items-center justify-center gap-2"
-                  style={{ backgroundColor: accent }}
-                >
-                  {isCheckingOut ? <Loader2 className="w-4 h-4 animate-spin" /> : "Bayar Sekarang"}
-                </button>
-              </div>
-            </motion.div>
-          </div>
+          <ConfirmModal
+            onClose={() => setShowConfirmModal(false)}
+            onConfirm={handleCheckout}
+            isLoading={isCheckingOut}
+            game={game}
+            userId={userId}
+            zoneId={zoneId}
+            validatedName={validatedName}
+            selectedProduct={selectedProduct}
+            selectedPayment={selectedPayment}
+            whatsapp={whatsapp}
+            paymentFee={paymentFee}
+            finalPrice={finalPrice!}
+            accent={accent}
+          />
         )}
       </AnimatePresence>
+
+      {/* Midtrans Snap — loaded only on checkout pages */}
+      <Script
+        src="https://app.sandbox.midtrans.com/snap/snap.js"
+        data-client-key={process.env.NEXT_PUBLIC_MIDTRANS_CLIENT_KEY}
+        strategy="lazyOnload"
+      />
     </>
+  );
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// ACCESSIBLE CONFIRMATION MODAL
+// ══════════════════════════════════════════════════════════════════════════════
+function ConfirmModal({
+  onClose, onConfirm, isLoading,
+  game, userId, zoneId, validatedName,
+  selectedProduct, selectedPayment,
+  whatsapp, paymentFee, finalPrice, accent,
+}: {
+  onClose: () => void;
+  onConfirm: () => void;
+  isLoading: boolean;
+  game: { name: string };
+  userId: string;
+  zoneId: string;
+  validatedName: string | null;
+  selectedProduct: { name: string; displayPrice: number };
+  selectedPayment: { name: string };
+  whatsapp: string;
+  paymentFee: number;
+  finalPrice: number;
+  accent: string;
+}) {
+  const modalRef = useRef<HTMLDivElement>(null);
+
+  // Focus trap + Escape key handler
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        onClose();
+        return;
+      }
+      if (e.key === 'Tab' && modalRef.current) {
+        const focusable = modalRef.current.querySelectorAll<HTMLElement>(
+          'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+        );
+        if (focusable.length === 0) return;
+        const first = focusable[0];
+        const last = focusable[focusable.length - 1];
+        if (e.shiftKey && document.activeElement === first) {
+          e.preventDefault();
+          last.focus();
+        } else if (!e.shiftKey && document.activeElement === last) {
+          e.preventDefault();
+          first.focus();
+        }
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    // Focus the modal on mount
+    modalRef.current?.focus();
+    // Prevent body scroll
+    document.body.style.overflow = 'hidden';
+
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+      document.body.style.overflow = '';
+    };
+  }, [onClose]);
+
+  return (
+    <div className="fixed inset-0 z-[60] flex items-center justify-center px-4">
+      <motion.div
+        initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+        className="absolute inset-0 bg-black/80"
+        onClick={onClose}
+        aria-hidden="true"
+      />
+      <motion.div
+        ref={modalRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="confirm-title"
+        tabIndex={-1}
+        initial={{ opacity: 0, scale: 0.95, y: 16 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        exit={{ opacity: 0, scale: 0.95, y: 16 }}
+        className="relative w-full max-w-md bg-zinc-900 border border-white/10 rounded-3xl p-6 shadow-2xl overflow-hidden outline-none"
+      >
+        {/* Accent top bar */}
+        <div className="absolute top-0 left-0 right-0 h-1" style={{ backgroundColor: accent }} />
+
+        <h3 id="confirm-title" className="text-lg font-black text-center text-white mb-5">Rincian & Konfirmasi</h3>
+
+        <div className="space-y-3 mb-6 text-xs">
+          {[
+            ["Game", game.name],
+            ["Target ID / Server", `${userId}${zoneId ? ` (${zoneId})` : ""}`],
+            ...(validatedName ? [["Nickname Akun", validatedName]] : []),
+            ["Nama Item", selectedProduct.name],
+            ["Metode Pembayaran", selectedPayment.name],
+            ["WhatsApp Notifikasi", whatsapp],
+          ].map(([label, val], i) => (
+            <div key={i} className="flex justify-between py-2 border-b border-white/5 last:border-0 items-center">
+              <span className="text-white/40 font-semibold">{label}</span>
+              <span className={`font-black ${label === "Nickname Akun" ? "text-emerald-400" : "text-white"}`}>{val}</span>
+            </div>
+          ))}
+
+          <div className="pt-4 border-t border-white/10 space-y-2">
+            <div className="flex justify-between text-white/40">
+              <span>Harga Item</span>
+              <span className="font-semibold">{formatIDR(selectedProduct.displayPrice)}</span>
+            </div>
+            <div className="flex justify-between text-white/40">
+              <span>Biaya Admin Gateway</span>
+              <span className="font-semibold">{formatIDR(paymentFee)}</span>
+            </div>
+          </div>
+
+          <div className="flex justify-between items-center pt-4 border-t border-white/10">
+            <span className="text-white font-bold">Total Pembayaran</span>
+            <span className="text-lg font-black" style={{ color: accent }}>{formatIDR(finalPrice)}</span>
+          </div>
+        </div>
+
+        {/* Warning label */}
+        <div className="rounded-xl bg-orange-500/10 border border-orange-500/20 p-3 mb-6 flex items-start gap-2">
+          <AlertCircle className="w-4 h-4 text-orange-400 shrink-0 mt-0.5" />
+          <p className="text-[10px] text-orange-300 font-semibold leading-relaxed">
+            Harap periksa kembali target ID dan server Anda. Kesalahan pengisian di luar tanggung jawab SassyGurl Store.
+          </p>
+        </div>
+
+        <div className="flex gap-3">
+          <button
+            onClick={onClose}
+            disabled={isLoading}
+            className="flex-1 py-3.5 bg-white/5 hover:bg-white/10 border border-white/10 text-white rounded-xl font-black text-xs tracking-wider uppercase transition-colors"
+            aria-label="Batalkan pembelian"
+          >
+            Batal
+          </button>
+          <button
+            onClick={onConfirm}
+            disabled={isLoading}
+            className="flex-1 py-3.5 text-zinc-950 rounded-xl font-black text-xs tracking-wider uppercase transition-all flex items-center justify-center gap-2"
+            style={{ backgroundColor: accent }}
+            aria-label="Konfirmasi dan bayar sekarang"
+          >
+            {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : "Bayar Sekarang"}
+          </button>
+        </div>
+      </motion.div>
+    </div>
   );
 }

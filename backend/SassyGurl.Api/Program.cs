@@ -161,10 +161,13 @@ try
     builder.Services.AddScoped<IMidtransService, MidtransService>();
     builder.Services.AddScoped<SassyGurl.Api.Filters.XenditWebhookSecurityFilter>();
     builder.Services.AddScoped<IProviderService, ProviderService>();
+    builder.Services.AddScoped<SassyGurl.Api.Services.Providers.DigiflazzAdapter>();
+    builder.Services.AddScoped<SassyGurl.Api.Services.Providers.VipResellerAdapter>();
     builder.Services.AddScoped<IAuditService, AuditService>();
     builder.Services.AddScoped<IWhatsAppService, WhatsAppService>();
     builder.Services.AddScoped<ISettingsService, SettingsService>();
     builder.Services.AddHostedService<ProviderHealthMonitor>();
+    builder.Services.AddHostedService<CatalogSyncScheduler>();
 
     // ── Core Engine Services ─────────────────────────────────────────────
     builder.Services.AddScoped<ICloudinaryService, CloudinaryService>();
@@ -224,6 +227,22 @@ try
         options.AddFixedWindowLimiter("transaction-create", limiterOptions =>
         {
             limiterOptions.PermitLimit = 30;
+            limiterOptions.Window = TimeSpan.FromMinutes(1);
+            limiterOptions.QueueLimit = 0;
+            limiterOptions.AutoReplenishment = true;
+        });
+
+        options.AddFixedWindowLimiter("sync-webhook", limiterOptions =>
+        {
+            limiterOptions.PermitLimit = 30;
+            limiterOptions.Window = TimeSpan.FromMinutes(1);
+            limiterOptions.QueueLimit = 0;
+            limiterOptions.AutoReplenishment = true;
+        });
+
+        options.AddFixedWindowLimiter("game-validation", limiterOptions =>
+        {
+            limiterOptions.PermitLimit = 120;
             limiterOptions.Window = TimeSpan.FromMinutes(1);
             limiterOptions.QueueLimit = 0;
             limiterOptions.AutoReplenishment = true;
