@@ -34,7 +34,12 @@ export default function LoginElitePage() {
       });
 
       if (res?.error) {
-        throw new Error("Email atau password salah.");
+        // NextAuth encodes the error message from authorize() throw
+        // Extract actual message from the error string
+        const errorMessage = res.error === "CredentialsSignin" 
+          ? "Email atau password salah." 
+          : decodeURIComponent(res.error);
+        throw new Error(errorMessage);
       }
 
       router.push("/dashboard");
