@@ -17,6 +17,37 @@ import type {
 import AccountInput from "@/components/AccountInput";
 import PaymentAccordion from "@/components/PaymentAccordion";
 
+// ── Helper to clean raw Digiflazz product names ──────────────────────────────
+function getCleanProductName(rawName: string): string {
+  if (!rawName) return "Item";
+  let cleanName = rawName.replace(/pre\d+\s*/i, ""); // Remove "pre31502724" patterns
+  if (cleanName.match(/^\d{7,}\s/)) {
+    // Extract everything after the giant Digiflazz numeric ID
+    cleanName = cleanName.replace(/^\d{7,}\s*/, "");
+  }
+  return cleanName === "Astrite" ? rawName : cleanName;
+}
+
+// ── Asset Directory Mapping ────────────────────────────────────────────────
+// Digiflazz categories are normalized (e.g., currency, pass, bundle).
+// But local public/images folders use specific game nomenclature.
+const GAME_ASSET_FOLDERS: Record<string, Record<string, string>> = {
+  "akef": { currency: "origeometry", pass: "pass", bundle: "bundle" },
+  "gi": { currency: "genesis_crystal", pass: "welkin_moon", bundle: "bundle" },
+  "hsr": { currency: "oneiric_shards", pass: "pass", bundle: "bundle" },
+  "mlbb": { currency: "diamond", pass: "pass", bundle: "bundle" },
+  "wuwa": { currency: "lunites", pass: "subscription", bundle: "bundle" },
+  "zzz": { currency: "monochromes", pass: "membership", bundle: "pack" },
+  "lolwr": { currency: "wild_cores", pass: "celestial_blessings" },
+  "lol": { currency: "rp" },
+  "hok": { currency: "tokens" },
+  "mccg": { currency: "gems", pass: "weekly_pass" },
+  "nikke": { currency: "gems", pass: "pass", bundle: "set" },
+  "pubg": { currency: "uc" },
+  "rbx": { currency: "robux" },
+  "valorant": { currency: "vp" },
+};
+
 type Props = {
   game: NormalizedGame;
   groupedByCategory: GroupedProducts[];
@@ -65,9 +96,19 @@ export default function CheckoutClient({ game, groupedByCategory, paymentGroups 
     .filter(g => activeTab === "ALL" || g.category.label.toUpperCase() === activeTab)
     .map(g => ({
       ...g,
-      items: g.items.filter(item => 
-        item.name.toLowerCase().includes(searchFilter.toLowerCase())
-      )
+      items: g.items.filter(item => {
+        // Search text match
+        if (!item.name.toLowerCase().includes(searchFilter.toLowerCase())) return false;
+        
+        // Remove "Cek ID", "Cek Username", "Validator" items which are not real products
+        const lname = item.name.toLowerCase();
+        if (lname.includes("cek id") || lname.includes("cek username") || lname.includes("validator") || lname.includes("tester")) return false;
+        
+        // Remove ultra-low fake price items (e.g., 50 perak Cek ID tricks from Digiflazz)
+        if (item.displayPrice <= 500) return false;
+        
+        return true;
+      })
     }))
     .filter(g => g.items.length > 0);
 
@@ -247,7 +288,7 @@ export default function CheckoutClient({ game, groupedByCategory, paymentGroups 
               </div>
 
               {/* Tabs with Horizontal Mask */}
-              <div className="flex gap-2 overflow-x-auto pb-6 mb-2 no-scrollbar scroll-smooth">
+              <div className="flex gap-2 overflow-x-auto pb-6 mb-2 no-scrollbar scroll-smooth touch-pan-x">
                 <button
                   onClick={() => setActiveTab("ALL")}
                   style={activeTab === "ALL" 
@@ -294,7 +335,10 @@ export default function CheckoutClient({ game, groupedByCategory, paymentGroups 
                         const active = selectedProduct?.id === product.id;
                         const nominalMatch = product.name.match(/\d+/);
                         const nominalStr = nominalMatch ? nominalMatch[0] : "1";
-                        const imageSrc = product.thumbnail || `/images/items/${game.slug}/${group.category.slug.toLowerCase()}/${nominalStr}.png`;
+                        const folderName = GAME_ASSET_FOLDERS[game.slug]?.[group.category.slug.toLowerCase()] || group.category.slug.toLowerCase();
+                        const imageSrc = product.thumbnail || `/images/items/${game.slug}/${folderName}/${nominalStr}.png`;
+                        
+                        const cleanName = getCleanProductName(product.name);
 
                         return (
                           <button
@@ -307,14 +351,14 @@ export default function CheckoutClient({ game, groupedByCategory, paymentGroups 
                                 navigator.vibrate(15);
                               }
                             }}
-                            className={`group relative flex items-center gap-3 p-3 rounded-[1.2rem] border text-left transition-all duration-200 overflow-hidden ${
+                            className={`group relative flex items-center gap-3 p-3 rounded-[1.2rem] border text-left transition-all duration-300 overflow-hidden ${
                               active
-                                ? "bg-white/[0.06] scale-[1.02] ring-2 ring-white/10"
+                                ? "bg-white/[0.08] scale-[1.02] border-transparent"
                                 : selectedProduct && !active
-                                  ? "border-white/5 bg-white/[0.01] opacity-55 hover:opacity-90 hover:border-white/15"
-                                  : "border-white/5 bg-white/[0.015] hover:border-white/20 hover:bg-white/[0.04] hover:translate-y-[-1px]"
+                                  ? "border-white/5 bg-white/[0.01] opacity-50 hover:opacity-80 hover:border-white/10"
+                                  : "border-white/5 bg-white/[0.02] hover:border-white/20 hover:bg-white/[0.06] hover:-translate-y-0.5 shadow-sm"
                             }`}
-                            style={active ? { borderColor: accent, boxShadow: `0 4px 20px -8px ${accent}30` } : {}}
+                            style={active ? { borderColor: accent, boxShadow: `0 8px 30px -10px ${accent}40, inset 0 0 0 1px ${accent}` } : {}}
                           >
                             {/* Product Icon */}
                             <div className={`shrink-0 rounded-xl bg-zinc-950/50 border border-white/5 flex items-center justify-center transition-transform duration-300 group-hover:scale-105 ${isCurrency ? "w-14 h-14 p-2" : "w-10 h-10 p-1.5"}`}>
@@ -325,15 +369,15 @@ export default function CheckoutClient({ game, groupedByCategory, paymentGroups 
                                  onError={(e) => {
                                    const target = e.target as HTMLImageElement;
                                    target.onerror = null; // Prevent infinite loop
-                                   target.src = "/images/items/generic/generic_diamond_shard.png";
+                                   target.src = game.icon; // Gunakan icon game sebagai fallback!
                                  }}
                                />
                             </div>
                             
                             {/* Product Details */}
                             <div className="min-w-0 flex-1 relative z-10">
-                              <p className={`text-[11px] font-black leading-snug truncate mb-1 ${active ? "text-white" : "text-white/80 group-hover:text-white"}`}>
-                                {product.name}
+                              <p className={`text-[12px] font-black leading-snug truncate mb-1 ${active ? "text-white" : "text-white/80 group-hover:text-white"}`}>
+                                {cleanName}
                               </p>
                               <div className="flex flex-col gap-0.5">
                                 <span 
@@ -390,86 +434,79 @@ export default function CheckoutClient({ game, groupedByCategory, paymentGroups 
         {/* ──────────────────────────────────────────────────────────────────
             STEP 3: PILIH PEMBAYARAN
             ────────────────────────────────────────────────────────────────── */}
-        <AnimatePresence>
-          {selectedProduct && (
-            <motion.section 
-              initial={{ opacity: 0, height: 0, marginTop: 0 }}
-              animate={{ opacity: 1, height: "auto", marginTop: 20 }}
-              exit={{ opacity: 0, height: 0, marginTop: 0 }}
-              className="rounded-[2rem] border border-white/5 bg-white/[0.02] backdrop-blur-sm p-6 overflow-hidden"
-            >
-              <StepHeader num={3} title="Pilih Pembayaran" done={!!selectedPayment} />
-              <PaymentAccordion 
-                groups={paymentGroups}
-                selectedCode={selectedPayment?.code}
-                onSelect={(method) => {
-                  setSelectedPayment(method);
-                  if (typeof navigator !== "undefined" && navigator.vibrate) {
-                    navigator.vibrate(15);
-                  }
-                }}
-                baseTotal={selectedProduct.displayPrice}
-                accent={accent}
-              />
-            </motion.section>
-          )}
-        </AnimatePresence>
+        <section 
+          className={`rounded-[2rem] border border-white/5 bg-white/[0.02] backdrop-blur-sm p-6 transition-all duration-500 mt-5 ${
+            selectedProduct ? "opacity-100" : "opacity-40 grayscale pointer-events-none"
+          }`}
+        >
+          <StepHeader num={3} title="Pilih Pembayaran" done={!!selectedPayment} />
+          <PaymentAccordion 
+            groups={paymentGroups}
+            selectedCode={selectedPayment?.code}
+            onSelect={(method) => {
+              setSelectedPayment(method);
+              if (typeof navigator !== "undefined" && navigator.vibrate) {
+                navigator.vibrate(15);
+              }
+            }}
+            baseTotal={selectedProduct?.displayPrice || 0}
+            accent={accent}
+          />
+        </section>
 
         {/* ──────────────────────────────────────────────────────────────────
             STEP 4: KONTAK & CHECKOUT
             ────────────────────────────────────────────────────────────────── */}
-        <AnimatePresence>
-          {selectedPayment && (
-            <motion.section 
-              initial={{ opacity: 0, height: 0, marginTop: 0 }}
-              animate={{ opacity: 1, height: "auto", marginTop: 12 }}
-              exit={{ opacity: 0, height: 0, marginTop: 0 }}
-              className="rounded-[2rem] border border-white/5 bg-white/[0.02] backdrop-blur-sm p-4 md:p-6 overflow-hidden mb-32 lg:mb-0"
-            >
-              <StepHeader num={4} title="Informasi Kontak" />
+        <section 
+          className={`rounded-[2rem] border border-white/5 bg-white/[0.02] backdrop-blur-sm p-4 md:p-6 mb-32 lg:mb-0 transition-all duration-500 mt-5 ${
+            selectedPayment ? "opacity-100" : "opacity-40 grayscale pointer-events-none"
+          }`}
+        >
+          <StepHeader num={4} title="Informasi Kontak" />
 
-              <div className="space-y-6">
-                <div>
-                  <label 
-                    className="text-[9px] font-black font-mono uppercase tracking-[0.3em] mb-3 block"
-                    style={{ color: accent }}
-                  >
-                    Nomor WhatsApp
-                  </label>
-                  <div className="relative group">
-                    <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                      <Phone className="h-5 w-5 text-white/20 group-focus-within:text-sakura transition-colors" />
-                    </div>
-                    <input
-                      type="tel"
-                      value={whatsapp}
-                      onChange={e => setWhatsapp(e.target.value)}
-                      placeholder="Contoh: 081234567890"
-                      className="w-full bg-black/40 border border-white/10 rounded-2xl py-4 pl-12 pr-6 text-sm text-white placeholder:text-white/10 focus:outline-none focus:border-sakura focus:ring-4 focus:ring-sakura/10 transition-all font-bold"
-                      inputMode="numeric"
-                    />
-                  </div>
-                  <p className="text-[10px] text-white/20 mt-3 font-medium flex items-center gap-2">
-                    <AlertCircle className="w-3 h-3" />
-                    Nomor ini akan digunakan untuk mengirimkan rincian pesanan.
-                  </p>
+          <div className="space-y-6">
+            <div>
+              <label 
+                className="text-[9px] font-black font-mono uppercase tracking-[0.3em] mb-3 block"
+                style={{ color: accent }}
+              >
+                Nomor WhatsApp
+              </label>
+              <div className="relative group">
+                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                  <span className="text-white/50 font-black font-mono tracking-widest">+62</span>
                 </div>
-
-                <button
-                  onClick={handleOpenConfirm}
-                  className="w-full text-zinc-950 font-black py-5 rounded-[2rem] transition-all active:scale-[0.98] flex items-center justify-center gap-3 text-sm tracking-[0.2em]"
-                  style={canCheckout 
-                    ? { backgroundColor: accent, boxShadow: `0 20px 40px -10px ${accent}40` }
-                    : { backgroundColor: accent, opacity: 0.8 }
-                  }
-                >
-                  <ShieldCheck className="w-5 h-5" />
-                  BAYAR SEKARANG
-                </button>
+                <input
+                  type="tel"
+                  value={whatsapp}
+                  onChange={e => {
+                    const val = e.target.value.replace(/\D/g, "");
+                    setWhatsapp(val.startsWith("0") ? val.substring(1) : val);
+                  }}
+                  placeholder="81234567890"
+                  className="w-full bg-black/40 border border-white/10 rounded-2xl py-4 pl-14 pr-6 text-sm text-white placeholder:text-white/20 focus:outline-none focus:border-sakura focus:ring-4 focus:ring-sakura/10 transition-all font-bold"
+                  inputMode="numeric"
+                />
               </div>
-            </motion.section>
-          )}
-        </AnimatePresence>
+              <p className="text-[10px] text-white/20 mt-3 font-medium flex items-center gap-2">
+                <AlertCircle className="w-3 h-3" />
+                Nomor ini akan digunakan untuk mengirimkan rincian pesanan.
+              </p>
+            </div>
+
+            <button
+              onClick={handleOpenConfirm}
+              className={`w-full text-zinc-950 font-black py-5 rounded-[2rem] transition-all flex items-center justify-center gap-3 text-sm tracking-[0.2em] ${canCheckout ? "hover:scale-[1.02] hover:brightness-110 active:scale-95" : "cursor-not-allowed"}`}
+              style={canCheckout 
+                ? { backgroundColor: accent, boxShadow: `0 20px 40px -10px ${accent}60` }
+                : { backgroundColor: accent, opacity: 0.3 }
+              }
+            >
+              <ShieldCheck className="w-5 h-5" />
+              {canCheckout ? "BAYAR SEKARANG" : "LENGKAPI DATA"}
+            </button>
+          </div>
+        </section>
           </>
         )}
       </div>
@@ -480,10 +517,10 @@ export default function CheckoutClient({ game, groupedByCategory, paymentGroups 
       <AnimatePresence>
         {selectedProduct && (
           <motion.div 
-            initial={{ y: 100 }}
+            initial={{ y: 150 }}
             animate={{ y: 0 }}
-            exit={{ y: 100 }}
-            className="fixed bottom-4 left-1/2 -translate-x-1/2 z-[50] w-[95%] max-w-4xl pb-safe"
+            exit={{ y: 150 }}
+            className="fixed bottom-[100px] sm:bottom-[110px] left-1/2 -translate-x-1/2 z-[50] w-[95%] max-w-4xl pb-safe"
           >
             <div className="bg-zinc-900/90 backdrop-blur-xl border border-white/10 rounded-[2rem] p-3 pl-6 shadow-[0_20px_40px_-12px_rgba(0,0,0,0.6)] flex items-center justify-between gap-4">
               <div className="hidden sm:flex items-center gap-4 min-w-0">
@@ -495,7 +532,7 @@ export default function CheckoutClient({ game, groupedByCategory, paymentGroups 
                 </div>
                 <div className="min-w-0">
                   <p className="text-[10px] font-black text-white/30 uppercase tracking-widest leading-none mb-1">Item Terpilih</p>
-                  <h4 className="text-sm font-black text-white truncate">{selectedProduct.name}</h4>
+                  <h4 className="text-sm font-black text-white truncate">{getCleanProductName(selectedProduct.name)}</h4>
                 </div>
               </div>
               

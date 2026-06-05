@@ -134,6 +134,11 @@ function mapProduct(p: any, gameSlug: string): NormalizedProduct {
   };
 }
 
+// ── Centralized fallback paths from manifest ────────────────────────────────
+const manifestFallbacks = (gamesManifest as Record<string, any>)["_fallbacks"] ?? {};
+const FALLBACK_ICON   = manifestFallbacks.icon   ?? "/images/fallbacks/game-default-icon.svg";
+const FALLBACK_BANNER = manifestFallbacks.banner ?? "/images/fallbacks/game-default-banner.jpg";
+
 // ── Map raw API game to NormalizedGame ───────────────────────────────────────
 function mapGame(gameData: any): NormalizedGame {
   const slug = gameData.slug;
@@ -144,27 +149,39 @@ function mapGame(gameData: any): NormalizedGame {
   const rawProducts: any[] = gameData.products ?? [];
   const rawGrouped: any[]  = gameData.groupedProducts ?? [];
 
-  const products = rawProducts.map(p => mapProduct(p, slug));
+  // Enforce strict category rules: filter out UNKNOWN or uncategorized items
+  const validProducts = rawProducts.filter((p: any) => 
+    p.itemCategory && p.itemCategory.toUpperCase() !== 'UNKNOWN'
+  );
+
+  const products = validProducts.map((p: any) => mapProduct(p, slug));
   const prices   = products.map(p => p.displayPrice).filter(v => v > 0);
 
-  const groupedProducts: GroupedProducts[] = rawGrouped.map(g => ({
-    category: {
-      slug:      g.category?.slug ?? "CURRENCY",
-      label:     g.category?.label ?? "Item",
-      icon:      g.category?.icon ?? "💎",
-      itemCount: g.category?.itemCount ?? 0,
-      sortOrder: g.category?.sortOrder ?? 0,
-    },
-    items: (g.items ?? []).map((p: any) => mapProduct(p, slug)),
-  }));
+  const groupedProducts: GroupedProducts[] = rawGrouped
+    .filter(g => g.category?.slug && g.category.slug.toUpperCase() !== 'UNKNOWN')
+    .map(g => ({
+      category: {
+        slug:      g.category.slug,
+        label:     g.category.label ?? "Item",
+        icon:      g.category.icon ?? "💎",
+        itemCount: g.category.itemCount ?? 0,
+        sortOrder: g.category.sortOrder ?? 0,
+      },
+      items: (g.items ?? [])
+        .filter((p: any) => p.itemCategory && p.itemCategory.toUpperCase() !== 'UNKNOWN')
+        .map((p: any) => mapProduct(p, slug)),
+    }))
+    .filter(g => g.items.length > 0); // Drop empty groups
 
-  const itemCategories: ItemCategory[] = gameData.itemCategories?.map((c: any) => ({
-    slug:      c.slug,
-    label:     c.label,
-    icon:      c.icon,
-    itemCount: c.itemCount,
-    sortOrder: c.sortOrder,
-  })) ?? [];
+  const itemCategories: ItemCategory[] = (gameData.itemCategories ?? [])
+    .filter((c: any) => c.slug && c.slug.toUpperCase() !== 'UNKNOWN')
+    .map((c: any) => ({
+      slug:      c.slug,
+      label:     c.label,
+      icon:      c.icon,
+      itemCount: c.itemCount,
+      sortOrder: c.sortOrder,
+    }));
 
   return {
     id:             gameData.id,
@@ -172,9 +189,9 @@ function mapGame(gameData: any): NormalizedGame {
     name:           registryEntry?.display_title ?? gameData.name,
     shortCode:      registryEntry?.short_names?.[0] ?? gameData.name?.substring(0, 4).toUpperCase() ?? slug.toUpperCase(),
     currencyName:   gameData.currencyName ?? "Item",
-    icon:           manifest?.logo ?? manifest?.thumbnail ?? gameData.thumbnail ?? `/images/games/${slug}-icon.webp`,
-    banner:         manifest?.hero ?? gameData.banner    ?? `/images/games/${slug}-banner.webp`,
-    coverImage:     manifest?.hero ?? gameData.banner    ?? `/images/games/${slug}-banner.webp`,
+    icon:           manifest?.logo ?? manifest?.thumbnail ?? gameData.thumbnail ?? FALLBACK_ICON,
+    banner:         manifest?.hero ?? gameData.banner    ?? FALLBACK_BANNER,
+    coverImage:     manifest?.hero ?? gameData.banner    ?? FALLBACK_BANNER,
     guideImage:     gameData.guideImage,
     accent:         manifest?.accent ?? "#FDB0C0",
     description:    registryEntry?.description ?? "Top up game terpercaya dan termurah!",
@@ -211,9 +228,9 @@ export async function getAllGamesNormalized(): Promise<NormalizedGame[]> {
         name:           registryEntry?.display_title ?? g.name,
         shortCode:      registryEntry?.short_names?.[0] ?? g.name?.substring(0, 4).toUpperCase() ?? g.slug.toUpperCase(),
         currencyName:   g.currencyName ?? "Item",
-        icon:           manifest?.logo ?? manifest?.thumbnail ?? g.thumbnail ?? `/images/games/${g.slug}-icon.webp`,
-        banner:         manifest?.hero ?? g.banner    ?? `/images/games/${g.slug}-banner.webp`,
-        coverImage:     manifest?.hero ?? g.banner    ?? `/images/games/${g.slug}-banner.webp`,
+        icon:           manifest?.logo ?? manifest?.thumbnail ?? g.thumbnail ?? FALLBACK_ICON,
+        banner:         manifest?.hero ?? g.banner    ?? FALLBACK_BANNER,
+        coverImage:     manifest?.hero ?? g.banner    ?? FALLBACK_BANNER,
         guideImage:     g.guideImage,
         accent:         manifest?.accent ?? "#FDB0C0",
         description:    registryEntry?.description ?? "Top up game terpercaya dan termurah!",

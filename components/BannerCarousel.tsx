@@ -11,7 +11,7 @@ const banners = [
     src: "/images/hero/hero_anime_duo_action.webp",
     title: "Zenless Zone Zero Exclusive",
     game: "ZZZ",
-    slug: "zenless-zone-zero",
+    slug: "zzz",
     subtitle: "Top up Monochrome tanpa biaya admin tersembunyi.",
   },
   {
@@ -19,7 +19,7 @@ const banners = [
     src: "/images/hero/hero_genshin_fantasy_battle.webp",
     title: "Wuthering Waves Premium Top-Up",
     game: "Wuthering Waves",
-    slug: "wuthering-waves",
+    slug: "wuwa",
     subtitle: "Dapatkan Lunites dengan rute termurah otomatis.",
   },
   {
@@ -27,7 +27,7 @@ const banners = [
     src: "/images/hero/hero_sci_fi_team_banner.webp",
     title: "Honkai Star Rail Premium Top-Up",
     game: "HSR",
-    slug: "honkai-star-rail",
+    slug: "hsr",
     subtitle: "Top up Oneiric Shards dengan harga terbaik.",
   }
 ];

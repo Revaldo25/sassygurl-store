@@ -123,20 +123,12 @@ export default async function GameSlugPage({
       />
 
       {/* ═══ Main Content: 2 Columns ═══ */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-12 pb-32 lg:pb-24">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 pt-6 pb-32 md:pt-10 lg:pb-24">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
 
           {/* LEFT: Sidebar — Game Info & Instructions (appears AFTER checkout on mobile) */}
-          <aside className="lg:col-span-4 space-y-6 lg:sticky lg:top-24 order-2 lg:order-1">
+          <aside className="lg:col-span-4 space-y-6 lg:sticky lg:top-24 order-2 lg:order-1 hidden lg:block">
             <div className="rounded-[2.5rem] border border-white/5 bg-gradient-to-br from-white/[0.03] to-transparent backdrop-blur-xl p-8 shadow-2xl">
-              <div className="flex items-center gap-4 mb-8">
-                <Image src={game.icon} alt={game.name} width={64} height={64} className="rounded-3xl shadow-lg border border-white/10" />
-                <div>
-                  <h2 className="text-xl font-black text-white leading-tight">{game.name}</h2>
-                  <p className="text-xs font-bold text-sakura uppercase tracking-widest">{game.publisher}</p>
-                </div>
-              </div>
-
               <div className="space-y-6">
                 <div>
                   <h3 className="text-xs font-black uppercase tracking-[0.2em] text-white/40 mb-4 flex items-center gap-2">
@@ -173,15 +165,7 @@ export default async function GameSlugPage({
               </div>
             </div>
 
-            {/* Promo Card */}
-            <div className="rounded-[2rem] bg-sakura p-6 overflow-hidden relative">
-               <div className="absolute top-0 right-0 -mr-8 -mt-8 w-32 h-32 bg-white/20 rounded-full blur-xl" />
-               <h4 className="text-zinc-950 text-lg font-black leading-tight mb-1 relative z-10">Mau Diskon Lebih?</h4>
-               <p className="text-zinc-950/60 text-xs font-bold relative z-10 mb-4">Daftar jadi Member VIP sekarang juga!</p>
-               <button className="w-full py-3 bg-zinc-950 text-white rounded-2xl font-black text-xs tracking-widest relative z-10 hover:bg-zinc-800 transition-colors" aria-label="Daftar Member VIP">
-                 DAFTAR SEKARANG
-               </button>
-            </div>
+            {/* Promo Card Removed to reduce distraction */}
 
             <GameSocialProof transactions={gameTransactions} />
           </aside>
