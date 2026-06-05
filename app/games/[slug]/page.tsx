@@ -122,65 +122,17 @@ export default async function GameSlugPage({
         productCount={game.productCount}
       />
 
-      {/* ═══ Main Content: 2 Columns ═══ */}
+      {/* ═══ Main Content ═══ */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 pt-6 pb-32 md:pt-10 lg:pb-24">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-
-          {/* LEFT: Sidebar — Game Info & Instructions (appears AFTER checkout on mobile) */}
-          <aside className="lg:col-span-4 space-y-6 lg:sticky lg:top-24 order-2 lg:order-1 hidden lg:block">
-            <div className="rounded-[2.5rem] border border-white/5 bg-gradient-to-br from-white/[0.03] to-transparent backdrop-blur-xl p-8 shadow-2xl">
-              <div className="space-y-6">
-                <div>
-                  <h3 className="text-xs font-black uppercase tracking-[0.2em] text-white/40 mb-4 flex items-center gap-2">
-                    <span className="w-1 h-3 bg-sakura rounded-full" />
-                    Cara Top Up
-                  </h3>
-                  <ol className="space-y-4">
-                    {[
-                      `Masukkan User ID${game.hasServerId ? " & Zone ID" : ""} Anda.`,
-                      `Pilih nominal ${game.currencyName || "item"} yang diinginkan.`,
-                      "Pilih metode pembayaran yang tersedia.",
-                      "Masukkan nomor WhatsApp untuk notifikasi.",
-                      "Klik Beli Sekarang dan selesaikan pembayaran.",
-                    ].map((step, i) => (
-                      <li key={i} className="flex gap-4 text-sm text-white/60 leading-relaxed">
-                        <span className="flex h-6 w-6 items-center justify-center rounded-xl bg-white/5 border border-white/10 text-sakura text-xs font-black shrink-0">{i + 1}</span>
-                        <span className="font-medium pt-0.5">{step}</span>
-                      </li>
-                    ))}
-                  </ol>
-                </div>
-
-                <div className="pt-6 border-t border-white/5">
-                  <p className="text-sm text-white/40 font-medium leading-relaxed mb-6">
-                    {game.description || "Top up game favoritmu dengan harga termurah dan pengiriman instan hanya di SassyGurl Store."}
-                  </p>
-                  
-                  <div className="flex flex-wrap gap-2">
-                    <span className="px-3 py-1.5 rounded-full bg-white/5 border border-white/5 text-[10px] font-bold text-white/40">ORIGINAL</span>
-                    <span className="px-3 py-1.5 rounded-full bg-sakura/10 border border-sakura/20 text-[10px] font-bold text-sakura">PREMIUM</span>
-                    <span className="px-3 py-1.5 rounded-full bg-white/5 border border-white/5 text-[10px] font-bold text-white/40">24/7 AUTO</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Promo Card Removed to reduce distraction */}
-
-            <GameSocialProof transactions={gameTransactions} />
-          </aside>
-
-          {/* RIGHT: Checkout Flow, FAQ, and Related Games (appears FIRST on mobile) */}
-          <main className="lg:col-span-8 order-1 lg:order-2 space-y-6">
-            <CheckoutClient
-              game={game}
-              groupedByCategory={groupedByCategory}
-              paymentGroups={paymentGroups}
-            />
-            <FAQAccordion />
-            <RelatedGamesGrid currentSlug={game.slug} />
-          </main>
-
+        <CheckoutClient
+          game={game}
+          groupedByCategory={groupedByCategory}
+          paymentGroups={paymentGroups}
+        />
+        
+        <div className="mt-16 space-y-12">
+          <FAQAccordion />
+          <RelatedGamesGrid currentSlug={game.slug} />
         </div>
       </div>
     </div>

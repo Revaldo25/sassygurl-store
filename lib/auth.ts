@@ -58,10 +58,12 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
               apiToken: response.data.token,
             };
           }
-          return null;
-        } catch (error) {
-          console.error("NextAuth Authorize Error:", error);
-          return null;
+          // Backend returned success:false — throw with actual message
+          throw new Error(response.message || "Login gagal.");
+        } catch (error: any) {
+          // If it's our own thrown error, re-throw it so NextAuth passes the message
+          console.error("NextAuth Authorize Error:", error.message);
+          throw error;
         }
       },
     }),

@@ -227,244 +227,187 @@ export default function CheckoutClient({ game, groupedByCategory, paymentGroups 
     </div>
   );
 
-  // ═══════════════════════════════════════════════════════════════════════════
-  // RENDER
-  // ═══════════════════════════════════════════════════════════════════════════
   return (
     <>
-      <div className="space-y-5 pb-4">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 items-start relative">
 
-        {/* ──────────────────────────────────────────────────────────────────
-            STEP 1: MASUKKAN DATA AKUN
-            ────────────────────────────────────────────────────────────────── */}
+      {/* =========================================================
+          LEFT COLUMN: ID INPUT & PRODUCTS
+          ========================================================= */}
+      <div className="lg:col-span-7 xl:col-span-8 space-y-6">
+
+        {/* STEP 1: MASUKKAN DATA AKUN */}
         <div id="step-1">
           <AccountInput 
-          gameSlug={game.slug}
-          gameName={game.name}
-          requiresZone={game.hasServerId}
-          serverOptions={game.serverOptions}
-          onResolved={(payload) => {
-            setUserId(payload.id);
-            setZoneId(payload.zone || "");
-            setValidatedName(payload.username);
-            // Mobile trigger vibration on nickname resolution
-            if (payload.username && typeof navigator !== "undefined" && navigator.vibrate) {
-              navigator.vibrate(30);
-            }
-          }}
-          stepLabel="STEP 01"
-        />
+            gameSlug={game.slug}
+            gameName={game.name}
+            requiresZone={game.hasServerId}
+            serverOptions={game.serverOptions}
+            onResolved={(payload) => {
+              setUserId(payload.id);
+              setZoneId(payload.zone || "");
+              setValidatedName(payload.username);
+              if (payload.username && typeof navigator !== "undefined" && navigator.vibrate) {
+                navigator.vibrate(30);
+              }
+            }}
+            stepLabel="STEP 1"
+          />
         </div>
 
+        {/* STEP 2: PILIH PRODUK */}
         {groupedByCategory.length === 0 ? (
-          <div className="rounded-[2rem] border border-red-500/10 bg-red-500/5 p-8 text-center mt-6">
-            <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
-            <h3 className="text-xl font-black text-white mb-2">Item Sedang Tidak Tersedia</h3>
-            <p className="text-sm text-white/50">
-              Mohon maaf, produk untuk {game.name} saat ini sedang kosong atau dalam pemeliharaan sistem. Silakan kembali lagi nanti.
-            </p>
+          <div className="rounded-3xl border border-red-500/10 bg-red-500/5 p-8 text-center mt-6">
+            <AlertCircle className="w-10 h-10 text-red-500 mx-auto mb-3" />
+            <h3 className="text-lg font-black text-white mb-2">Item Sedang Tidak Tersedia</h3>
+            <p className="text-sm text-white/50">Mohon maaf, produk untuk {game.name} saat ini sedang kosong.</p>
           </div>
         ) : (
-          <>
-            {/* ──────────────────────────────────────────────────────────────────
-                STEP 2: PILIH NOMINAL
-                ────────────────────────────────────────────────────────────────── */}
-            <section 
-              className="rounded-[2rem] border border-white/5 bg-white/[0.02] backdrop-blur-sm p-4 md:p-6 mt-3"
-            >
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
-                <StepHeader num={2} title="Pilih Nominal" done={!!selectedProduct} />
-                
-                <div className="group relative w-full sm:w-64">
-                  <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-white/40 transition-colors group-focus-within:text-sakura" />
-                  <input
-                    type="text"
-                    placeholder="Cari item..."
-                    value={searchFilter}
-                    onChange={(e) => setSearchFilter(e.target.value)}
-                    className="w-full bg-black/40 border border-white/10 rounded-2xl py-3 pl-10 pr-4 text-sm text-white placeholder:text-white/30 focus:outline-none focus:border-sakura/50 focus:ring-2 focus:ring-sakura/20 transition-all font-semibold"
-                  />
-                </div>
+          <section className="rounded-3xl border border-white/5 bg-white/[0.02] p-5 md:p-6 shadow-xl">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+              <StepHeader num={2} title="Pilih Item" done={!!selectedProduct} />
+              
+              <div className="group relative w-full sm:w-56">
+                <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-white/40 transition-colors group-focus-within:text-sakura" />
+                <input
+                  type="text"
+                  placeholder="Cari item..."
+                  value={searchFilter}
+                  onChange={(e) => setSearchFilter(e.target.value)}
+                  className="w-full bg-black/40 border border-white/10 rounded-xl py-2.5 pl-10 pr-4 text-xs text-white placeholder:text-white/30 focus:outline-none focus:border-sakura/50 transition-all font-semibold"
+                />
               </div>
+            </div>
 
-              {/* Tabs with Horizontal Mask */}
-              <div className="flex gap-2 overflow-x-auto pb-6 mb-2 no-scrollbar scroll-smooth touch-pan-x">
-                <button
-                  onClick={() => setActiveTab("ALL")}
-                  style={activeTab === "ALL" 
-                    ? { backgroundColor: accent, color: "#09090b", boxShadow: `0 10px 25px -5px ${accent}66`, transform: "scale(1.05)" }
-                    : {}
-                  }
-                  className={`shrink-0 px-6 py-3 rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] transition-all duration-300 ${
-                    activeTab === "ALL" ? "" : "bg-white/[0.03] text-zinc-500 border border-white/5 hover:bg-white/[0.08] hover:text-white"
-                  }`}
-                >
-                  SEMUA
-                </button>
-                {groupedByCategory.map(g => {
-                  const isActive = activeTab === g.category.label.toUpperCase();
-                  return (
-                    <button
-                      key={g.category.slug}
-                      onClick={() => setActiveTab(g.category.label.toUpperCase())}
-                      style={isActive
-                        ? { backgroundColor: accent, color: "#09090b", boxShadow: `0 10px 25px -5px ${accent}66`, transform: "scale(1.05)" }
-                        : {}
-                      }
-                      className={`shrink-0 px-6 py-3 rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] transition-all duration-300 ${
-                        isActive ? "" : "bg-white/[0.03] text-zinc-500 border border-white/5 hover:bg-white/[0.08] hover:text-white"
-                      }`}
-                    >
-                      {g.category.label}
-                    </button>
-                  );
-                })}
-              </div>
+            {/* Filter Tabs */}
+            <div className="flex gap-2 overflow-x-auto pb-4 mb-2 no-scrollbar">
+              <button
+                onClick={() => setActiveTab("ALL")}
+                style={activeTab === "ALL" 
+                  ? { backgroundColor: accent, color: "#09090b" }
+                  : {}
+                }
+                className={`shrink-0 px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
+                  activeTab === "ALL" ? "" : "bg-white/5 text-white/50 hover:bg-white/10 hover:text-white"
+                }`}
+              >
+                SEMUA
+              </button>
+              {groupedByCategory.map(g => {
+                const isActive = activeTab === g.category.label.toUpperCase();
+                return (
+                  <button
+                    key={g.category.slug}
+                    onClick={() => setActiveTab(g.category.label.toUpperCase())}
+                    style={isActive ? { backgroundColor: accent, color: "#09090b" } : {}}
+                    className={`shrink-0 px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
+                      isActive ? "" : "bg-white/5 text-white/50 hover:bg-white/10 hover:text-white"
+                    }`}
+                  >
+                    {g.category.label}
+                  </button>
+                );
+              })}
+            </div>
 
-              {filteredGroups.length > 0 ? (
-                filteredGroups.map((group, idx) => {
-                  const isCurrency = group.category.slug.toUpperCase() === "CURRENCY";
-                  return (
-                  <div key={idx} className="mb-8 last:mb-0">
-                    <h3 className={`flex items-center gap-2 font-black uppercase tracking-widest mb-4 ${isCurrency ? "text-sm text-white/80" : "text-xs text-zinc-500"}`}>
-                      {group.category.icon && <span className={isCurrency ? "text-lg" : "text-sm"}>{group.category.icon}</span>}
-                      {group.category.label}
-                    </h3>
-                    <div className={`grid gap-3 ${isCurrency ? "grid-cols-2 md:grid-cols-3 xl:grid-cols-4" : "grid-cols-2 md:grid-cols-3"}`}>
-                      {group.items.map(product => {
-                        const active = selectedProduct?.id === product.id;
-                        const nominalMatch = product.name.match(/\d+/);
-                        const nominalStr = nominalMatch ? nominalMatch[0] : "1";
-                        const folderName = GAME_ASSET_FOLDERS[game.slug]?.[group.category.slug.toLowerCase()] || group.category.slug.toLowerCase();
-                        const imageSrc = product.thumbnail || `/images/items/${game.slug}/${folderName}/${nominalStr}.png`;
-                        
-                        const cleanName = getCleanProductName(product.name);
+            {/* Product Grid */}
+            {filteredGroups.length > 0 ? (
+              filteredGroups.map((group, idx) => (
+                <div key={idx} className="mb-8 last:mb-0">
+                  <h3 className="text-xs font-bold text-white/40 uppercase tracking-widest mb-3">
+                    {group.category.label}
+                  </h3>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-3">
+                    {group.items.map(product => {
+                      const active = selectedProduct?.id === product.id;
+                      const cleanName = getCleanProductName(product.name);
 
-                        return (
-                          <button
-                            key={product.id}
-                            role="radio"
-                            aria-checked={active}
-                            onClick={() => {
-                              setSelectedProduct(product);
-                              if (typeof navigator !== "undefined" && navigator.vibrate) {
-                                navigator.vibrate(15);
-                              }
-                            }}
-                            className={`group relative flex items-center gap-3 p-3 rounded-[1.2rem] border text-left transition-all duration-300 overflow-hidden ${
-                              active
-                                ? "bg-white/[0.08] scale-[1.02] border-transparent"
-                                : selectedProduct && !active
-                                  ? "border-white/5 bg-white/[0.01] opacity-50 hover:opacity-80 hover:border-white/10"
-                                  : "border-white/5 bg-white/[0.02] hover:border-white/20 hover:bg-white/[0.06] hover:-translate-y-0.5 shadow-sm"
-                            }`}
-                            style={active ? { borderColor: accent, boxShadow: `0 8px 30px -10px ${accent}40, inset 0 0 0 1px ${accent}` } : {}}
-                          >
-                            {/* Product Icon */}
-                            <div className={`shrink-0 rounded-xl bg-zinc-950/50 border border-white/5 flex items-center justify-center transition-transform duration-300 group-hover:scale-105 ${isCurrency ? "w-14 h-14 p-2" : "w-10 h-10 p-1.5"}`}>
-                               <img 
-                                 src={imageSrc} 
-                                 alt={product.name} 
-                                 className="w-full h-full object-contain"
-                                 onError={(e) => {
-                                   const target = e.target as HTMLImageElement;
-                                   target.onerror = null; // Prevent infinite loop
-                                   target.src = game.icon; // Gunakan icon game sebagai fallback!
-                                 }}
-                               />
+                      return (
+                        <button
+                          key={product.id}
+                          role="radio"
+                          aria-checked={active}
+                          onClick={() => {
+                            setSelectedProduct(product);
+                            if (typeof navigator !== "undefined" && navigator.vibrate) navigator.vibrate(15);
+                          }}
+                          className={`group relative flex flex-col justify-center p-3 md:p-4 rounded-2xl border text-left transition-all overflow-hidden ${
+                            active
+                              ? "bg-white/[0.08] border-transparent"
+                              : selectedProduct && !active
+                                ? "border-white/5 bg-white/[0.01] opacity-60 hover:opacity-100"
+                                : "border-white/5 bg-white/[0.02] hover:border-white/20 hover:bg-white/[0.05]"
+                          }`}
+                          style={active ? { boxShadow: `0 0 0 1px ${accent}, inset 0 0 15px ${accent}15` } : {}}
+                        >
+                          {/* Item Name (Denomination) */}
+                          <p className={`text-xs md:text-sm font-semibold truncate w-full mb-1 ${active ? "text-white" : "text-white/70 group-hover:text-white"}`}>
+                            {cleanName}
+                          </p>
+                          
+                          {/* Item Price */}
+                          <p className={`text-sm md:text-base font-black tracking-tight ${active ? "" : "text-white"}`} style={active ? { color: accent } : {}}>
+                            {formatIDR(product.displayPrice)}
+                          </p>
+
+                          {/* Promo badge */}
+                          {product.isFlashSale && (
+                            <div className="absolute top-0 right-0 bg-rose-500 text-[8px] font-black uppercase text-white px-2 py-0.5 rounded-bl-xl shadow-lg">
+                              PROMO
                             </div>
-                            
-                            {/* Product Details */}
-                            <div className="min-w-0 flex-1 relative z-10">
-                              <p className={`text-[12px] font-black leading-snug truncate mb-1 ${active ? "text-white" : "text-white/80 group-hover:text-white"}`}>
-                                {cleanName}
-                              </p>
-                              <div className="flex flex-col gap-0.5">
-                                <span 
-                                  className="text-xs font-black tracking-tight"
-                                  style={{ color: active ? accent : `${accent}d9` }}
-                                >
-                                  {formatIDR(product.displayPrice)}
-                                </span>
-                                {product.originalPrice && product.originalPrice > product.displayPrice && (
-                                  <span className="text-[9px] text-zinc-600 font-bold line-through">
-                                    {formatIDR(product.originalPrice)}
-                                  </span>
-                                )}
-                              </div>
-                            </div>
-
-                            {/* Promo badge */}
-                            {product.isFlashSale && (
-                              <div className="absolute top-0 right-0 bg-gradient-to-l from-rose-600 to-rose-500 text-[8px] font-black uppercase text-white px-2.5 py-1 rounded-bl-xl rounded-tr-lg shadow-lg">
-                                PROMO
-                              </div>
-                            )}
-                            
-                            {/* Selected Indicator */}
-                            {active && (
-                              <motion.div 
-                                layoutId="activeProduct"
-                                className="absolute inset-0 rounded-[1.2rem] pointer-events-none"
-                                style={{ 
-                                  boxShadow: `inset 0 0 0 1.5px ${accent}, inset 0 0 20px ${accent}25` 
-                                }}
-                              >
-                                <div className="absolute top-2 right-2 w-4 h-4 rounded-full flex items-center justify-center" style={{ backgroundColor: accent, color: '#09090b' }}>
-                                  <CheckCircle2 className="w-3 h-3" />
-                                </div>
-                              </motion.div>
-                            )}
-                          </button>
-                        );
-                      })}
-                    </div>
+                          )}
+                          
+                          {/* Selected Checkmark */}
+                          {active && (
+                            <motion.div layoutId="check" className="absolute top-2 right-2" style={{ color: accent }}>
+                              <CheckCircle2 className="w-4 h-4" />
+                            </motion.div>
+                          )}
+                        </button>
+                      );
+                    })}
                   </div>
-                  );
-                })
-              ) : (
-                <div className="text-center py-12 border border-dashed border-white/10 rounded-3xl">
-                  <Search className="w-8 h-8 text-zinc-600 mx-auto mb-3" />
-                  <p className="text-white/60 text-sm font-bold">Tidak ada produk ditemukan.</p>
-                  <p className="text-white/40 text-xs mt-1">Coba kata kunci lain atau pilih tab berbeda.</p>
                 </div>
-              )}
-            </section>
+              ))
+            ) : (
+              <div className="text-center py-10 border border-dashed border-white/10 rounded-2xl">
+                <Search className="w-6 h-6 text-white/30 mx-auto mb-2" />
+                <p className="text-white/50 text-sm">Item tidak ditemukan.</p>
+              </div>
+            )}
+          </section>
+        )}
+      </div>
 
-        {/* ──────────────────────────────────────────────────────────────────
-            STEP 3: PILIH PEMBAYARAN
-            ────────────────────────────────────────────────────────────────── */}
-        <section 
-          className={`rounded-[2rem] border border-white/5 bg-white/[0.02] backdrop-blur-sm p-6 transition-all duration-500 mt-5 ${
-            selectedProduct ? "opacity-100" : "opacity-40 grayscale pointer-events-none"
-          }`}
-        >
-          <StepHeader num={3} title="Pilih Pembayaran" done={!!selectedPayment} />
+      {/* =========================================================
+          RIGHT COLUMN: PAYMENT, CONTACT & SUMMARY
+          ========================================================= */}
+      <div className="lg:col-span-5 xl:col-span-4 space-y-6 lg:sticky lg:top-24">
+        
+        {/* STEP 3: PEMBAYARAN */}
+        <section className={`rounded-3xl border border-white/5 bg-white/[0.02] p-5 md:p-6 transition-all ${
+          selectedProduct ? "opacity-100" : "opacity-40 grayscale pointer-events-none"
+        }`}>
+          <StepHeader num={3} title="Pembayaran" done={!!selectedPayment} />
           <PaymentAccordion 
             groups={paymentGroups}
             selectedCode={selectedPayment?.code}
             onSelect={(method) => {
               setSelectedPayment(method);
-              if (typeof navigator !== "undefined" && navigator.vibrate) {
-                navigator.vibrate(15);
-              }
+              if (typeof navigator !== "undefined" && navigator.vibrate) navigator.vibrate(15);
             }}
             baseTotal={selectedProduct?.displayPrice || 0}
             accent={accent}
           />
         </section>
 
-        {/* ──────────────────────────────────────────────────────────────────
-            STEP 4: KONTAK & CHECKOUT
-            ────────────────────────────────────────────────────────────────── */}
-        <section 
-          className={`rounded-[2rem] border border-white/5 bg-white/[0.02] backdrop-blur-sm p-4 md:p-6 mb-32 lg:mb-0 transition-all duration-500 mt-5 ${
-            selectedPayment ? "opacity-100" : "opacity-40 grayscale pointer-events-none"
-          }`}
-        >
+        {/* STEP 4: KONTAK & CHECKOUT */}
+        <section className={`rounded-3xl border border-white/5 bg-white/[0.02] p-5 md:p-6 transition-all duration-500 mt-5 mb-10 lg:mb-0 ${
+          selectedPayment ? "opacity-100" : "opacity-40 grayscale pointer-events-none"
+        }`}>
           <StepHeader num={4} title="Informasi Kontak" />
 
-          <div className="space-y-6">
+          <div className="space-y-4">
             <div>
               <label 
                 className="text-[9px] font-black font-mono uppercase tracking-[0.3em] mb-3 block"
@@ -488,28 +431,60 @@ export default function CheckoutClient({ game, groupedByCategory, paymentGroups 
                   inputMode="numeric"
                 />
               </div>
-              <p className="text-[10px] text-white/20 mt-3 font-medium flex items-center gap-2">
-                <AlertCircle className="w-3 h-3" />
+              <p className="text-[10px] text-blue-400 mt-3 font-medium flex items-center gap-2 bg-blue-500/10 p-2.5 rounded-xl border border-blue-500/20">
+                <AlertCircle className="w-3.5 h-3.5 shrink-0" />
                 Nomor ini akan digunakan untuk mengirimkan rincian pesanan.
               </p>
             </div>
-
-            <button
-              onClick={handleOpenConfirm}
-              className={`w-full text-zinc-950 font-black py-5 rounded-[2rem] transition-all flex items-center justify-center gap-3 text-sm tracking-[0.2em] ${canCheckout ? "hover:scale-[1.02] hover:brightness-110 active:scale-95" : "cursor-not-allowed"}`}
-              style={canCheckout 
-                ? { backgroundColor: accent, boxShadow: `0 20px 40px -10px ${accent}60` }
-                : { backgroundColor: accent, opacity: 0.3 }
-              }
-            >
-              <ShieldCheck className="w-5 h-5" />
-              {canCheckout ? "BAYAR SEKARANG" : "LENGKAPI DATA"}
-            </button>
           </div>
         </section>
-          </>
-        )}
+
+        {/* DESKTOP CHECKOUT SUMMARY BUTTON (Only visible on desktop) */}
+        <div className={`hidden lg:block rounded-3xl p-6 transition-all duration-500 shadow-2xl ${
+          canCheckout ? "opacity-100 scale-100" : "opacity-40 grayscale pointer-events-none scale-[0.98]"
+        }`} style={{ backgroundColor: `${accent}10`, border: `1px solid ${accent}20` }}>
+           
+           <h4 className="text-xs font-black uppercase tracking-widest text-white/40 mb-4">Ringkasan Pembelian</h4>
+           
+           <div className="space-y-3 mb-5 border-b border-white/10 pb-5">
+             <div className="flex justify-between items-center text-xs">
+               <span className="font-bold text-white/50">Game</span>
+               <span className="font-black text-white">{game.name}</span>
+             </div>
+             
+             <div className="flex justify-between items-center text-xs">
+               <span className="font-bold text-white/50">Item</span>
+               <span className="font-black text-white">{selectedProduct ? getCleanProductName(selectedProduct.name) : "-"}</span>
+             </div>
+
+             {selectedPayment && paymentFee > 0 && (
+               <div className="flex justify-between items-center text-xs">
+                 <span className="font-bold text-white/50">Biaya Admin</span>
+                 <span className="font-black text-white">{formatIDR(paymentFee)}</span>
+               </div>
+             )}
+           </div>
+
+           <div className="flex justify-between items-end mb-6">
+             <span className="text-sm font-black text-white/60">Total</span>
+             <span className="text-2xl font-black leading-none" style={{ color: accent }}>
+               {finalPrice ? formatIDR(finalPrice) : (selectedProduct ? formatIDR(selectedProduct.displayPrice) : "Rp 0")}
+             </span>
+           </div>
+           
+           <button
+             onClick={handleOpenConfirm}
+             disabled={!canCheckout}
+             className="w-full py-4 rounded-2xl font-black text-zinc-950 uppercase tracking-widest flex items-center justify-center gap-2 hover:brightness-110 active:scale-95 transition-all shadow-xl"
+             style={{ backgroundColor: accent, opacity: canCheckout ? 1 : 0.5 }}
+           >
+             <ShieldCheck className="w-5 h-5" />
+             Beli Sekarang
+           </button>
+        </div>
       </div>
+
+    </div>
 
       {/* ══════════════════════════════════════════════════════════════════════
           PREMIUM FLOATING SUMMARY BAR (Ditusi Style)
@@ -520,7 +495,7 @@ export default function CheckoutClient({ game, groupedByCategory, paymentGroups 
             initial={{ y: 150 }}
             animate={{ y: 0 }}
             exit={{ y: 150 }}
-            className="fixed bottom-[100px] sm:bottom-[110px] left-1/2 -translate-x-1/2 z-[50] w-[95%] max-w-4xl pb-safe"
+            className="fixed lg:hidden bottom-[100px] sm:bottom-[110px] left-1/2 -translate-x-1/2 z-[50] w-[95%] max-w-4xl pb-safe"
           >
             <div className="bg-zinc-900/90 backdrop-blur-xl border border-white/10 rounded-[2rem] p-3 pl-6 shadow-[0_20px_40px_-12px_rgba(0,0,0,0.6)] flex items-center justify-between gap-4">
               <div className="hidden sm:flex items-center gap-4 min-w-0">
@@ -538,7 +513,9 @@ export default function CheckoutClient({ game, groupedByCategory, paymentGroups 
               
               <div className="flex items-center gap-6 pr-2">
                 <div className="text-right">
-                  <p className="text-[10px] font-black text-white/30 uppercase tracking-widest leading-none mb-1">Total Pembayaran</p>
+                  <p className="text-[10px] font-black text-white/30 uppercase tracking-widest leading-none mb-1">
+                    Total {selectedPayment && paymentFee > 0 && <span className="normal-case text-white/50">(+fee)</span>}
+                  </p>
                   <p 
                     className="text-xl font-black tracking-tighter"
                     style={{ color: accent }}
