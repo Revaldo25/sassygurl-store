@@ -23,6 +23,7 @@ import {
   ShieldCheck,
   Activity,
   Zap,
+  LogOut,
 } from "lucide-react";
 import { formatIDR } from "@/lib/catalog";
 import {
@@ -301,6 +302,20 @@ export default function AdminDashboardClient({ initialStats, initialTransactions
               <span className="text-[10px] font-black uppercase tracking-[0.4em] text-sakura">ADMIN COMMAND CENTER</span>
             </div>
             <h1 className="text-4xl font-black tracking-tighter text-white md:text-5xl">Dashboard Sultan</h1>
+          </div>
+
+          <div className="flex gap-3">
+            <button
+              onClick={async () => {
+                const { logoutAction } = await import("@/app/actions/auth");
+                await logoutAction();
+                window.location.href = "/auth/login";
+              }}
+              className="flex items-center gap-2 rounded-2xl border border-red-500/20 bg-red-500/5 px-6 py-3 text-xs font-bold text-red-400 transition hover:bg-red-500/10 active:scale-95"
+            >
+              <LogOut className="h-4 w-4" />
+              Keluar
+            </button>
           </div>
         </motion.div>
 

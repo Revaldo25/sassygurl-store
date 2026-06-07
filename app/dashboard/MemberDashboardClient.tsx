@@ -20,6 +20,7 @@ import {
   Zap,
   Gamepad2,
   Star,
+  LogOut,
 } from "lucide-react";
 import { formatIDR, featuredGames } from "@/lib/catalog";
 import {
@@ -246,8 +247,16 @@ export default function MemberDashboardClient({ initialStats, initialTransaction
             <button className="group flex flex-1 justify-center rounded-2xl border border-white/5 bg-zinc-900/50 p-4 text-zinc-400 backdrop-blur-xl transition-all hover:border-sakura/30 hover:text-sakura md:flex-none">
               <Bell className="h-5 w-5 group-hover:animate-bounce" />
             </button>
-            <button className="flex flex-1 justify-center rounded-2xl border border-white/5 bg-zinc-900/50 p-4 text-zinc-400 backdrop-blur-xl transition-all hover:border-white/20 hover:text-white md:flex-none">
-              <Settings className="h-5 w-5" />
+            <button 
+              onClick={async () => {
+                const { logoutAction } = await import("@/app/actions/auth");
+                await logoutAction();
+                window.location.href = "/auth/login";
+              }}
+              className="flex flex-1 justify-center rounded-2xl border border-red-500/10 bg-red-500/5 p-4 text-red-400 backdrop-blur-xl transition-all hover:bg-red-500/10 hover:text-red-300 md:flex-none"
+              title="Keluar"
+            >
+              <LogOut className="h-5 w-5" />
             </button>
           </div>
         </motion.div>

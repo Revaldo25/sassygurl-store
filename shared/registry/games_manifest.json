@@ -1,127 +1,174 @@
 {
   "_fallbacks": {
     "icon": "/images/fallbacks/game-default-icon.svg",
-    "banner": "/images/fallbacks/game-default-banner.jpg",
+    "banner": "/images/fallbacks/game-default.webp",
     "og": "/images/fallbacks/og-default.webp"
   },
   "mlbb": {
-    "hero": "/images/games/mlbb/banner.jpg",
-    "thumbnail": "/images/games/mlbb/icon.png",
-    "logo": "/images/games/mlbb/icon.png",
-    "accent": "#FDB0C0"
+    "accent": "#FDB0C0",
+    "banner": "/images/games/mlbb/banner.avif",
+    "banner_fallback": "/images/games/mlbb/banner.webp",
+    "og": "/images/games/mlbb/og.avif",
+    "og_fallback": "/images/games/mlbb/og.webp",
+    "icon": "/images/games/mlbb/icon.webp"
   },
   "ff": {
-    "hero": "/images/games/ff/banner.jpg",
-    "thumbnail": "/images/games/ff/icon.jpg",
-    "logo": "/images/games/ff/icon.jpg",
-    "accent": "#FF6B35"
+    "accent": "#FF6B35",
+    "banner": "/images/games/ff/banner.avif",
+    "banner_fallback": "/images/games/ff/banner.webp",
+    "og": "/images/games/ff/og.avif",
+    "og_fallback": "/images/games/ff/og.webp",
+    "icon": "/images/games/ff/icon.webp"
   },
   "pubg": {
-    "hero": "/images/games/pubg/banner.jpg",
-    "thumbnail": "/images/games/pubg/icon.svg",
-    "logo": "/images/games/pubg/icon.svg",
-    "accent": "#F0C040"
+    "accent": "#F0C040",
+    "banner": "/images/games/pubg/banner.avif",
+    "banner_fallback": "/images/games/pubg/banner.webp",
+    "og": "/images/games/pubg/og.avif",
+    "og_fallback": "/images/games/pubg/og.webp",
+    "icon": "/images/games/pubg/icon.svg"
   },
   "genshin": {
-    "hero": "/images/games/genshin/banner.jpg",
-    "thumbnail": "/images/games/genshin/icon.jpg",
-    "logo": "/images/games/genshin/icon.jpg",
-    "accent": "#A8E6CF"
+    "accent": "#A8E6CF",
+    "banner": "/images/games/genshin/banner.avif",
+    "banner_fallback": "/images/games/genshin/banner.webp",
+    "og": "/images/games/genshin/og.avif",
+    "og_fallback": "/images/games/genshin/og.webp",
+    "icon": "/images/games/genshin/icon.webp"
   },
   "hsr": {
-    "hero": "/images/games/hsr/banner.jpg",
-    "thumbnail": "/images/games/hsr/icon.webp",
-    "logo": "/images/games/hsr/icon.webp",
-    "accent": "#7EC8E3"
+    "accent": "#7EC8E3",
+    "banner": "/images/games/hsr/banner.avif",
+    "banner_fallback": "/images/games/hsr/banner.webp",
+    "og": "/images/games/hsr/og.avif",
+    "og_fallback": "/images/games/hsr/og.webp",
+    "icon": "/images/games/hsr/icon.webp"
   },
   "zzz": {
-    "hero": "/images/games/zzz/banner.png",
-    "thumbnail": "/images/games/zzz/icon.webp",
-    "logo": "/images/games/zzz/icon.webp",
-    "accent": "#C084FC"
+    "accent": "#C084FC",
+    "banner": "/images/games/zzz/banner.avif",
+    "banner_fallback": "/images/games/zzz/banner.webp",
+    "og": "/images/games/zzz/og.avif",
+    "og_fallback": "/images/games/zzz/og.webp",
+    "icon": "/images/games/zzz/icon.webp"
   },
   "arknights-endfield": {
-    "hero": "/images/games/arknights-endfield/banner.jpg",
-    "thumbnail": "/images/games/arknights-endfield/icon.jpg",
-    "logo": "/images/games/arknights-endfield/icon.jpg",
-    "accent": "#A78BFA"
+    "accent": "#A78BFA",
+    "banner": "/images/games/arknights-endfield/banner.avif",
+    "banner_fallback": "/images/games/arknights-endfield/banner.webp",
+    "og": "/images/games/arknights-endfield/og.avif",
+    "og_fallback": "/images/games/arknights-endfield/og.webp",
+    "icon": "/images/games/arknights-endfield/icon.webp"
   },
   "hok": {
-    "hero": "/images/games/hok/banner.png",
-    "thumbnail": "/images/games/hok/icon.jpg",
-    "logo": "/images/games/hok/icon.jpg",
-    "accent": "#F59E0B"
+    "accent": "#F59E0B",
+    "banner": "/images/games/hok/banner.avif",
+    "banner_fallback": "/images/games/hok/banner.webp",
+    "og": "/images/games/hok/og.avif",
+    "og_fallback": "/images/games/hok/og.webp",
+    "icon": "/images/games/hok/icon.webp"
   },
   "valorant": {
-    "hero": "/images/games/valorant/banner.webp",
-    "thumbnail": "/images/games/valorant/icon.jpg",
-    "logo": "/images/games/valorant/icon.jpg",
-    "accent": "#FF4655"
+    "accent": "#FF4655",
+    "banner": "/images/games/valorant/banner.avif",
+    "banner_fallback": "/images/games/valorant/banner.webp",
+    "og": "/images/games/valorant/og.avif",
+    "og_fallback": "/images/games/valorant/og.webp",
+    "icon": "/images/games/valorant/icon.webp"
   },
   "roblox": {
-    "hero": "/images/games/roblox/banner.jpg",
-    "thumbnail": "/images/games/roblox/icon.png",
-    "logo": "/images/games/roblox/icon.png",
-    "accent": "#E11D48"
+    "accent": "#E11D48",
+    "banner": "/images/games/roblox/banner.avif",
+    "banner_fallback": "/images/games/roblox/banner.webp",
+    "og": "/images/games/roblox/og.avif",
+    "og_fallback": "/images/games/roblox/og.webp",
+    "icon": "/images/games/roblox/icon.webp"
   },
   "steam-wallet": {
-    "hero": "/images/games/steam-wallet/banner.png",
-    "thumbnail": "/images/games/steam-wallet/icon.png",
-    "logo": "/images/games/steam-wallet/icon.png",
-    "accent": "#1B2838"
+    "accent": "#1B2838",
+    "banner": "/images/games/steam-wallet/banner.avif",
+    "banner_fallback": "/images/games/steam-wallet/banner.webp",
+    "og": "/images/games/steam-wallet/og.avif",
+    "og_fallback": "/images/games/steam-wallet/og.webp",
+    "icon": "/images/games/steam-wallet/icon.webp"
   },
   "fc-mobile": {
-    "hero": "/images/games/fc-mobile/banner.png",
-    "thumbnail": "/images/games/fc-mobile/icon.png",
-    "logo": "/images/games/fc-mobile/icon.png",
-    "accent": "#00DF89"
+    "accent": "#00DF89",
+    "banner": "/images/games/fc-mobile/banner.avif",
+    "banner_fallback": "/images/games/fc-mobile/banner.webp",
+    "og": "/images/games/fc-mobile/og.avif",
+    "og_fallback": "/images/games/fc-mobile/og.webp",
+    "icon": "/images/games/fc-mobile/icon.webp"
   },
   "delta-force": {
-    "hero": "/images/games/delta-force/banner.png",
-    "thumbnail": "/images/games/delta-force/icon.png",
-    "logo": "/images/games/delta-force/icon.png",
-    "accent": "#2C5E43"
+    "accent": "#2C5E43",
+    "banner": "/images/games/delta-force/banner.avif",
+    "banner_fallback": "/images/games/delta-force/banner.webp",
+    "og": "/images/games/delta-force/og.avif",
+    "og_fallback": "/images/games/delta-force/og.webp",
+    "icon": "/images/games/delta-force/icon.webp"
   },
   "blood-strike": {
-    "hero": "/images/games/blood-strike/banner.png",
-    "thumbnail": "/images/games/blood-strike/icon.png",
-    "logo": "/images/games/blood-strike/icon.png",
-    "accent": "#FF8C00"
+    "accent": "#FF8C00",
+    "banner": "/images/games/blood-strike/banner.avif",
+    "banner_fallback": "/images/games/blood-strike/banner.webp",
+    "og": "/images/games/blood-strike/og.avif",
+    "og_fallback": "/images/games/blood-strike/og.webp",
+    "icon": "/images/games/blood-strike/icon.webp"
   },
   "wuwa": {
-    "hero": "/images/games/wuwa/banner.jpg",
-    "thumbnail": "/images/games/wuwa/icon.webp",
-    "logo": "/images/games/wuwa/icon.webp",
-    "accent": "#60A5FA"
+    "accent": "#60A5FA",
+    "banner": "/images/games/wuwa/banner.avif",
+    "banner_fallback": "/images/games/wuwa/banner.webp",
+    "og": "/images/games/wuwa/og.avif",
+    "og_fallback": "/images/games/wuwa/og.webp",
+    "icon": "/images/games/wuwa/icon.webp"
   },
   "nikke": {
-    "hero": "/images/games/nikke/banner.jpg",
-    "thumbnail": "/images/games/nikke/icon.jpg",
-    "logo": "/images/games/nikke/icon.jpg",
-    "accent": "#F472B6"
+    "accent": "#F472B6",
+    "banner": "/images/games/nikke/banner.avif",
+    "banner_fallback": "/images/games/nikke/banner.webp",
+    "og": "/images/games/nikke/og.avif",
+    "og_fallback": "/images/games/nikke/og.webp",
+    "icon": "/images/games/nikke/icon.webp"
   },
   "lol": {
-    "hero": "/images/games/lol/banner.jpg",
-    "thumbnail": "/images/games/lol/icon.jpg",
-    "logo": "/images/games/lol/icon.jpg",
-    "accent": "#C4B454"
+    "accent": "#C4B454",
+    "banner": "/images/games/lol/banner.avif",
+    "banner_fallback": "/images/games/lol/banner.webp",
+    "og": "/images/games/lol/og.avif",
+    "og_fallback": "/images/games/lol/og.webp",
+    "icon": "/images/games/lol/icon.webp"
   },
   "lolwr": {
-    "hero": "/images/games/lolwr/banner.png",
-    "thumbnail": "/images/games/lolwr/icon.jpg",
-    "logo": "/images/games/lolwr/icon.jpg",
-    "accent": "#22D3EE"
+    "accent": "#22D3EE",
+    "banner": "/images/games/lolwr/banner.avif",
+    "banner_fallback": "/images/games/lolwr/banner.webp",
+    "og": "/images/games/lolwr/og.avif",
+    "og_fallback": "/images/games/lolwr/og.webp",
+    "icon": "/images/games/lolwr/icon.webp"
   },
   "mccg": {
-    "hero": "/images/games/mccg/banner.png",
-    "thumbnail": "/images/games/mccg/icon.jpg",
-    "logo": "/images/games/mccg/icon.jpg",
-    "accent": "#60A5FA"
+    "accent": "#60A5FA",
+    "banner": "/images/games/mccg/banner.avif",
+    "banner_fallback": "/images/games/mccg/banner.webp",
+    "og": "/images/games/mccg/og.avif",
+    "og_fallback": "/images/games/mccg/og.webp",
+    "icon": "/images/games/mccg/icon.webp"
   },
   "aether-gazer": {
-    "hero": "/images/games/aether-gazer/banner.png",
-    "thumbnail": "/images/games/aether-gazer/icon.png",
-    "logo": "/images/games/aether-gazer/icon.png",
-    "accent": "#A78BFA"
+    "accent": "#A78BFA",
+    "banner": "/images/games/aether-gazer/banner.avif",
+    "banner_fallback": "/images/games/aether-gazer/banner.webp",
+    "og": "/images/games/aether-gazer/og.avif",
+    "og_fallback": "/images/games/aether-gazer/og.webp",
+    "icon": "/images/games/aether-gazer/icon.webp"
+  },
+  "pubgm": {
+    "banner": "/images/games/pubgm/banner.avif",
+    "banner_fallback": "/images/games/pubgm/banner.webp",
+    "og": "/images/games/pubgm/og.avif",
+    "og_fallback": "/images/games/pubgm/og.webp",
+    "icon": "/images/games/pubgm/icon.webp"
   }
 }
