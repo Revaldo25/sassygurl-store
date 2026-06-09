@@ -496,7 +496,7 @@ export default function AdminDashboardClient({ initialStats, initialTransactions
                       disabled={isPending}
                       className={`whitespace-nowrap rounded-xl px-5 py-2.5 text-[10px] font-black uppercase tracking-[0.2em] transition-all ${
                         filter === tab
-                          ? "bg-white text-zinc-950 shadow-lg"
+                          ? "bg-zinc-800 text-white border border-white/10"
                           : "border border-white/5 bg-zinc-900/50 text-zinc-500 hover:bg-zinc-800 hover:text-white"
                       }`}
                     >
@@ -520,10 +520,10 @@ export default function AdminDashboardClient({ initialStats, initialTransactions
                       <th className="px-6 py-4 text-center">Aksi</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-white/5">
+                  <tbody>
                     {transactions.map((tx) => (
-                      <tr key={tx.id} className="group transition-colors hover:bg-white/[0.02]">
-                        <td className="px-6 py-5">
+                      <tr key={tx.id} className="group transition-colors hover:bg-[#1a1a1e] border-b border-white/[0.02] last:border-0">
+                        <td className="px-5 py-4">
                           <div className="font-mono text-xs font-black text-white transition-colors group-hover:text-sakura">
                             {tx.invoiceId}
                           </div>
@@ -531,25 +531,25 @@ export default function AdminDashboardClient({ initialStats, initialTransactions
                             {new Date(tx.createdAt).toLocaleDateString("id-ID")}
                           </div>
                         </td>
-                        <td className="px-6 py-5">
+                        <td className="px-5 py-4">
                           <div className="text-xs font-bold text-zinc-200">{tx.gameName}</div>
                           <div className="mt-0.5 text-[10px] italic text-zinc-500">{tx.productName}</div>
                         </td>
-                        <td className="px-6 py-5">
+                        <td className="px-5 py-4">
                           <span className="font-mono text-xs text-zinc-400">{tx.targetId}</span>
                         </td>
-                        <td className="px-6 py-5 text-center">
+                        <td className="px-5 py-4 text-center">
                           <AdminStatusBadge status={tx.orderStatus} />
                         </td>
-                        <td className="px-6 py-5 text-right text-sm font-black text-white">
+                        <td className="px-5 py-4 text-right font-mono text-sm text-zinc-200">
                           {formatIDR(tx.amount)}
                         </td>
                         {isOwner && (
-                          <td className="px-6 py-5 text-right text-sm font-bold text-emerald-400">
+                          <td className="px-5 py-4 text-right font-mono text-sm text-emerald-400">
                             +{formatIDR(tx.profit)}
                           </td>
                         )}
-                        <td className="px-6 py-5 text-center">
+                        <td className="px-5 py-4 text-center">
                           <div className="flex items-center justify-center gap-2">
                             {tx.orderStatus === "PENDING" && (
                               <button
@@ -671,9 +671,9 @@ export default function AdminDashboardClient({ initialStats, initialTransactions
                         <th className="px-6 py-4 text-center">Aksi</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-white/5">
+                    <tbody>
                       {games.map((game) => (
-                        <tr key={game.id} className="group transition-colors hover:bg-white/[0.02]">
+                        <tr key={game.id} className="group transition-colors hover:bg-[#1a1a1e] border-b border-white/[0.02] last:border-0">
                           <td className="px-6 py-4">
                             <div className="flex items-center gap-3">
                               <div className="h-8 w-8 rounded-lg bg-zinc-800 flex items-center justify-center text-zinc-500 overflow-hidden">
@@ -736,7 +736,7 @@ export default function AdminDashboardClient({ initialStats, initialTransactions
                       initial={{ opacity: 0, scale: 0.95 }}
                       animate={{ opacity: 1, scale: 1 }}
                       exit={{ opacity: 0, scale: 0.95 }}
-                      className="w-full max-w-lg rounded-[2.5rem] border border-white/10 bg-zinc-900 p-8 shadow-2xl max-h-[90vh] overflow-y-auto"
+                      className="w-full max-w-lg rounded-2xl border border-white/5 bg-zinc-950 p-6 shadow-2xl max-h-[90vh] overflow-y-auto"
                     >
                       <h2 className="mb-6 text-xl font-black text-white">
                         {editingGame ? "Edit Game" : "Tambah Game Baru"}
