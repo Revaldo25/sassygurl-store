@@ -207,10 +207,10 @@ export default function MemberDashboardClient({ initialStats, initialTransaction
   };
 
   return (
-    <div className="relative min-h-screen overflow-hidden px-4 pb-20 pt-8 sm:px-6">
+    <div className="relative min-h-screen overflow-hidden bg-[#050508] px-4 pb-20 pt-8 sm:px-6">
       {/* Background Decorations */}
-      <div className="pointer-events-none fixed right-0 top-0 h-[500px] w-[500px] rounded-full bg-sakura/5 blur-[120px]" />
-      <div className="pointer-events-none fixed bottom-0 left-0 h-[500px] w-[500px] rounded-full bg-brand-cyan/5 blur-[120px]" />
+      
+      
 
       <motion.div
         variants={container}
@@ -222,20 +222,20 @@ export default function MemberDashboardClient({ initialStats, initialTransaction
         <motion.div variants={item} className="mb-12 flex flex-col justify-between gap-6 md:flex-row md:items-end">
           <div className="flex items-center gap-6">
             <div className="relative group">
-              <div className="absolute -inset-1 rounded-2xl bg-gradient-to-r from-sakura to-brand-cyan opacity-25 blur transition duration-1000 group-hover:opacity-50" />
+              
               <div className="relative flex h-20 w-20 items-center justify-center overflow-hidden rounded-2xl border border-white/10 bg-zinc-900">
                 <Crown className="h-8 w-8 text-sakura" />
               </div>
             </div>
             <div>
               <div className="mb-1 flex items-center gap-2">
-                <span className="text-[10px] font-black uppercase tracking-[0.4em] text-sakura">
+                <span className="text-xs font-black uppercase tracking-widest text-sakura">
                   {stats.loyaltyLevel}
                 </span>
               </div>
               <h1 className="flex items-center gap-3 text-4xl font-black uppercase tracking-tighter text-white">
                 Dashboard
-                <Star className="h-6 w-6 animate-pulse fill-sakura/20 text-sakura" />
+                <Star className="h-6 w-6  fill-sakura/20 text-sakura" />
               </h1>
               <p className="mt-1 text-xs font-bold uppercase tracking-widest text-zinc-500">
                 Member Panel
@@ -244,7 +244,7 @@ export default function MemberDashboardClient({ initialStats, initialTransaction
           </div>
 
           <div className="flex w-full gap-3 md:w-auto">
-            <button className="group flex flex-1 justify-center rounded-2xl border border-white/5 bg-zinc-900/50 p-4 text-zinc-400 backdrop-blur-xl transition-all hover:border-sakura/30 hover:text-sakura md:flex-none">
+            <button className="group flex flex-1 justify-center rounded-2xl border border-white/10 bg-zinc-900/50 p-4 text-zinc-400 backdrop-blur-xl transition-all hover:border-sakura/30 hover:text-sakura md:flex-none">
               <Bell className="h-5 w-5 group-hover:animate-bounce" />
             </button>
             <button 
@@ -265,25 +265,25 @@ export default function MemberDashboardClient({ initialStats, initialTransaction
         <div className="mb-12 grid gap-6 lg:grid-cols-3">
           
           {/* PROFILE CARD - GLASSMORPHISM */}
-          <motion.div variants={item} className="group relative overflow-hidden rounded-[2.5rem] border border-white/5 bg-gradient-to-br from-white/[0.03] to-transparent p-8 backdrop-blur-3xl shadow-[0_20px_50px_rgba(0,0,0,0.3)] transition-all hover:border-sakura/20">
-             <div className="absolute -right-20 -top-20 h-64 w-64 rounded-full bg-sakura/5 blur-[80px] group-hover:bg-sakura/10 transition-all duration-700" />
+          <motion.div variants={item} className="group relative overflow-hidden rounded-[2.5rem] border border-white/10 bg-gradient-to-br from-white/[0.03] to-transparent p-8  shadow-sm transition-all hover:border-sakura/20">
+             
              <div className="relative z-10 flex flex-col items-center text-center">
-                <div className="relative mb-6 h-28 w-28 p-1 rounded-full bg-gradient-to-tr from-sakura via-white/20 to-transparent shadow-[0_0_30px_rgba(253,176,192,0.2)]">
+                <div className="relative mb-6 h-28 w-28 p-1 rounded-full bg-gradient-to-tr from-sakura via-white/20 to-transparent ">
                   <div className="h-full w-full overflow-hidden rounded-full border-2 border-zinc-950 bg-zinc-900">
                     <img src={session?.user?.image || "/images/default-avatar.png"} alt="Avatar" className="h-full w-full object-cover" />
                   </div>
                   <div className="absolute bottom-1 right-1 h-6 w-6 rounded-full border-2 border-zinc-950 bg-emerald-500 shadow-lg" />
                 </div>
                 <h3 className="text-2xl font-black text-white tracking-tighter">{session?.user?.name || "Sultan"}</h3>
-                <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-zinc-500 mt-1">{session?.user?.email}</p>
+                <p className="text-xs font-bold uppercase tracking-wider text-zinc-500 mt-1">{session?.user?.email}</p>
                 
                 <div className="mt-8 flex w-full gap-2">
-                  <div className="flex-1 rounded-2xl bg-white/[0.03] border border-white/5 p-3">
-                    <p className="text-[8px] font-black uppercase text-zinc-600 mb-1">Joined</p>
+                  <div className="flex-1 rounded-2xl bg-white/[0.03] border border-white/10 p-3">
+                    <p className="text-xs font-black uppercase text-zinc-600 mb-1">Joined</p>
                     <p className="text-xs font-black text-white">May 2026</p>
                   </div>
                   <div className="flex-1 rounded-2xl bg-sakura/10 border border-sakura/20 p-3">
-                    <p className="text-[8px] font-black uppercase text-sakura mb-1">Status</p>
+                    <p className="text-xs font-black uppercase text-sakura mb-1">Status</p>
                     <p className="text-xs font-black text-white uppercase tracking-tighter">Verified</p>
                   </div>
                 </div>
@@ -293,21 +293,21 @@ export default function MemberDashboardClient({ initialStats, initialTransaction
           {/* STATS GRID */}
           <div className="grid gap-4 lg:col-span-2 sm:grid-cols-2">
             {[
-              { label: "Saldo SassyGurl", value: formatIDR(stats.balance), icon: Wallet, color: "text-sakura", shadow: "shadow-[0_0_30px_rgba(236,72,153,0.15)]" },
-              { label: "Total Points", value: `${stats.points.toLocaleString("id-ID")} XP`, icon: TrendingUp, color: "text-brand-cyan", shadow: "shadow-[0_0_30px_rgba(34,211,238,0.15)]" },
-              { label: "Total Transaksi", value: `${stats.totalOrders} Transaksi`, icon: Box, color: "text-emerald-400", shadow: "shadow-[0_0_30px_rgba(52,211,153,0.15)]" },
-              { label: "Loyalty Level", value: stats.loyaltyLevel, icon: Crown, color: "text-amber-400", shadow: "shadow-[0_0_30px_rgba(251,191,36,0.15)]" },
+              { label: "Saldo SassyGurl", value: formatIDR(stats.balance), icon: Wallet, color: "text-sakura", shadow: "" },
+              { label: "Total Points", value: `${stats.points.toLocaleString("id-ID")} XP`, icon: TrendingUp, color: "text-brand-cyan", shadow: "" },
+              { label: "Total Transaksi", value: `${stats.totalOrders} Transaksi`, icon: Box, color: "text-emerald-400", shadow: "" },
+              { label: "Loyalty Level", value: stats.loyaltyLevel, icon: Crown, color: "text-amber-400", shadow: "" },
             ].map((stat, i) => (
               <motion.div
                 key={i}
                 variants={item}
                 whileHover={{ y: -5, scale: 1.02 }}
-                className={`group relative overflow-hidden rounded-[2rem] border border-white/5 bg-zinc-900/40 p-6 backdrop-blur-2xl transition-all ${stat.shadow}`}
+                className={`group relative overflow-hidden rounded-[2rem] border border-white/10 bg-zinc-900 p-6  transition-all ${stat.shadow}`}
               >
                 <div className={`absolute right-[-10%] top-[-10%] p-8 opacity-10 transition-opacity group-hover:opacity-20 ${stat.color}`}>
                   <stat.icon size={80} />
                 </div>
-                <p className="mb-2 text-[10px] font-black uppercase tracking-[0.3em] text-zinc-500">{stat.label}</p>
+                <p className="mb-2 text-xs font-black uppercase tracking-wider text-zinc-500">{stat.label}</p>
                 <h3 className="text-2xl font-black tracking-tight text-white">{stat.value}</h3>
               </motion.div>
             ))}
@@ -318,8 +318,8 @@ export default function MemberDashboardClient({ initialStats, initialTransaction
         <div className="mb-12 grid gap-6 lg:grid-cols-2">
           
           {/* QUICK TRACKING */}
-          <motion.div variants={item} className="rounded-[2.5rem] border border-white/5 bg-zinc-900/30 p-8 backdrop-blur-2xl shadow-xl">
-            <h3 className="mb-6 flex items-center gap-3 text-sm font-black uppercase tracking-[0.2em] text-white">
+          <motion.div variants={item} className="rounded-[2.5rem] border border-white/10 bg-zinc-900 p-8  shadow-xl">
+            <h3 className="mb-6 flex items-center gap-3 text-sm font-black uppercase tracking-wider text-white">
               <Search className="h-5 w-5 text-sakura" /> Lacak Pesanan (Quick Tracking)
             </h3>
             <div className="relative flex items-center">
@@ -337,21 +337,21 @@ export default function MemberDashboardClient({ initialStats, initialTransaction
           </motion.div>
 
           {/* LAST 3 TRANSACTIONS (STATUS PESANAN TERAKHIR) */}
-          <motion.div variants={item} className="rounded-[2.5rem] border border-white/5 bg-zinc-900/30 p-8 backdrop-blur-2xl shadow-xl">
+          <motion.div variants={item} className="rounded-[2.5rem] border border-white/10 bg-zinc-900 p-8  shadow-xl">
              <div className="mb-6 flex items-center justify-between">
-                <h3 className="flex items-center gap-3 text-sm font-black uppercase tracking-[0.2em] text-white">
+                <h3 className="flex items-center gap-3 text-sm font-black uppercase tracking-wider text-white">
                   <Clock className="h-5 w-5 text-sakura" /> Pesanan Terakhir
                 </h3>
-                <Link href="#history" className="text-[10px] font-bold uppercase tracking-widest text-sakura hover:underline">
+                <Link href="#history" className="text-xs font-bold uppercase tracking-widest text-sakura hover:underline">
                   Lihat Semua
                 </Link>
              </div>
              <div className="space-y-4">
                {transactions.slice(0, 5).map(tx => (
-                 <div key={tx.id} className="flex items-center justify-between rounded-2xl border border-white/5 bg-white/[0.02] p-4 transition-colors hover:bg-white/[0.05]">
+                 <div key={tx.id} className="flex items-center justify-between rounded-2xl border border-white/10 bg-white/[0.02] p-4 transition-colors hover:bg-white/[0.05]">
                     <div>
                       <p className="text-xs font-black text-white">{tx.gameName}</p>
-                      <p className="text-[10px] text-zinc-500">{tx.invoiceId}</p>
+                      <p className="text-xs text-zinc-500">{tx.invoiceId}</p>
                     </div>
                     <StatusBadge status={tx.paymentStatus} />
                  </div>
@@ -369,7 +369,7 @@ export default function MemberDashboardClient({ initialStats, initialTransaction
             <h2 className="flex items-center gap-3 text-xl font-black uppercase tracking-widest text-white">
               <Gamepad2 className="text-sakura" /> Quick Top-Up
             </h2>
-            <Link href="/" className="text-[10px] font-black uppercase tracking-widest text-zinc-500 transition-colors hover:text-white">
+            <Link href="/" className="text-xs font-black uppercase tracking-widest text-zinc-500 transition-colors hover:text-white">
               Lihat Semua
             </Link>
           </div>
@@ -379,7 +379,7 @@ export default function MemberDashboardClient({ initialStats, initialTransaction
               <Link
                 key={game.slug}
                 href={`/game/${game.slug}`}
-                className="group flex cursor-pointer flex-col items-center gap-4 rounded-3xl border border-white/5 bg-zinc-900/40 p-6 text-center transition-all hover:bg-zinc-800/50"
+                className="group flex cursor-pointer flex-col items-center gap-4 rounded-3xl border border-white/10 bg-zinc-900 p-6 text-center transition-all hover:bg-zinc-800/50"
               >
                 <div className="relative h-16 w-16 overflow-hidden rounded-2xl border border-white/10 transition-all group-hover:border-sakura/50">
                   <div
@@ -399,11 +399,11 @@ export default function MemberDashboardClient({ initialStats, initialTransaction
         </motion.div>
 
         {/* ═══════════════ TRANSACTION HISTORY ═══════════════ */}
-        <motion.div id="history" variants={item} className="overflow-hidden rounded-[3rem] border border-white/5 bg-zinc-900/20 shadow-2xl backdrop-blur-3xl">
+        <motion.div id="history" variants={item} className="overflow-hidden rounded-[3rem] border border-white/10 bg-zinc-900 shadow-2xl ">
           {/* Header + Search */}
-          <div className="space-y-8 border-b border-white/5 bg-white/[0.02] p-8 sm:p-10">
+          <div className="space-y-8 border-b border-white/10 bg-white/[0.02] p-8 sm:p-10">
             <div className="flex flex-col items-start justify-between gap-6 sm:flex-row sm:items-center">
-              <h2 className="flex items-center gap-3 text-sm font-black uppercase tracking-[0.3em] text-white">
+              <h2 className="flex items-center gap-3 text-sm font-black uppercase tracking-wider text-white">
                 <History className="h-5 w-5 text-sakura" /> Riwayat Transaksi
               </h2>
               <div className="group relative w-full sm:w-80">
@@ -425,10 +425,10 @@ export default function MemberDashboardClient({ initialStats, initialTransaction
                   key={tab}
                   onClick={() => handleFilterChange(tab)}
                   disabled={isPending}
-                  className={`whitespace-nowrap rounded-xl px-6 py-3 text-[10px] font-black uppercase tracking-[0.2em] transition-all duration-300 ${
+                  className={`whitespace-nowrap rounded-xl px-6 py-3 text-xs font-black uppercase tracking-wider transition-all duration-300 ${
                     filter === tab
-                      ? "bg-white text-zinc-950 shadow-[0_10px_20px_rgba(255,255,255,0.1)]"
-                      : "border border-white/5 bg-zinc-900/50 text-zinc-500 hover:bg-zinc-800 hover:text-white"
+                      ? "bg-white text-zinc-950 shadow-sm"
+                      : "border border-white/10 bg-zinc-900/50 text-zinc-500 hover:bg-zinc-800 hover:text-white"
                   }`}
                 >
                   {tab === "ALL" ? "Semua" : tab}
@@ -449,7 +449,7 @@ export default function MemberDashboardClient({ initialStats, initialTransaction
                 >
                   {/* Desktop Table */}
                   <table className="hidden w-full text-left md:table">
-                    <thead className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-600">
+                    <thead className="text-xs font-black uppercase tracking-wider text-zinc-600">
                       <tr>
                         <th className="px-8 py-6">Invoice / Tanggal</th>
                         <th className="px-8 py-6">Game & Produk</th>
@@ -463,13 +463,13 @@ export default function MemberDashboardClient({ initialStats, initialTransaction
                         <tr key={tx.id} className="group transition-colors hover:bg-white/[0.02]">
                           <td className="px-8 py-6">
                             <div className="font-mono text-xs font-black text-white transition-colors group-hover:text-sakura">{tx.invoiceId}</div>
-                            <div className="mt-1 text-[10px] font-bold uppercase tracking-tighter text-zinc-600">
+                            <div className="mt-1 text-xs font-bold uppercase tracking-tighter text-zinc-600">
                               {new Date(tx.createdAt).toLocaleDateString("id-ID", { day: "2-digit", month: "short", year: "numeric" })}
                             </div>
                           </td>
                           <td className="px-8 py-6">
                             <div className="text-xs font-black uppercase tracking-tight text-zinc-200">{tx.gameName}</div>
-                            <div className="mt-1 text-[10px] font-bold italic text-zinc-500">{tx.productName}</div>
+                            <div className="mt-1 text-xs font-bold italic text-zinc-500">{tx.productName}</div>
                           </td>
                           <td className="px-8 py-6 text-center">
                             <StatusBadge status={tx.paymentStatus} />
@@ -480,7 +480,7 @@ export default function MemberDashboardClient({ initialStats, initialTransaction
                           <td className="px-8 py-6 text-center">
                             <Link
                               href={`/invoice/${tx.invoiceId}`}
-                              className="rounded-xl border border-white/5 bg-zinc-900 p-3 text-zinc-500 transition-all hover:border-sakura hover:text-white hover:shadow-[0_0_15px_rgba(253,176,192,0.2)]"
+                              className="rounded-xl border border-white/10 bg-zinc-900 p-3 text-zinc-500 transition-all hover:border-sakura hover:text-white hover:"
                             >
                               <ArrowUpRight className="h-4 w-4" />
                             </Link>
@@ -493,17 +493,17 @@ export default function MemberDashboardClient({ initialStats, initialTransaction
                   {/* Mobile Cards */}
                   <div className="space-y-4 p-4 md:hidden">
                     {transactions.map((tx) => (
-                      <div key={tx.id} className="space-y-5 rounded-3xl border border-white/5 bg-zinc-900/40 p-6">
+                      <div key={tx.id} className="space-y-5 rounded-3xl border border-white/10 bg-zinc-900 p-6">
                         <div className="flex items-start justify-between">
                           <div>
-                            <div className="text-[10px] font-black uppercase tracking-widest text-zinc-500">{tx.invoiceId}</div>
+                            <div className="text-xs font-black uppercase tracking-widest text-zinc-500">{tx.invoiceId}</div>
                             <div className="mt-1 text-sm font-black uppercase text-white">{tx.gameName}</div>
                           </div>
                           <StatusBadge status={tx.paymentStatus} />
                         </div>
-                        <div className="flex items-end justify-between border-t border-white/5 pt-4">
+                        <div className="flex items-end justify-between border-t border-white/10 pt-4">
                           <div>
-                            <div className="text-[10px] font-bold uppercase text-zinc-500">{tx.productName}</div>
+                            <div className="text-xs font-bold uppercase text-zinc-500">{tx.productName}</div>
                             <div className="mt-1 text-lg font-black tracking-tighter text-white">{formatIDR(tx.amount)}</div>
                           </div>
                           <Link
@@ -519,10 +519,10 @@ export default function MemberDashboardClient({ initialStats, initialTransaction
                 </motion.div>
               ) : (
                 <div className="space-y-4 py-20 text-center">
-                  <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full border border-white/5 bg-zinc-900">
+                  <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full border border-white/10 bg-zinc-900">
                     <Search className="h-6 w-6 text-zinc-700" />
                   </div>
-                  <p className="text-xs font-black uppercase tracking-[0.3em] text-zinc-600">
+                  <p className="text-xs font-black uppercase tracking-wider text-zinc-600">
                     Belum ada transaksi
                   </p>
                 </div>
@@ -538,12 +538,12 @@ export default function MemberDashboardClient({ initialStats, initialTransaction
 function StatusBadge({ status }: { status: string }) {
   const config =
     status === "PAID"
-      ? { color: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20", icon: CheckCircle2, label: "SUCCESS", glow: "shadow-[0_0_12px_rgba(16,185,129,0.4)]" }
+      ? { color: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20", icon: CheckCircle2, label: "SUCCESS", glow: "" }
       : status === "PROCESSING"
-        ? { color: "bg-blue-500/10 text-blue-400 border-blue-500/20", icon: Clock, label: "PROCESSING", glow: "shadow-[0_0_12px_rgba(59,130,246,0.4)]" }
+        ? { color: "bg-blue-500/10 text-blue-400 border-blue-500/20", icon: Clock, label: "PROCESSING", glow: "" }
         : status === "PENDING"
-          ? { color: "bg-amber-500/10 text-amber-400 border-amber-500/20", icon: Clock, label: "PENDING", glow: "shadow-[0_0_12px_rgba(245,158,11,0.3)]" }
-          : { color: "bg-red-500/10 text-red-400 border-red-500/20", icon: XCircle, label: "FAILED", glow: "shadow-[0_0_12px_rgba(239,68,68,0.3)]" };
+          ? { color: "bg-amber-500/10 text-amber-400 border-amber-500/20", icon: Clock, label: "PENDING", glow: "" }
+          : { color: "bg-red-500/10 text-red-400 border-red-500/20", icon: XCircle, label: "FAILED", glow: "" };
 
   return (
     <motion.span
