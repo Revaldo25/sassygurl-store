@@ -108,7 +108,7 @@ export default function PaymentAccordion({
               <button
                 onClick={() => toggleGroup(group.groupKey)}
                 aria-expanded={isOpen}
-                className="flex w-full items-center justify-between gap-4 px-5 py-4 text-left transition-colors hover:bg-white/[0.03] md:px-7"
+                className="flex w-full items-center justify-between gap-4 px-5 py-4 text-left transition-colors hover:bg-obsidian-surface md:px-7"
               >
                 <div className="flex items-center gap-3">
                   <span className="text-base">{group.countryFlag}</span>
@@ -161,10 +161,10 @@ export default function PaymentAccordion({
                             }}
                             title={`${method.name} — ${formatIDR(methodTotal)}`}
                             className={[
-                              "relative flex h-14 items-center justify-center overflow-hidden rounded-xl border px-3 transition-all duration-200",
+                              "relative flex h-14 items-center justify-center overflow-hidden rounded-xl border px-3 transition-all duration-300 group",
                               selected
-                                ? "border-sakura/60 bg-sakura/10 shadow-[0_0_16px_rgba(253,176,192,0.18)]"
-                                : "border-white/10 bg-white hover:border-white/30 hover:shadow-md",
+                                ? "border-sakura border-2 bg-white shadow-[0_0_20px_rgba(253,176,192,0.4)] scale-105 z-10"
+                                : "border-white/20 bg-white/95 hover:bg-white hover:border-sakura/50 hover:shadow-[0_4px_15px_rgba(253,176,192,0.2)] hover:-translate-y-1",
                             ].join(" ")}
                           >
                             <div className="relative h-8 w-14">
@@ -193,7 +193,7 @@ export default function PaymentAccordion({
 
                     {/* Selected method detail */}
                     {hasSelected && (
-                      <div className="mx-5 mb-4 rounded-2xl border border-white/10 bg-zinc-950/60 px-4 py-3 md:mx-7">
+                      <div className="mx-5 mb-4 rounded-2xl border border-obsidian-border bg-obsidian-surface shadow-inner px-4 py-3 md:mx-7">
                         {(() => {
                           const m = group.methods.find(m => m.code === selectedCode)!;
                           const mTotal =
@@ -264,7 +264,7 @@ export default function PaymentAccordion({
               }}
               onKeyDown={e => e.key === "Enter" && handleApplyPromo()}
               placeholder="Masukkan kode promo..."
-              className="flex-1 rounded-2xl border border-white/10 bg-zinc-950/60 px-4 py-3 text-sm text-white outline-none placeholder:text-white/25 focus:border-sakura/40 transition-colors"
+              className="flex-1 rounded-2xl border border-obsidian-border bg-obsidian-surface shadow-inner px-4 py-3 text-sm text-white outline-none placeholder:text-white/25 focus:border-sakura/40 transition-colors"
             />
             <button
               onClick={handleApplyPromo}
