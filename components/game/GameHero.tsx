@@ -22,70 +22,89 @@ export default function GameHero({
   isHot,
   productCount,
 }: Props) {
+  // Use SassyGurl Sakura pink as fallback if accent is missing or too generic
+  const glowColor = accent || "#FDB0C0";
+
   return (
-    <section className="relative border-b border-white/5 bg-[#09090b] h-[120px] md:h-[160px] flex items-end pb-4 md:pb-6">
-      {/* ═══ Background Banner ═══ */}
-      <div className="absolute inset-0 z-0 overflow-hidden">
+    <section className="relative bg-obsidian flex items-end pt-24 pb-8 md:pb-12 min-h-[220px] md:min-h-[280px] overflow-hidden">
+      {/* ═══ Immersive Background Banner ═══ */}
+      <div className="absolute inset-0 z-0 overflow-hidden pointer-events-none">
         <Image
           src={banner}
           alt={`${name} banner`}
           fill
           sizes="100vw"
-          className="object-cover opacity-30 object-top"
+          className="object-cover opacity-20 object-top blur-sm scale-105"
           priority
         />
-        {/* Gradient overlay to ensure text readability */}
-        <div className="absolute inset-0 bg-gradient-to-t from-[#09090b] via-[#09090b]/80 to-transparent" />
-        <div className="absolute inset-0 bg-gradient-to-r from-[#09090b] via-transparent to-transparent" />
+        {/* Soft radial glow reflecting the game's accent color */}
+        <div 
+          className="absolute inset-0 mix-blend-screen opacity-30" 
+          style={{ background: `radial-gradient(circle at 50% 30%, ${glowColor}80 0%, transparent 60%)` }} 
+        />
+        {/* Deep gradient overlays for blending into the body */}
+        <div className="absolute inset-0 bg-gradient-to-t from-obsidian via-obsidian/80 to-transparent" />
+        <div className="absolute inset-0 bg-gradient-to-b from-obsidian/60 via-transparent to-transparent" />
       </div>
 
-      <div className="relative z-10 w-full max-w-7xl mx-auto px-4 sm:px-6 flex items-end gap-4 md:gap-5">
-        {/* Game Icon */}
-        <div className="relative w-16 h-16 md:w-20 md:h-20 rounded-2xl overflow-hidden border-2 shadow-2xl shrink-0 bg-zinc-900" style={{ borderColor: `${accent}40` }}>
-          <Image
-            src={icon}
-            alt={name}
-            fill
-            sizes="(max-width: 768px) 64px, 80px"
-            className="object-cover"
+      <div className="relative z-10 w-full max-w-7xl mx-auto px-4 sm:px-6 flex flex-col md:flex-row md:items-end gap-6 md:gap-8">
+        {/* Game Icon (Premium Glass Card) */}
+        <div className="relative group w-24 h-24 md:w-32 md:h-32 rounded-[2rem] overflow-hidden shrink-0 z-10 animate-fade-in-up">
+          {/* Glowing backdrop border */}
+          <div className="absolute inset-0 bg-gradient-to-tr from-white/20 to-white/5 opacity-50" />
+          <div 
+            className="absolute -inset-2 blur-2xl opacity-40 group-hover:opacity-60 transition-opacity duration-500" 
+            style={{ backgroundColor: glowColor }}
           />
+          <div className="absolute inset-[2px] rounded-[1.8rem] overflow-hidden bg-obsidian-surface">
+            <Image
+              src={icon}
+              alt={name}
+              fill
+              sizes="(max-width: 768px) 96px, 128px"
+              className="object-cover scale-[1.02] group-hover:scale-110 transition-transform duration-500"
+            />
+          </div>
         </div>
 
-        {/* Info */}
-        <div className="min-w-0 flex-1 pb-1">
+        {/* Info Container */}
+        <div className="min-w-0 flex-1 pb-2 animate-fade-in-up" style={{ animationDelay: '0.1s' }}>
           {/* Badges */}
-          <div className="flex flex-wrap items-center gap-2 mb-1.5 md:mb-2">
+          <div className="flex flex-wrap items-center gap-3 mb-3">
             {isHot && (
-              <span className="rounded bg-rose-500/20 px-1.5 py-0.5 text-[10px] font-bold text-rose-400 leading-none">
-                🔥 POPULER
+              <span className="inline-flex items-center gap-1 rounded-full bg-rose-500/20 border border-rose-500/30 px-3 py-1 text-[10px] font-black tracking-widest text-rose-400 shadow-[0_0_10px_rgba(244,63,94,0.3)]">
+                🔥 HOT
               </span>
             )}
             <span
-              className="rounded bg-white/10 px-1.5 py-0.5 text-[10px] font-bold leading-none backdrop-blur-sm"
-              style={{ color: accent }}
+              className="rounded-full bg-white/5 border border-white/10 px-3 py-1 text-[10px] font-bold tracking-widest uppercase backdrop-blur-md"
+              style={{ color: glowColor, borderColor: `${glowColor}40`, boxShadow: `0 0 10px ${glowColor}20` }}
             >
               {currencyName || "Item"}
             </span>
           </div>
 
           {/* Title */}
-          <h1 className="text-xl md:text-3xl font-black leading-none tracking-tight text-white mb-2 md:mb-3 truncate">
+          <h1 
+            className="text-3xl md:text-5xl font-black leading-none tracking-tight text-white mb-4 drop-shadow-xl"
+            style={{ textShadow: `0 0 30px ${glowColor}60` }}
+          >
             {name}
           </h1>
 
-          {/* Trust chips */}
-          <div className="flex flex-wrap items-center gap-3 text-[10px] md:text-xs font-semibold text-white/50">
-            <span className="flex items-center gap-1.5">
-              <Zap className="h-3 w-3 md:h-3.5 md:w-3.5 text-amber-400" />
-              Instan
+          {/* Trust chips (VIP Style) */}
+          <div className="flex flex-wrap items-center gap-4 text-[11px] md:text-xs font-semibold text-zinc-400">
+            <span className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/5 border border-white/5 backdrop-blur-sm">
+              <Zap className="h-3.5 w-3.5 text-amber-400" />
+              Proses Instan
             </span>
-            <span className="flex items-center gap-1.5">
-              <ShieldCheck className="h-3 w-3 md:h-3.5 md:w-3.5 text-emerald-400" />
-              Aman
+            <span className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/5 border border-white/5 backdrop-blur-sm">
+              <ShieldCheck className="h-3.5 w-3.5 text-emerald-400" />
+              100% Legal & Aman
             </span>
-            <span className="flex items-center gap-1.5">
-              <Package className="h-3 w-3 md:h-3.5 md:w-3.5 text-blue-400" />
-              {productCount} Produk
+            <span className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/5 border border-white/5 backdrop-blur-sm">
+              <Package className="h-3.5 w-3.5 text-blue-400" />
+              {productCount} Pilihan Produk
             </span>
           </div>
         </div>

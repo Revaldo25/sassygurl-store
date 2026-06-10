@@ -1,0 +1,127 @@
+{
+  "_fallbacks": {
+    "icon": "/images/fallbacks/game-default-icon.svg",
+    "banner": "/images/fallbacks/game-default-banner.jpg",
+    "og": "/images/fallbacks/og-default.webp"
+  },
+  "mlbb": {
+    "hero": "/images/games/mlbb/banner.jpg",
+    "thumbnail": "/images/games/mlbb/icon.png",
+    "logo": "/images/games/mlbb/icon.png",
+    "accent": "#FDB0C0"
+  },
+  "ff": {
+    "hero": "/images/games/ff/banner.jpg",
+    "thumbnail": "/images/games/ff/icon.jpg",
+    "logo": "/images/games/ff/icon.jpg",
+    "accent": "#FF6B35"
+  },
+  "pubg": {
+    "hero": "/images/games/pubg/banner.jpg",
+    "thumbnail": "/images/games/pubg/icon.svg",
+    "logo": "/images/games/pubg/icon.svg",
+    "accent": "#F0C040"
+  },
+  "genshin": {
+    "hero": "/images/games/genshin/banner.jpg",
+    "thumbnail": "/images/games/genshin/icon.jpg",
+    "logo": "/images/games/genshin/icon.jpg",
+    "accent": "#A8E6CF"
+  },
+  "hsr": {
+    "hero": "/images/games/hsr/banner.jpg",
+    "thumbnail": "/images/games/hsr/icon.webp",
+    "logo": "/images/games/hsr/icon.webp",
+    "accent": "#7EC8E3"
+  },
+  "zzz": {
+    "hero": "/images/games/zzz/banner.png",
+    "thumbnail": "/images/games/zzz/icon.webp",
+    "logo": "/images/games/zzz/icon.webp",
+    "accent": "#C084FC"
+  },
+  "arknights-endfield": {
+    "hero": "/images/games/arknights-endfield/banner.jpg",
+    "thumbnail": "/images/games/arknights-endfield/icon.jpg",
+    "logo": "/images/games/arknights-endfield/icon.jpg",
+    "accent": "#A78BFA"
+  },
+  "hok": {
+    "hero": "/images/games/hok/banner.png",
+    "thumbnail": "/images/games/hok/icon.jpg",
+    "logo": "/images/games/hok/icon.jpg",
+    "accent": "#F59E0B"
+  },
+  "valorant": {
+    "hero": "/images/games/valorant/banner.webp",
+    "thumbnail": "/images/games/valorant/icon.jpg",
+    "logo": "/images/games/valorant/icon.jpg",
+    "accent": "#FF4655"
+  },
+  "roblox": {
+    "hero": "/images/games/roblox/banner.jpg",
+    "thumbnail": "/images/games/roblox/icon.png",
+    "logo": "/images/games/roblox/icon.png",
+    "accent": "#E11D48"
+  },
+  "steam-wallet": {
+    "hero": "/images/games/steam-wallet/banner.png",
+    "thumbnail": "/images/games/steam-wallet/icon.png",
+    "logo": "/images/games/steam-wallet/icon.png",
+    "accent": "#1B2838"
+  },
+  "fc-mobile": {
+    "hero": "/images/games/fc-mobile/banner.png",
+    "thumbnail": "/images/games/fc-mobile/icon.png",
+    "logo": "/images/games/fc-mobile/icon.png",
+    "accent": "#00DF89"
+  },
+  "delta-force": {
+    "hero": "/images/games/delta-force/banner.png",
+    "thumbnail": "/images/games/delta-force/icon.png",
+    "logo": "/images/games/delta-force/icon.png",
+    "accent": "#2C5E43"
+  },
+  "blood-strike": {
+    "hero": "/images/games/blood-strike/banner.png",
+    "thumbnail": "/images/games/blood-strike/icon.png",
+    "logo": "/images/games/blood-strike/icon.png",
+    "accent": "#FF8C00"
+  },
+  "wuwa": {
+    "hero": "/images/games/wuwa/banner.jpg",
+    "thumbnail": "/images/games/wuwa/icon.webp",
+    "logo": "/images/games/wuwa/icon.webp",
+    "accent": "#60A5FA"
+  },
+  "nikke": {
+    "hero": "/images/games/nikke/banner.jpg",
+    "thumbnail": "/images/games/nikke/icon.jpg",
+    "logo": "/images/games/nikke/icon.jpg",
+    "accent": "#F472B6"
+  },
+  "lol": {
+    "hero": "/images/games/lol/banner.jpg",
+    "thumbnail": "/images/games/lol/icon.jpg",
+    "logo": "/images/games/lol/icon.jpg",
+    "accent": "#C4B454"
+  },
+  "lolwr": {
+    "hero": "/images/games/lolwr/banner.png",
+    "thumbnail": "/images/games/lolwr/icon.jpg",
+    "logo": "/images/games/lolwr/icon.jpg",
+    "accent": "#22D3EE"
+  },
+  "mccg": {
+    "hero": "/images/games/mccg/banner.png",
+    "thumbnail": "/images/games/mccg/icon.jpg",
+    "logo": "/images/games/mccg/icon.jpg",
+    "accent": "#60A5FA"
+  },
+  "aether-gazer": {
+    "hero": "/images/games/aether-gazer/banner.png",
+    "thumbnail": "/images/games/aether-gazer/icon.png",
+    "logo": "/images/games/aether-gazer/icon.png",
+    "accent": "#A78BFA"
+  }
+}

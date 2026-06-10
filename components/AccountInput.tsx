@@ -2,12 +2,11 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ShieldCheck, User, Loader2, BadgeCheck, Lock, ChevronRight, AlertCircle } from "lucide-react";
+import { ShieldCheck, User, Loader2, BadgeCheck, Lock, ChevronRight, AlertCircle, CheckCircle2 } from "lucide-react";
 import { z } from "zod";
 
-// Zod Schema for strict input validation
 const accountSchema = z.object({
-  id: z.string().min(5, "User ID minimal 5 karakter").max(15, "User ID maksimal 15 karakter").regex(/^\d+$/, "User ID hanya boleh angka"),
+  id: z.string().min(5, "User ID minimal 5 karakter").max(15, "User ID maksimal 15 karakter").regex(/^\\d+$/, "User ID hanya boleh angka"),
   zone: z.string().max(8, "Zone maksimal 8 karakter").optional().or(z.literal("")),
 });
 
@@ -38,7 +37,6 @@ export default function AccountInput({
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   useEffect(() => {
-    // Reset state when inputs are cleared or too short
     if (!id || id.length < 5) {
       setUsername(null);
       setErrorMsg(null);
@@ -50,7 +48,6 @@ export default function AccountInput({
     const validation = accountSchema.safeParse({ id, zone: requiresZone ? zone : undefined });
     
     if (!validation.success) {
-      // Defer error visibility until user pauses or blurs
       const firstError = validation.error.errors[0].message;
       if (touched) {
         setErrorMsg(firstError);
@@ -87,7 +84,6 @@ export default function AccountInput({
       } catch (err: any) {
         if (err.name === 'AbortError') return;
         setUsername(null);
-        // Only show fetch error if the user hasn't started typing again
         setErrorMsg("Sistem sedang memvalidasi... silakan coba lagi.");
         onResolved?.({ id, zone, username: null });
       } finally {
@@ -95,7 +91,6 @@ export default function AccountInput({
       }
     };
 
-    // Debounce the API call slightly longer to wait for pause
     const timer = setTimeout(fetchNickname, 800);
 
     return () => {
@@ -107,29 +102,41 @@ export default function AccountInput({
   const valid = Boolean(username);
 
   return (
-    <section className="rounded-3xl border border-white/5 bg-white/[0.02] p-4 backdrop-blur-md md:p-6 transition-all duration-300">
-      <div className="mb-5 flex items-start justify-between gap-4">
-        <div>
-          <p className="text-[10px] font-bold tracking-[0.2em] text-white/40">{stepLabel}</p>
-          <h3 className="mt-1 text-lg font-bold text-white md:text-xl">{mode === "joki" ? "Data Akun" : `Input ID ${gameName}`}</h3>
+    <section className="glass-panel rounded-3xl p-5 md:p-8 transition-all duration-300 relative overflow-hidden group">
+      {/* Background Glow when active */}
+      <div className={`absolute inset-0 opacity-0 transition-opacity duration-1000 pointer-events-none ${valid ? 'opacity-20' : 'group-focus-within:opacity-10'}`} style={{ background: 'radial-gradient(circle at top right, rgba(253,176,192,0.4), transparent 60%)' }} />
+
+      <div className="relative z-10 mb-6 flex items-start gap-4">
+        <div 
+          className="relative w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 transition-all duration-500 shadow-inner"
+          style={valid 
+            ? { backgroundColor: "rgba(16,185,129,0.1)", border: "1px solid rgba(16,185,129,0.2)", color: "#10b981", boxShadow: "0 0 20px rgba(16,185,129,0.1)" } 
+            : { backgroundColor: "rgba(255,255,255,0.05)", color: "#fff", border: "1px solid rgba(255,255,255,0.1)" }
+          }
+        >
+          {valid ? <CheckCircle2 className="w-5 h-5" /> : <User className="w-5 h-5 drop-shadow-md" />}
+        </div>
+        <div className="pt-1">
+          <p className="text-[10px] font-black tracking-widest text-zinc-500 uppercase mb-0.5">{stepLabel}</p>
+          <h3 className="text-xl font-bold text-white tracking-tight leading-none">{mode === "joki" ? "Data Akun Joki" : `Informasi Akun ${gameName}`}</h3>
         </div>
       </div>
 
-      <div className="grid gap-3 md:grid-cols-2">
+      <div className="relative z-10 grid gap-4 md:grid-cols-2">
         <label className="block">
-          <span className="mb-2 block text-xs font-bold tracking-[0.22em] text-white/45">User ID</span>
-          <div className="flex items-center gap-3 rounded-2xl border border-white/10 bg-zinc-950/60 px-4 py-3 focus-within:border-sakura/50">
-            <User className="h-4 w-4 text-sakura/80" />
+          <span className="mb-2 block text-[11px] font-bold tracking-wider text-zinc-400 uppercase">User ID</span>
+          <div className="flex items-center gap-3 rounded-2xl border border-obsidian-border bg-obsidian-surface/60 px-4 py-3.5 focus-within:border-sakura/50 focus-within:bg-obsidian-surface transition-all duration-300 shadow-inner">
+            <User className="h-4 w-4 text-sakura" />
             <input
               value={id}
               onChange={(e) => {
                 setId(e.target.value);
-                setErrorMsg(null); // Clear error while typing
+                setErrorMsg(null);
                 setTouched(false);
               }}
               onBlur={() => setTouched(true)}
               placeholder="Masukkan User ID"
-              className="w-full bg-transparent text-sm text-white outline-none placeholder:text-white/25"
+              className="w-full bg-transparent text-sm text-white outline-none placeholder:text-zinc-600 font-semibold"
               inputMode="numeric"
               autoComplete="off"
             />
@@ -137,14 +144,14 @@ export default function AccountInput({
         </label>
 
         <label className={requiresZone ? "block" : "hidden"}>
-          <span className="mb-2 block text-xs font-bold tracking-[0.22em] text-white/45">Zone / Server</span>
-          <div className="flex items-center gap-3 rounded-2xl border border-white/10 bg-zinc-950/60 px-4 py-3 focus-within:border-sakura/50">
-            <BadgeCheck className="h-4 w-4 text-cyan-300" />
+          <span className="mb-2 block text-[11px] font-bold tracking-wider text-zinc-400 uppercase">Zone / Server</span>
+          <div className="flex items-center gap-3 rounded-2xl border border-obsidian-border bg-obsidian-surface/60 px-4 py-3.5 focus-within:border-sakura/50 focus-within:bg-obsidian-surface transition-all duration-300 shadow-inner">
+            <BadgeCheck className="h-4 w-4 text-cyan-400" />
             {serverOptions ? (
               <select
                 value={zone}
                 onChange={(e) => setZone(e.target.value)}
-                className="w-full bg-transparent text-sm text-white outline-none [&>option]:bg-zinc-900"
+                className="w-full bg-transparent text-sm font-semibold text-white outline-none [&>option]:bg-obsidian"
               >
                 <option value="" disabled>Pilih Server</option>
                 {serverOptions.split(',').map(s => s.trim()).filter(Boolean).map(opt => (
@@ -154,14 +161,14 @@ export default function AccountInput({
             ) : (
               <input
                 value={zone}
-              onChange={(e) => {
-                setZone(e.target.value);
-                setErrorMsg(null);
-                setTouched(false);
-              }}
-              onBlur={() => setTouched(true)}
-              placeholder="Contoh: 1234"
-                className="w-full bg-transparent text-sm text-white outline-none placeholder:text-white/25"
+                onChange={(e) => {
+                  setZone(e.target.value);
+                  setErrorMsg(null);
+                  setTouched(false);
+                }}
+                onBlur={() => setTouched(true)}
+                placeholder="Contoh: 1234"
+                className="w-full bg-transparent text-sm text-white outline-none placeholder:text-zinc-600 font-semibold"
               />
             )}
           </div>
@@ -174,47 +181,48 @@ export default function AccountInput({
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: "auto" }}
             exit={{ opacity: 0, height: 0 }}
-            className="mt-3 flex items-center gap-2 rounded-xl bg-orange-500/10 px-4 py-3 text-sm text-orange-300 border border-orange-500/20"
+            className="relative z-10 mt-4 flex items-center gap-2 rounded-2xl bg-rose-500/10 px-4 py-3 text-sm text-rose-300 border border-rose-500/20"
           >
             <AlertCircle className="h-4 w-4 shrink-0 opacity-80" />
-            <p>{errorMsg}</p>
+            <p className="font-medium">{errorMsg}</p>
           </motion.div>
         )}
       </AnimatePresence>
 
-      <div className="mt-4 rounded-2xl border border-white/5 bg-black/10 p-4" aria-live="polite">
+      <div className="relative z-10 mt-6 rounded-2xl border border-obsidian-border bg-obsidian-surface/40 p-5 shadow-inner" aria-live="polite">
         <div className="flex items-center justify-between gap-4">
           <div>
-            <p className="text-[10px] uppercase tracking-wider text-white/40">Nickname</p>
-            <p className="mt-1 text-sm font-medium text-white">
+            <p className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">Nickname Pemain</p>
+            <p className="mt-1 text-sm font-bold text-white">
               {loading ? (
-                <span className="animate-pulse text-white/60">Mencari...</span>
+                <span className="animate-pulse text-zinc-400">Mencari di server...</span>
               ) : valid ? (
-                <span className="text-emerald-400 font-bold">{username}</span>
+                <span className="text-emerald-400 drop-shadow-[0_0_8px_rgba(16,185,129,0.3)]">{username}</span>
               ) : (
-                <span className="text-white/30">Belum ditemukan</span>
+                <span className="text-zinc-600">Belum terverifikasi</span>
               )}
             </p>
           </div>
           <div className="inline-flex items-center gap-2 text-xs text-white/40">
             {loading ? (
-              <Loader2 className="h-3.5 w-3.5 animate-spin text-white/50" />
+              <Loader2 className="h-4 w-4 animate-spin text-zinc-400" />
             ) : valid ? (
-              <BadgeCheck className="h-4 w-4 text-emerald-400" />
+              <div className="flex items-center justify-center h-8 w-8 rounded-full bg-emerald-500/10 border border-emerald-500/20">
+                <BadgeCheck className="h-4 w-4 text-emerald-400" />
+              </div>
             ) : (
-              <User className="h-4 w-4 text-white/20" />
+              <User className="h-4 w-4 text-zinc-600" />
             )}
           </div>
         </div>
 
-        {/* Progress bar only appears during active request */}
         {loading && (
-          <div className="mt-3 h-1 overflow-hidden rounded-full bg-white/5">
+          <div className="mt-4 h-1 overflow-hidden rounded-full bg-obsidian-surface">
             <motion.div
               initial={{ width: "0%" }}
               animate={{ width: "100%" }}
               transition={{ duration: 1.5, repeat: Infinity }}
-              className="h-full rounded-full bg-white/20"
+              className="h-full rounded-full bg-sakura shadow-[0_0_10px_rgba(253,176,192,0.5)]"
             />
           </div>
         )}

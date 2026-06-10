@@ -3,10 +3,10 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import Script from "next/script";
 import { motion, AnimatePresence } from "framer-motion";
-import {
+import { 
   CheckCircle2, AlertCircle, Search,
   ShieldCheck, Loader2, Phone, ShoppingBag
-} from "lucide-react";
+, Gem, Package, Wallet, UserRound } from "lucide-react";
 import type {
   NormalizedGame,
   GroupedProducts,
@@ -209,20 +209,20 @@ export default function CheckoutClient({ game, groupedByCategory, paymentGroups 
   };
 
   // ── Step Header Component ────────────────────────────────────────────────
-  const StepHeader = ({ num, title, done }: { num: number; title: string; done?: boolean }) => (
-    <div className="flex items-center gap-4 mb-8">
+  const StepHeader = ({ num, title, icon: Icon, done }: { num: number; title: string; icon?: any; done?: boolean }) => (
+    <div className="relative z-10 mb-6 flex items-start gap-4">
       <div 
-        className="relative w-10 h-10 rounded-2xl flex items-center justify-center text-sm font-black transition-all duration-500"
+        className="relative w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 transition-all duration-500 shadow-inner"
         style={done 
-          ? { backgroundColor: "#10b981", color: "#ffffff", boxShadow: "0 0 20px rgba(16,185,129,0.4)" } 
-          : { backgroundColor: `${accent}15`, color: accent, border: `1px solid ${accent}25`, boxShadow: `0 0 0 3px ${accent}10` }
+          ? { backgroundColor: "rgba(16,185,129,0.1)", border: "1px solid rgba(16,185,129,0.2)", color: "#10b981", boxShadow: "0 0 20px rgba(16,185,129,0.1)" } 
+          : { backgroundColor: `${accent}15`, color: accent, border: `1px solid ${accent}40`, boxShadow: `0 0 15px ${accent}20` }
         }
       >
-        {done ? <CheckCircle2 className="w-5 h-5" /> : num}
+        {done ? <CheckCircle2 className="w-5 h-5" /> : (Icon ? <Icon className="w-5 h-5 drop-shadow-md" /> : <span className="font-black text-sm">{num}</span>)}
       </div>
-      <div>
-        <h2 className="text-lg font-black text-white tracking-tight leading-none mb-1">{title}</h2>
-        <p className="text-[10px] font-bold text-white/30 uppercase tracking-[0.2em]">Step {num < 10 ? `0${num}` : num}</p>
+      <div className="pt-1">
+        <p className="text-[10px] font-black tracking-widest text-zinc-500 uppercase mb-0.5">Step 0{num}</p>
+        <h2 className="text-xl font-bold text-white tracking-tight leading-none">{title}</h2>
       </div>
     </div>
   );
@@ -263,9 +263,9 @@ export default function CheckoutClient({ game, groupedByCategory, paymentGroups 
             <p className="text-sm text-white/50">Mohon maaf, produk untuk {game.name} saat ini sedang kosong.</p>
           </div>
         ) : (
-          <section className="rounded-3xl border border-white/5 bg-white/[0.02] p-5 md:p-6 shadow-xl">
+          <section className="glass-panel rounded-3xl p-5 md:p-6 shadow-xl">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
-              <StepHeader num={2} title="Pilih Item" done={!!selectedProduct} />
+              <StepHeader num={2} title="Pilih Item" icon={Package} done={!!selectedProduct} />
               
               <div className="group relative w-full sm:w-56">
                 <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-white/40 transition-colors group-focus-within:text-sakura" />
@@ -335,18 +335,24 @@ export default function CheckoutClient({ game, groupedByCategory, paymentGroups 
                             active
                               ? "bg-white/[0.08] border-transparent"
                               : selectedProduct && !active
-                                ? "border-white/5 bg-white/[0.01] opacity-60 hover:opacity-100"
-                                : "border-white/5 bg-white/[0.02] hover:border-white/20 hover:bg-white/[0.05]"
+                                ? "border-obsidian-border hover:border-white/20 bg-white/[0.01] opacity-60 hover:opacity-100"
+                                : "border-obsidian-border hover:border-white/20 bg-white/[0.02] hover:border-white/20 hover:bg-white/[0.05]"
                           }`}
                           style={active ? { boxShadow: `0 0 0 1px ${accent}, inset 0 0 15px ${accent}15` } : {}}
                         >
                           {/* Item Name (Denomination) */}
-                          <p className={`text-xs md:text-sm font-semibold truncate w-full mb-1 ${active ? "text-white" : "text-white/70 group-hover:text-white"}`}>
-                            {cleanName}
-                          </p>
+                          <div className="flex items-center gap-2 mb-1.5 w-full">
+                            <Gem className={`w-4 h-4 shrink-0 ${active ? "opacity-100" : "opacity-40"}`} style={active ? { color: accent } : {}} />
+                            <p className={`text-xs md:text-sm font-semibold truncate flex-1 ${active ? "text-white" : "text-white/70 group-hover:text-white"}`}>
+                              {cleanName}
+                            </p>
+                          </div>
                           
                           {/* Item Price */}
-                          <p className={`text-sm md:text-base font-black tracking-tight ${active ? "" : "text-white"}`} style={active ? { color: accent } : {}}>
+                          <p 
+                            className={`text-sm md:text-lg font-black tracking-tighter ${active ? "" : "text-white drop-shadow-md"}`} 
+                            style={active ? { color: accent, textShadow: `0 0 15px ${accent}80` } : {}}
+                          >
                             {formatIDR(product.displayPrice)}
                           </p>
 
@@ -385,10 +391,10 @@ export default function CheckoutClient({ game, groupedByCategory, paymentGroups 
       <div className="lg:col-span-5 xl:col-span-4 space-y-6 lg:sticky lg:top-24">
         
         {/* STEP 3: PEMBAYARAN */}
-        <section className={`rounded-3xl border border-white/5 bg-white/[0.02] p-5 md:p-6 transition-all ${
+        <section className={`glass-panel rounded-3xl p-5 md:p-6 transition-all ${
           selectedProduct ? "opacity-100" : "opacity-40 grayscale pointer-events-none"
         }`}>
-          <StepHeader num={3} title="Pembayaran" done={!!selectedPayment} />
+          <StepHeader num={3} title="Pembayaran" icon={Wallet} done={!!selectedPayment} />
           <PaymentAccordion 
             groups={paymentGroups}
             selectedCode={selectedPayment?.code}
@@ -402,10 +408,10 @@ export default function CheckoutClient({ game, groupedByCategory, paymentGroups 
         </section>
 
         {/* STEP 4: KONTAK & CHECKOUT */}
-        <section className={`rounded-3xl border border-white/5 bg-white/[0.02] p-5 md:p-6 transition-all duration-500 mt-5 mb-10 lg:mb-0 ${
+        <section className={`glass-panel rounded-3xl p-5 md:p-6 transition-all duration-500 mt-5 mb-10 lg:mb-0 ${
           selectedPayment ? "opacity-100" : "opacity-40 grayscale pointer-events-none"
         }`}>
-          <StepHeader num={4} title="Informasi Kontak" />
+          <StepHeader num={4} title="Informasi Kontak" icon={UserRound} />
 
           <div className="space-y-4">
             <div>
@@ -517,8 +523,8 @@ export default function CheckoutClient({ game, groupedByCategory, paymentGroups 
                     Total {selectedPayment && paymentFee > 0 && <span className="normal-case text-white/50">(+fee)</span>}
                   </p>
                   <p 
-                    className="text-xl font-black tracking-tighter"
-                    style={{ color: accent }}
+                    className="text-xl md:text-2xl font-black tracking-tighter drop-shadow-lg"
+                    style={{ color: accent, textShadow: `0 0 20px ${accent}80` }}
                   >
                     {finalPrice ? formatIDR(finalPrice) : formatIDR(selectedProduct.displayPrice)}
                   </p>
@@ -663,7 +669,7 @@ function ConfirmModal({
             ["Metode Pembayaran", selectedPayment.name],
             ["WhatsApp Notifikasi", whatsapp],
           ].map(([label, val], i) => (
-            <div key={i} className="flex justify-between py-2 border-b border-white/5 last:border-0 items-center">
+            <div key={i} className="flex justify-between py-2 border-b border-obsidian-border hover:border-white/20 last:border-0 items-center">
               <span className="text-white/40 font-semibold">{label}</span>
               <span className={`font-black ${label === "Nickname Akun" ? "text-emerald-400" : "text-white"}`}>{val}</span>
             </div>
@@ -682,7 +688,7 @@ function ConfirmModal({
 
           <div className="flex justify-between items-center pt-4 border-t border-white/10">
             <span className="text-white font-bold">Total Pembayaran</span>
-            <span className="text-lg font-black" style={{ color: accent }}>{formatIDR(finalPrice)}</span>
+            <span className="text-xl font-black tracking-tighter drop-shadow-md" style={{ color: accent, textShadow: `0 0 15px ${accent}80` }}>{formatIDR(finalPrice)}</span>
           </div>
         </div>
 

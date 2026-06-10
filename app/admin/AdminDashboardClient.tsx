@@ -68,6 +68,8 @@ export default function AdminDashboardClient({ initialStats, initialTransactions
   const [activeTab, setActiveTab] = useState<"overview" | "transactions" | "games" | "payments" | "providers" | "ops">(
     ["overview", "transactions", "games", "payments", "providers", "ops"].includes(tabParam) ? tabParam : "overview"
   );
+  
+  const [searchGame, setSearchGame] = useState("");
 
   useEffect(() => {
     if (tabParam && ["overview", "transactions", "games", "payments", "providers", "ops"].includes(tabParam)) {
@@ -658,6 +660,18 @@ export default function AdminDashboardClient({ initialStats, initialTransactions
               </div>
 
               {/* Game Table */}
+              <div className="flex items-center justify-between mb-4">
+                <div className="relative w-full max-w-sm">
+                  <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-500" />
+                  <input
+                    type="text"
+                    placeholder="Cari Game berdasarkan nama..."
+                    value={searchGame}
+                    onChange={(e) => setSearchGame(e.target.value)}
+                    className="w-full rounded-xl border border-white/5 bg-zinc-900/50 py-2.5 pl-10 pr-4 text-xs font-bold text-white outline-none focus:border-sakura"
+                  />
+                </div>
+              </div>
               <div className="overflow-hidden rounded-[2rem] border border-white/5 bg-zinc-900/20 shadow-2xl backdrop-blur-3xl">
                 <div className="overflow-x-auto p-4">
                   <table className="w-full text-left">
@@ -672,7 +686,7 @@ export default function AdminDashboardClient({ initialStats, initialTransactions
                       </tr>
                     </thead>
                     <tbody>
-                      {games.map((game) => (
+                      {games.filter(g => g.name.toLowerCase().includes(searchGame.toLowerCase())).map((game) => (
                         <tr key={game.id} className="group transition-colors hover:bg-[#1a1a1e] border-b border-white/[0.02] last:border-0">
                           <td className="px-6 py-4">
                             <div className="flex items-center gap-3">
@@ -880,8 +894,12 @@ export default function AdminDashboardClient({ initialStats, initialTransactions
                 <p className="text-sm text-zinc-400">
                   Atur metode pembayaran (QRIS, E-Wallet, VA). Fee flat dan persentase dapat dikonfigurasi secara real-time.
                 </p>
-                <div className="mt-6 flex items-center justify-center rounded-xl border border-dashed border-white/10 p-12 text-zinc-600">
-                  <p>Tabel Metode Pembayaran akan dirender di sini via API.</p>
+                <div className="mt-6 flex flex-col items-center justify-center rounded-xl border border-dashed border-amber-500/30 bg-amber-500/5 p-12 text-center text-zinc-400">
+                  <div className="rounded-full bg-amber-500/20 px-3 py-1 mb-4 text-[10px] font-black uppercase tracking-widest text-amber-400">
+                    UI Fallback / Placeholder Mockup
+                  </div>
+                  <p className="font-bold text-white">Modul Payment Gateway Sedang Menunggu API Backend.</p>
+                  <p className="mt-2 text-xs">Simulasi visual tabel akan dikembangkan di pembaruan selanjutnya.</p>
                 </div>
               </div>
             </motion.div>

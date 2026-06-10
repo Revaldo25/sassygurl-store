@@ -2,6 +2,7 @@ import { fetchApi } from "./api-client";
 import gamesRegistry from "@/shared/registry/games_registry.json";
 import gamesManifest from "@/shared/registry/games_manifest.json";
 import gamesAliases from "@/shared/registry/games_aliases.json";
+import { getRealProductsForGame } from "@/shared/registry/real_catalog";
 
 
 // ============================================================================
@@ -146,42 +147,55 @@ function mapGame(gameData: any): NormalizedGame {
   const manifest = (gamesManifest as Record<string, any>)[canonicalSlug];
   const registryEntry = gamesRegistry.find(g => g.slug === canonicalSlug);
 
-  const rawProducts: any[] = gameData.products ?? [];
-  const rawGrouped: any[]  = gameData.groupedProducts ?? [];
+  // INJECT REAL CATALOG DATA INSTEAD OF HALLUCINATED BACKEND DATA
+  const realProducts = getRealProductsForGame(canonicalSlug, gameData.currencyName ?? "Item");
+  
+  const products: NormalizedProduct[] = realProducts.map((p, index) => {
+    return {
+      id: `real-${canonicalSlug}-${index}`,
+      sku: `SKU-${canonicalSlug}-${index}`,
+      name: p.name,
+      itemCategory: p.type,
+      itemCategoryLabel: p.type === "PASS" ? "Membership & Pass" : "Top Up",
+      itemCategoryIcon: p.type === "PASS" ? "🎫" : "💎",
+      thumbnail: undefined,
+      displayPrice: p.price,
+      originalPrice: p.originalPrice > p.price ? p.originalPrice : undefined,
+      discountPercent: p.originalPrice > p.price ? Math.round(((p.originalPrice - p.price) / p.originalPrice) * 100) : 0,
+      isFlashSale: p.type === "PASS", // Just an example, maybe pass is flash sale
+      inStock: true,
+      providerName: "Auto",
+      badges: p.originalPrice > p.price ? [`${Math.round(((p.originalPrice - p.price) / p.originalPrice) * 100)}% OFF`] : [],
+      image: `/images/products/${slug}/default.webp`,
+    };
+  });
 
-  // Enforce strict category rules: filter out UNKNOWN or uncategorized items
-  const validProducts = rawProducts.filter((p: any) => 
-    p.itemCategory && p.itemCategory.toUpperCase() !== 'UNKNOWN'
-  );
+  const prices = products.map(p => p.displayPrice).filter(v => v > 0);
 
-  const products = validProducts.map((p: any) => mapProduct(p, slug));
-  const prices   = products.map(p => p.displayPrice).filter(v => v > 0);
+  // Group by our new real categories
+  const groups: Record<string, NormalizedProduct[]> = {};
+  products.forEach(p => {
+    if (!groups[p.itemCategory]) groups[p.itemCategory] = [];
+    groups[p.itemCategory].push(p);
+  });
 
-  const groupedProducts: GroupedProducts[] = rawGrouped
-    .filter(g => g.category?.slug && g.category.slug.toUpperCase() !== 'UNKNOWN')
-    .map(g => ({
+  const groupedProducts: GroupedProducts[] = Object.keys(groups).map((categoryType, index) => {
+    const isPass = categoryType === "PASS";
+    return {
       category: {
-        slug:      g.category.slug,
-        label:     g.category.label ?? "Item",
-        icon:      g.category.icon ?? "💎",
-        itemCount: g.category.itemCount ?? 0,
-        sortOrder: g.category.sortOrder ?? 0,
+        slug: categoryType.toLowerCase(),
+        label: isPass ? "Membership & Pass" : "Top Up Items",
+        icon: isPass ? "🎫" : "💎",
+        itemCount: groups[categoryType].length,
+        sortOrder: index,
       },
-      items: (g.items ?? [])
-        .filter((p: any) => p.itemCategory && p.itemCategory.toUpperCase() !== 'UNKNOWN')
-        .map((p: any) => mapProduct(p, slug)),
-    }))
-    .filter(g => g.items.length > 0); // Drop empty groups
+      items: groups[categoryType]
+    };
+  });
 
-  const itemCategories: ItemCategory[] = (gameData.itemCategories ?? [])
-    .filter((c: any) => c.slug && c.slug.toUpperCase() !== 'UNKNOWN')
-    .map((c: any) => ({
-      slug:      c.slug,
-      label:     c.label,
-      icon:      c.icon,
-      itemCount: c.itemCount,
-      sortOrder: c.sortOrder,
-    }));
+  const itemCategories: ItemCategory[] = groupedProducts.map(g => g.category);
+
+
 
   return {
     id:             gameData.id,
@@ -213,12 +227,35 @@ function mapGame(gameData: any): NormalizedGame {
 // API FUNCTIONS
 // ============================================================================
 
+
+const CURRENCY_MAP: Record<string, string> = {
+  mlbb: "Diamonds",
+  ff: "Diamonds",
+  pubg: "UC",
+  genshin: "Genesis Crystals",
+  hsr: "Oneiric Shards",
+  zzz: "Monochromes",
+  "arknights-endfield": "Origeometry",
+  hok: "Tokens",
+  valorant: "Valorant Points",
+  roblox: "Robux",
+  "steam-wallet": "Wallet",
+  "fc-mobile": "FC Points",
+  "delta-force": "Coins",
+  "blood-strike": "Gold",
+  wuwa: "Lunites",
+  nikke: "Gems",
+  lol: "Riot Points",
+  lolwr: "Wild Cores",
+  mccg: "Pass & Items",
+  "aether-gazer": "Shifted Stars"
+};
 export async function getAllGamesNormalized(): Promise<NormalizedGame[]> {
   try {
     const response = await fetchApi<ApiResponse<any[]>>("/catalog/games");
-    if (!response.success) return [];
+    const fetchedGames = response.success && response.data ? response.data : [];
 
-    return response.data.map(g => {
+    const normalizedGames = fetchedGames.map(g => {
       const canonicalSlug = (gamesAliases as Record<string, string>)[g.slug.toLowerCase()] || g.slug;
       const manifest = (gamesManifest as Record<string, any>)[canonicalSlug];
       const registryEntry = gamesRegistry.find(r => r.slug === canonicalSlug);
@@ -227,7 +264,7 @@ export async function getAllGamesNormalized(): Promise<NormalizedGame[]> {
         slug:           g.slug,
         name:           registryEntry?.display_title ?? g.name,
         shortCode:      registryEntry?.short_names?.[0] ?? g.name?.substring(0, 4).toUpperCase() ?? g.slug.toUpperCase(),
-        currencyName:   g.currencyName ?? "Item",
+        currencyName: CURRENCY_MAP[canonicalSlug] || g.currencyName || "Item",
         icon:           manifest?.icon ?? g.thumbnail ?? FALLBACK_ICON,
         banner:         manifest?.banner ?? g.banner    ?? FALLBACK_BANNER,
         coverImage:     manifest?.banner ?? g.banner    ?? FALLBACK_BANNER,
@@ -244,6 +281,39 @@ export async function getAllGamesNormalized(): Promise<NormalizedGame[]> {
         priceRange:     { min: 0, max: 0 },
       };
     });
+
+    const fetchedSlugs = new Set(normalizedGames.map(g => g.slug.toLowerCase()));
+    
+    // Pad with missing games from registry so we always show all 21 games!
+    gamesRegistry.forEach(r => {
+      const slug = r.slug;
+      if (!fetchedSlugs.has(slug.toLowerCase())) {
+        const manifest = (gamesManifest as Record<string, any>)[slug];
+        normalizedGames.push({
+          id: slug,
+          slug: slug,
+          name: r.display_title,
+          shortCode: r.short_names?.[0] ?? slug.toUpperCase(),
+          currencyName: CURRENCY_MAP[slug] || "Item",
+          icon: manifest?.icon ?? FALLBACK_ICON,
+          banner: manifest?.banner ?? FALLBACK_BANNER,
+          coverImage: manifest?.banner ?? FALLBACK_BANNER,
+          guideImage: undefined,
+          accent: manifest?.accent ?? "#FDB0C0",
+          description: r.description ?? "Top up game terpercaya dan termurah!",
+          productCount: 0,
+          hasServerId: false,
+          isHot: false,
+          serverOptions: [],
+          itemCategories: [],
+          groupedProducts: [],
+          products: [],
+          priceRange: { min: 0, max: 0 }
+        });
+      }
+    });
+
+    return normalizedGames;
   } catch (error) {
     console.error("Error fetching games:", error);
     throw new ApiAdapterError(
