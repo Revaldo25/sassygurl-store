@@ -5,12 +5,12 @@ import { z } from "zod";
 import { revalidatePath } from "next/cache";
 
 const TransactionSchema = z.object({
-  productId: z.string(),
+  productId: z.string().min(1, "Product ID wajib diisi"),
   targetId: z.string().min(1, "Target ID wajib diisi"),
   zoneId: z.string().optional(),
   server: z.string().optional(),
   quantity: z.number().min(1).default(1),
-  paymentMethod: z.string(),
+  paymentMethod: z.string().min(1, "Metode pembayaran wajib dipilih"),
   email: z.string().email("Format email salah").optional().or(z.literal("")),
   whatsapp: z.string().optional(),
   waNotif: z.boolean().default(false),
@@ -25,15 +25,31 @@ type ApiResponse<T> = {
   errors?: string[];
 };
 
-export async function createTransaction(input: TransactionInput) {
+/**
+ * Server Action: Membuat transaksi baru via .NET API.
+ * - Token auth otomatis disertakan oleh fetchApi (dari cookie / NextAuth session)
+ * - Idempotency key dikirim sebagai header untuk mencegah double order
+ */
+export async function createTransaction(
+  input: TransactionInput,
+  idempotencyKey?: string
+) {
   try {
     const validatedData = TransactionSchema.parse(input);
 
-    // Call ASP.NET Core API
-    const response = await fetchApi<ApiResponse<{ invoiceId: string; paymentToken: string }>>('/transactions', {
-      method: 'POST',
-      body: JSON.stringify(validatedData)
-    });
+    const extraHeaders: Record<string, string> = {};
+    if (idempotencyKey) {
+      extraHeaders["X-Idempotency-Key"] = idempotencyKey;
+    }
+
+    const response = await fetchApi<ApiResponse<{ invoiceId: string; paymentToken: string }>>(
+      "/transactions",
+      {
+        method: "POST",
+        headers: extraHeaders,
+        body: JSON.stringify(validatedData),
+      }
+    );
 
     if (!response.success) {
       return { success: false, message: response.message };
@@ -46,13 +62,13 @@ export async function createTransaction(input: TransactionInput) {
       success: true,
       message: response.message,
       invoiceId: response.data.invoiceId,
-      paymentToken: response.data.paymentToken, // Used to trigger Midtrans Pop-up in Client Component
+      paymentToken: response.data.paymentToken,
     };
   } catch (error: any) {
     console.error("[CreateTransaction Action] Error:", error);
     if (error instanceof z.ZodError) {
       return { success: false, message: "Validasi data gagal: " + error.errors[0].message };
     }
-    return { success: false, message: error.message || "Terjadi kesalahan internal saat membuat transaksi." };
+    return { success: false, message: error.message || "Terjadi kesalahan internal." };
   }
 }
