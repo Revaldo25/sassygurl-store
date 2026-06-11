@@ -26,7 +26,7 @@
     "banner_fallback": "/images/games/pubg/banner.webp",
     "og": "/images/games/pubg/og.avif",
     "og_fallback": "/images/games/pubg/og.webp",
-    "icon": "/images/games/pubg/icon.svg"
+    "icon": "/images/games/pubg/icon.png"
   },
   "genshin": {
     "accent": "#A8E6CF",
@@ -74,7 +74,7 @@
     "banner_fallback": "/images/games/valorant/banner.webp",
     "og": "/images/games/valorant/og.avif",
     "og_fallback": "/images/games/valorant/og.webp",
-    "icon": "/images/games/valorant/icon.webp"
+    "icon": "/images/games/valorant/icon.png"
   },
   "roblox": {
     "accent": "#E11D48",
@@ -82,7 +82,7 @@
     "banner_fallback": "/images/games/roblox/banner.webp",
     "og": "/images/games/roblox/og.avif",
     "og_fallback": "/images/games/roblox/og.webp",
-    "icon": "/images/games/roblox/icon.webp"
+    "icon": "/images/games/roblox/icon.png"
   },
   "steam-wallet": {
     "accent": "#1B2838",
@@ -90,7 +90,7 @@
     "banner_fallback": "/images/games/steam-wallet/banner.webp",
     "og": "/images/games/steam-wallet/og.avif",
     "og_fallback": "/images/games/steam-wallet/og.webp",
-    "icon": "/images/games/steam-wallet/icon.webp"
+    "icon": "/images/games/steam-wallet/icon.png"
   },
   "fc-mobile": {
     "accent": "#00DF89",
@@ -138,7 +138,7 @@
     "banner_fallback": "/images/games/lol/banner.webp",
     "og": "/images/games/lol/og.avif",
     "og_fallback": "/images/games/lol/og.webp",
-    "icon": "/images/games/lol/icon.webp"
+    "icon": "/images/games/lol/icon.png"
   },
   "lolwr": {
     "accent": "#22D3EE",

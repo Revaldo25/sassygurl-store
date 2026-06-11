@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 80" fill="none">
+  <rect width="200" height="80" rx="12" fill="#FFFFFF"/>
+  <rect x="1" y="1" width="198" height="78" rx="11" stroke="#E5E7EB" stroke-width="1"/>
+  <!-- OVO Official Purple: #4C3494 -->
+  <g transform="translate(20, 14)">
+    <!-- OVO circle/logo -->
+    <rect width="52" height="52" rx="14" fill="#4C3494"/>
+    <!-- O -->
+    <circle cx="16" cy="26" r="7" fill="none" stroke="#FFFFFF" stroke-width="3"/>
+    <!-- V -->
+    <path d="M25 19l5.5 14 5.5-14" stroke="#FFFFFF" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+    <!-- O -->
+    <circle cx="43" cy="26" r="5" fill="none" stroke="#FFFFFF" stroke-width="2.5"/>
+  </g>
+  <!-- OVO Text -->
+  <text x="86" y="50" font-family="'Arial Black', Arial, sans-serif" font-weight="900" font-size="36" fill="#4C3494" letter-spacing="3">OVO</text>
+</svg>

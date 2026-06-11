@@ -42,7 +42,7 @@ const GAMES = [
   },
   {
     name: "PUBG Mobile", slug: "pubg",
-    icon: "/images/games/pubg/icon.png", banner: "/images/games/pubg/banner.webp",
+    icon: "/images/games/pubg/icon.svg", banner: "/images/games/pubg/banner.webp",
     currency: "UC", hasServerId: true, isHot: true, isActive: true, sort: 3,
     publisher: "Krafton", desc: "Top up UC PUBG Mobile murah dan proses otomatis. Royale Pass tersedia!"
   },
@@ -73,7 +73,7 @@ const GAMES = [
   },
   {
     name: "Valorant", slug: "valorant",
-    icon: "/images/games/valorant/icon.png", banner: "/images/games/valorant/banner.webp",
+    icon: "/images/games/valorant/icon.webp", banner: "/images/games/valorant/banner.webp",
     currency: "VP", hasServerId: false, isHot: false, isActive: true, sort: 8,
     publisher: "Riot Games", desc: "Beli Valorant Points (VP) murah untuk beli skins terbaru."
   },
@@ -92,19 +92,19 @@ const GAMES = [
   // ── Tier 3: Niche / Seasonal ─────────────────────────────────────────────
   {
     name: "Roblox", slug: "roblox",
-    icon: "/images/games/roblox/icon.png", banner: "/images/games/roblox/banner.webp",
+    icon: "/images/games/roblox/icon.webp", banner: "/images/games/roblox/banner.webp",
     currency: "Robux", hasServerId: false, isHot: false, isActive: true, sort: 11,
     publisher: "Roblox Corporation", desc: "Beli Robux murah untuk beli item di Roblox. Proses otomatis!"
   },
   {
     name: "Steam Wallet", slug: "steam-wallet",
-    icon: "/images/games/steam-wallet/icon.png", banner: "/images/games/steam-wallet/banner.webp",
+    icon: "/images/games/steam-wallet/icon.webp", banner: "/images/games/steam-wallet/banner.webp",
     currency: "USD", hasServerId: false, isHot: false, isActive: true, sort: 12,
     publisher: "Valve", desc: "Isi Steam Wallet murah. Beli game favoritmu dengan harga terbaik."
   },
   {
     name: "League of Legends", slug: "lol",
-    icon: "/images/games/lol/icon.png", banner: "/images/games/lol/banner.webp",
+    icon: "/images/games/lol/icon.webp", banner: "/images/games/lol/banner.webp",
     currency: "Riot Points", hasServerId: false, isHot: false, isActive: true, sort: 13,
     publisher: "Riot Games", desc: "Beli Riot Points League of Legends murah. Beli skin baru sekarang!"
   },

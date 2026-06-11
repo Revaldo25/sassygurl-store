@@ -613,5 +613,35 @@
     "confidence_level": "low",
     "needs_review": true,
     "description": "Top up Shifted Stars Aether Gazer harga spesial dan proses instan."
+  },
+  {
+    "canonical_name": "PUBG New State",
+    "display_title": "PUBG: New State",
+    "slug": "pubgm",
+    "aliases": [
+      "PUBG: New State",
+      "PUBG New State",
+      "New State Mobile"
+    ],
+    "short_names": [
+      "PUBGNS"
+    ],
+    "search_keywords": [
+      "pubg new state",
+      "new state",
+      "nc"
+    ],
+    "category": "Mobile",
+    "provider_keywords": [
+      "pubg new state",
+      "pubgnewstate",
+      "new state mobile"
+    ],
+    "asset_keywords": [
+      "pubg new state logo"
+    ],
+    "confidence_level": "medium",
+    "needs_review": false,
+    "description": "Top up NC PUBG: New State murah dan aman. Proses otomatis."
   }
 ]

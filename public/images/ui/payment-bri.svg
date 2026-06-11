@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 80" fill="none">
+  <rect width="200" height="80" rx="12" fill="#FFFFFF"/>
+  <rect x="1" y="1" width="198" height="78" rx="11" stroke="#E5E7EB" stroke-width="1"/>
+  <!-- BRI Official Blue: #00529C -->
+  <g transform="translate(18, 14)">
+    <rect width="52" height="52" rx="12" fill="#00529C"/>
+    <!-- BRI shield shape -->
+    <path d="M26 8c-10 0-14 6-14 14v10c0 8 6 14 14 14s14-6 14-14V22c0-8-4-14-14-14z" fill="#FFFFFF" opacity="0.15"/>
+    <text x="26" y="32" text-anchor="middle" font-family="'Arial Black', Arial, sans-serif" font-weight="900" font-size="18" fill="#FFFFFF" letter-spacing="1.5">BRI</text>
+    <!-- Decorative underline -->
+    <rect x="12" y="38" width="28" height="2.5" rx="1.25" fill="#F4A900"/>
+  </g>
+  <!-- BRI Text -->
+  <text x="82" y="34" font-family="'Arial Black', Arial, sans-serif" font-weight="900" font-size="22" fill="#00529C" letter-spacing="2">BRI</text>
+  <text x="82" y="50" font-family="Arial, sans-serif" font-weight="600" font-size="10" fill="#6B7280">Virtual Account</text>
+</svg>
