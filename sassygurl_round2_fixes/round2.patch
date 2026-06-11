@@ -1,0 +1,223 @@
+diff -ru '--exclude=.git' '--exclude=node_modules' '--exclude=obj' '--exclude=bin' '--exclude=.next' sassygurl-latest/.env.example sassygurl-round2/.env.example
+--- sassygurl-latest/.env.example	2026-06-11 09:40:45.797798628 +0000
++++ sassygurl-round2/.env.example	2026-06-11 09:44:02.621372031 +0000
+@@ -37,8 +37,18 @@
+ AUTH_TRUST_HOST="true"
+ 
+ # ASP.NET CORE BACKEND API
+-NEXT_PUBLIC_API_URL="http://localhost:5009/api"
++NEXT_PUBLIC_API_URL="http://localhost:5000/api"
+ 
+ # DIGIFLAZZ (Jika dibutuhkan di backend Node/Edge)
+ Digiflazz__Username="[PLACEHOLDER_DIGIFLAZZ_USERNAME]"
+ Digiflazz__ApiKey="[PLACEHOLDER_DIGIFLAZZ_API_KEY]"
++
++
++# SignalR Hub URL (biasanya backend URL tanpa /api)
++NEXT_PUBLIC_SIGNALR_URL="http://localhost:5000"
++
++# Secret untuk endpoint sync katalog dari admin panel
++SYNC_WEBHOOK_SECRET="[GENERATE_RANDOM_STRING_32_CHARS]"
++
++# App identity
++NEXT_PUBLIC_APP_NAME="SassyGurl Store"
+diff -ru '--exclude=.git' '--exclude=node_modules' '--exclude=obj' '--exclude=bin' '--exclude=.next' sassygurl-latest/app/actions/marketing.ts sassygurl-round2/app/actions/marketing.ts
+--- sassygurl-latest/app/actions/marketing.ts	2026-06-11 09:40:45.803491140 +0000
++++ sassygurl-round2/app/actions/marketing.ts	2026-06-11 09:42:51.621806108 +0000
+@@ -38,4 +38,33 @@
+     console.error("[Promo Action] Error:", error);
+     return { success: false, message: error.message || "Error sistem promo." };
+   }
+-}
+\ No newline at end of file
++}
++
++// ══════════════════════════════════════════════════════════════════════════
++// ACCOUNT VALIDATION ACTION
++// Gantikan fetch() di AccountInput.tsx agar URL backend tidak bocor ke browser
++// ══════════════════════════════════════════════════════════════════════════
++export async function validateAccountAction(
++  gameCode: string,
++  targetId: string,
++  zoneId?: string
++): Promise<{ success: boolean; nickname?: string; message?: string }> {
++  try {
++    if (!gameCode?.trim() || !targetId?.trim()) {
++      return { success: false, message: "GameCode dan TargetId wajib diisi." };
++    }
++    const response = await fetchApi<ApiResponse<{ nickname: string }>>(
++      "/game/validate",
++      {
++        method: "POST",
++        body: JSON.stringify({ gameCode: gameCode.trim(), targetId: targetId.trim(), zoneId: zoneId?.trim() }),
++      }
++    );
++    if (response.success && response.data?.nickname) {
++      return { success: true, nickname: response.data.nickname };
++    }
++    return { success: false, message: response.message || "ID tidak ditemukan. Periksa kembali." };
++  } catch (error: any) {
++    return { success: false, message: "Gagal memvalidasi akun. Coba lagi." };
++  }
++}
+diff -ru '--exclude=.git' '--exclude=node_modules' '--exclude=obj' '--exclude=bin' '--exclude=.next' sassygurl-latest/app/admin/AdminDashboardClient.tsx sassygurl-round2/app/admin/AdminDashboardClient.tsx
+--- sassygurl-latest/app/admin/AdminDashboardClient.tsx	2026-06-11 09:40:45.803491140 +0000
++++ sassygurl-round2/app/admin/AdminDashboardClient.tsx	2026-06-11 09:43:50.443744645 +0000
+@@ -111,7 +111,7 @@
+     let mounted = true;
+     if (connectionRef.current) return;
+ 
+-    const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5009/api";
++    const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
+     const baseUrl = apiUrl.replace(/\/api$/, "");
+     
+     const connection = new signalR.HubConnectionBuilder()
+Only in sassygurl-round2/app/admin: layout.tsx
+diff -ru '--exclude=.git' '--exclude=node_modules' '--exclude=obj' '--exclude=bin' '--exclude=.next' sassygurl-latest/app/dashboard/MemberDashboardClient.tsx sassygurl-round2/app/dashboard/MemberDashboardClient.tsx
+--- sassygurl-latest/app/dashboard/MemberDashboardClient.tsx	2026-06-11 09:40:45.806469849 +0000
++++ sassygurl-round2/app/dashboard/MemberDashboardClient.tsx	2026-06-11 09:43:50.446273585 +0000
+@@ -123,7 +123,7 @@
+     }
+     if (connectionRef.current) return;
+ 
+-    const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5009/api";
++    const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
+     const baseUrl = apiUrl.replace(/\/api$/, "");
+     
+     const connection = new signalR.HubConnectionBuilder()
+diff -ru '--exclude=.git' '--exclude=node_modules' '--exclude=obj' '--exclude=bin' '--exclude=.next' sassygurl-latest/backend/SassyGurl.Api/appsettings.json sassygurl-round2/backend/SassyGurl.Api/appsettings.json
+--- sassygurl-latest/backend/SassyGurl.Api/appsettings.json	2026-06-11 09:40:45.823254820 +0000
++++ sassygurl-round2/backend/SassyGurl.Api/appsettings.json	2026-06-11 09:43:55.457188871 +0000
+@@ -13,7 +13,7 @@
+     "ExpireDays": 30
+   },
+   "ConnectionStrings": {
+-    "DefaultConnection": "Host=localhost;Port=5432;Database=sassygurl;Username=postgres;Password=***REDACTED_DB_PASSWORD***;Maximum Pool Size=20;Minimum Pool Size=2;Connection Idle Lifetime=300;Connection Pruning Interval=10;Timeout=15;Command Timeout=30",
++    "DefaultConnection": "Host=localhost;Port=5432;Database=sassygurl;Username=postgres;Password=CHANGE_ME;Maximum Pool Size=20;Minimum Pool Size=2;Connection Idle Lifetime=300;Connection Pruning Interval=10;Timeout=15;Command Timeout=30",
+     "Redis": "localhost:6379"
+   },
+   "Serilog": {
+diff -ru '--exclude=.git' '--exclude=node_modules' '--exclude=obj' '--exclude=bin' '--exclude=.next' sassygurl-latest/components/AccountInput.tsx sassygurl-round2/components/AccountInput.tsx
+--- sassygurl-latest/components/AccountInput.tsx	2026-06-11 09:40:45.829982413 +0000
++++ sassygurl-round2/components/AccountInput.tsx	2026-06-11 09:43:04.719944473 +0000
+@@ -61,33 +61,32 @@
+     setErrorMsg(null);
+     setLoading(true);
+ 
++    // AbortController untuk batalkan jika user mengetik sebelum debounce selesai
+     const controller = new AbortController();
+ 
+     const fetchNickname = async () => {
+       try {
+-        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/game/validate`, {
+-          method: "POST",
+-          headers: { "Content-Type": "application/json" },
+-          body: JSON.stringify({ gameCode: gameSlug, targetId: id, zoneId: zone }),
+-          signal: controller.signal
+-        });
+-        const data = await res.json();
+-        
+-        if (data.success && data.data && data.data.nickname) {
+-          setUsername(data.data.nickname);
+-          onResolved?.({ id, zone, username: data.data.nickname });
++        // ── Server Action: backend URL tidak bocor ke browser ──────────────
++        const { validateAccountAction } = await import("@/app/actions/marketing");
++        const result = await validateAccountAction(gameSlug, id, zone);
++
++        if (controller.signal.aborted) return;
++
++        if (result.success && result.nickname) {
++          setUsername(result.nickname);
++          onResolved?.({ id, zone, username: result.nickname });
+         } else {
+           setUsername(null);
+-          setErrorMsg(data.message === "Invalid user ID" ? "Silakan periksa kembali User ID Anda." : "ID tidak ditemukan. Periksa kembali.");
++          setErrorMsg(result.message || "ID tidak ditemukan. Periksa kembali.");
+           onResolved?.({ id, zone, username: null });
+         }
+       } catch (err: any) {
+-        if (err.name === 'AbortError') return;
++        if (controller.signal.aborted) return;
+         setUsername(null);
+         setErrorMsg("Sistem sedang memvalidasi... silakan coba lagi.");
+         onResolved?.({ id, zone, username: null });
+       } finally {
+-        setLoading(false);
++        if (!controller.signal.aborted) setLoading(false);
+       }
+     };
+ 
+diff -ru '--exclude=.git' '--exclude=node_modules' '--exclude=obj' '--exclude=bin' '--exclude=.next' sassygurl-latest/components/LiveTransactionFeed.tsx sassygurl-round2/components/LiveTransactionFeed.tsx
+--- sassygurl-latest/components/LiveTransactionFeed.tsx	2026-06-11 09:40:45.830850797 +0000
++++ sassygurl-round2/components/LiveTransactionFeed.tsx	2026-06-11 09:43:50.446446055 +0000
+@@ -20,7 +20,7 @@
+ 
+   useEffect(() => {
+     let active = true;
+-    const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5009/api";
++    const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
+     const baseUrl = apiUrl.replace(/\/api$/, "");
+ 
+     // 1. Initialize connection if not already created
+diff -ru '--exclude=.git' '--exclude=node_modules' '--exclude=obj' '--exclude=bin' '--exclude=.next' sassygurl-latest/components/PaymentAccordion.tsx sassygurl-round2/components/PaymentAccordion.tsx
+--- sassygurl-latest/components/PaymentAccordion.tsx	2026-06-11 09:40:45.830850797 +0000
++++ sassygurl-round2/components/PaymentAccordion.tsx	2026-06-11 09:43:39.630577870 +0000
+@@ -57,22 +57,16 @@
+     setPromoLoading(true);
+     setPromoError("");
+     try {
+-      const res = await fetch(
+-        `${process.env.NEXT_PUBLIC_API_URL}/promos/validate`,
+-        {
+-          method: "POST",
+-          headers: { "Content-Type": "application/json" },
+-          body: JSON.stringify({ code: promoCode.trim(), amount: baseTotal }),
+-        }
+-      );
+-      const data = await res.json();
+-      if (data.success && data.data) {
+-        const discount = data.data.discountAmount ?? 0;
++      // ── Server Action (gantikan fetch() langsung) ────────────────────────
++      const { validatePromoCode } = await import("@/app/actions/marketing");
++      const result = await validatePromoCode(promoCode.trim(), baseTotal);
++      if (result.success && result.data) {
++        const discount = result.data.discountAmount ?? 0;
+         setPromoApplied({ code: promoCode.trim(), discount });
+         onPromoApplied?.(promoCode.trim(), discount);
+         setPromoCode("");
+       } else {
+-        setPromoError(data.message || "Kode promo tidak valid.");
++        setPromoError(result.message || "Kode promo tidak valid.");
+       }
+     } catch {
+       setPromoError("Gagal memeriksa promo. Coba lagi.");
+@@ -86,12 +80,24 @@
+       return originalLogo; // Use Digiflazz/provider logo if valid
+     }
+     const c = code.toUpperCase();
+-    if (c.includes("QRIS")) return "/images/ui/payment-qris.svg";
+-    if (c.includes("BCA") || c.includes("MANDIRI") || c.includes("BNI") || c.includes("BRI") || c.includes("BSI") || c.includes("CIMB") || c.includes("PERMATA") || c.includes("DANAMON")) return "/images/ui/payment-bca.svg"; // Fallback to a bank icon
+-    if (c.includes("GOPAY") || c.includes("OVO") || c.includes("DANA") || c.includes("LINKAJA") || c.includes("SHOPEEPAY")) return "/images/ui/payment-dana.svg"; // Fallback to e-wallet
++    // QRIS
++    if (c.includes("QRIS"))       return "/images/ui/payment-qris.svg";
++    // E-Wallet — masing-masing punya ikon sendiri
++    if (c.includes("GOPAY"))      return "/images/ui/payment-gopay.svg";
++    if (c.includes("OVO"))        return "/images/ui/payment-ovo.svg";
++    if (c.includes("DANA"))       return "/images/ui/payment-dana.svg";
++    if (c.includes("SHOPEE") || c.includes("SPAY")) return "/images/ui/payment-shopee.svg";
++    if (c.includes("LINKAJA"))    return "/images/ui/payment-dana.svg"; // closest match
++    // Virtual Account — masing-masing bank punya ikon sendiri
++    if (c.includes("BCA"))        return "/images/ui/payment-bca.svg";
++    if (c.includes("BNI"))        return "/images/ui/payment-bni.svg";
++    if (c.includes("BRI"))        return "/images/ui/payment-bri.svg";
++    if (c.includes("MANDIRI"))    return "/images/ui/payment-mandiri.svg";
++    if (c.includes("BSI") || c.includes("PERMATA") || c.includes("CIMB") || c.includes("DANAMON")) return "/images/ui/payment-mandiri.svg";
++    // Retail
+     if (c.includes("ALFAMART") || c.includes("INDOMARET")) return "/images/ui/payment-retail.svg";
+-    
+-    return "/images/payments/default.webp";
++
++    return "/images/ui/payment-qris.svg"; // safe default
+   };
+ 
+   return (
