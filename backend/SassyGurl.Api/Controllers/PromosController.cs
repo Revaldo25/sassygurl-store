@@ -35,7 +35,7 @@ public class PromosController : ControllerBase
     /// <summary>
     /// Get all promos (Admin only — Marketing Suite).
     /// </summary>
-    [Authorize(Roles = "SUPERADMIN,CS,FINANCE")]
+    [Authorize(Roles = "SUPERADMIN,OWNER,CS,FINANCE")]
     [HttpGet]
     public async Task<ActionResult<ApiResponse<List<PromoDto>>>> GetAll()
     {
@@ -46,7 +46,7 @@ public class PromosController : ControllerBase
     /// <summary>
     /// Create a new promo/flash sale (Admin only).
     /// </summary>
-    [Authorize(Roles = "SUPERADMIN,FINANCE")]
+    [Authorize(Roles = "SUPERADMIN,OWNER,FINANCE")]
     [HttpPost]
     public async Task<ActionResult<ApiResponse<PromoDto>>> Create([FromBody] CreatePromoDto dto)
     {
@@ -62,7 +62,7 @@ public class PromosController : ControllerBase
     /// <summary>
     /// Update an existing promo (Admin only).
     /// </summary>
-    [Authorize(Roles = "SUPERADMIN,FINANCE")]
+    [Authorize(Roles = "SUPERADMIN,OWNER,FINANCE")]
     [HttpPut("{id}")]
     public async Task<ActionResult<ApiResponse<PromoDto>>> Update(string id, [FromBody] CreatePromoDto dto)
     {
@@ -78,7 +78,7 @@ public class PromosController : ControllerBase
     /// <summary>
     /// Toggle promo active/inactive (Admin only).
     /// </summary>
-    [Authorize(Roles = "SUPERADMIN,FINANCE")]
+    [Authorize(Roles = "SUPERADMIN,OWNER,FINANCE")]
     [HttpPatch("{id}/toggle")]
     public async Task<ActionResult<ApiResponse<string>>> Toggle(string id)
     {
@@ -94,7 +94,7 @@ public class PromosController : ControllerBase
     /// <summary>
     /// Delete a promo (SUPERADMIN only).
     /// </summary>
-    [Authorize(Roles = "SUPERADMIN")]
+    [Authorize(Roles = "SUPERADMIN,OWNER")]
     [HttpDelete("{id}")]
     public async Task<ActionResult<ApiResponse<string>>> Delete(string id)
     {

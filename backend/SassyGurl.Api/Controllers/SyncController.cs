@@ -185,7 +185,7 @@ public class SyncController : ControllerBase
         });
     }
 
-    [Authorize(Roles = "SUPERADMIN")]
+    [Authorize(Roles = "SUPERADMIN,OWNER")]
     [HttpPost("seed-mock")]
     public async Task<IActionResult> SeedMock([FromServices] SassyGurl.Api.Data.SassyGurlDbContext db)
     {

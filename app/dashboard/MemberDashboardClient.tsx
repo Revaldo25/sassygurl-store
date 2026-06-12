@@ -3,6 +3,8 @@
 import { useState, useTransition, useEffect, useRef } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
+import { logoutAction } from "@/app/actions/auth";
+import { signOut } from "next-auth/react";
 import { motion, AnimatePresence, Variants } from "framer-motion";
 import {
   Search,
@@ -236,7 +238,7 @@ export default function MemberDashboardClient({ initialStats, initialTransaction
         </motion.div>
 
         {/* STATS GRID */}
-        <div className="grid gap-4 lg:col-span-2 sm:grid-cols-2">
+        <div className="grid grid-cols-2 gap-3 lg:gap-4 lg:col-span-2">
           {[
             { label: "Saldo SassyGurl", value: formatIDR(stats.balance), icon: Wallet, color: "text-sakura" },
             { label: "Total Points", value: `${stats.points.toLocaleString("id-ID")} XP`, icon: TrendingUp, color: "text-brand-cyan" },
@@ -247,13 +249,13 @@ export default function MemberDashboardClient({ initialStats, initialTransaction
               key={i}
               variants={item}
               whileHover={{ y: -5, scale: 1.02 }}
-              className={`group relative overflow-hidden rounded-[2rem] border border-white/10 bg-zinc-900/50 backdrop-blur-md p-6 transition-all`}
+              className={`group relative overflow-hidden rounded-[1.5rem] md:rounded-[2rem] border border-white/10 bg-zinc-900/50 backdrop-blur-md p-4 md:p-6 transition-all flex flex-col justify-between min-h-[100px]`}
             >
-              <div className={`absolute right-[-10%] top-[-10%] p-8 opacity-10 transition-opacity group-hover:opacity-20 ${stat.color}`}>
-                <stat.icon size={80} />
+              <div className={`absolute right-[-10%] top-[-10%] p-4 opacity-10 transition-opacity group-hover:opacity-20 ${stat.color}`}>
+                <stat.icon size={60} className="md:w-20 md:h-20" />
               </div>
-              <p className="mb-2 text-xs font-black uppercase tracking-wider text-zinc-500">{stat.label}</p>
-              <h3 className="text-2xl font-black tracking-tight text-white">{stat.value}</h3>
+              <p className="mb-2 text-[8px] md:text-xs font-black uppercase tracking-wider text-zinc-500">{stat.label}</p>
+              <h3 className="text-sm md:text-2xl font-black tracking-tight text-white">{stat.value}</h3>
             </motion.div>
           ))}
         </div>
@@ -323,7 +325,7 @@ export default function MemberDashboardClient({ initialStats, initialTransaction
             {featuredGames.slice(0, 4).map((game) => (
               <Link
                 key={game.slug}
-                href={`/game/${game.slug}`}
+                href={`/games/${game.slug}`}
                 className="group flex cursor-pointer flex-col items-center gap-4 rounded-3xl border border-white/10 bg-zinc-900/50 backdrop-blur-md p-6 text-center transition-all hover:bg-zinc-800/50"
               >
                 <div className="relative h-16 w-16 overflow-hidden rounded-2xl border border-white/10 transition-all group-hover:border-sakura/50">
@@ -569,9 +571,15 @@ export default function MemberDashboardClient({ initialStats, initialTransaction
             </button>
             <button 
               onClick={async () => {
-                const { logoutAction } = await import("@/app/actions/auth");
-                await logoutAction();
-                window.location.href = "/auth/login";
+                try {
+                  await logoutAction();
+                  localStorage.clear();
+                  sessionStorage.clear();
+                } catch (e) {
+                  console.error("Error clearing C# session", e);
+                } finally {
+                  await signOut({ redirect: true, callbackUrl: "/auth/login" });
+                }
               }}
               className="flex flex-1 justify-center rounded-2xl border border-red-500/10 bg-red-500/5 p-4 text-red-400 backdrop-blur-xl transition-all hover:bg-red-500/10 hover:text-red-300 md:flex-none"
               title="Keluar"

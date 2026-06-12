@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { formatIDR } from "@/lib/catalog";
 import { PaymentGroup, PaymentMethod } from "@/lib/api-adapter";
+import { validatePromoCode } from "@/app/actions/marketing";
 
 type Props = {
   groups: PaymentGroup[];
@@ -58,10 +59,9 @@ export default function PaymentAccordion({
     setPromoError("");
     try {
       // ── Server Action (gantikan fetch() langsung) ────────────────────────
-      const { validatePromoCode } = await import("@/app/actions/marketing");
       const result = await validatePromoCode(promoCode.trim(), baseTotal);
-      if (result.success && result.data) {
-        const discount = result.data.discountAmount ?? 0;
+      if (result.success && result.discount !== undefined) {
+        const discount = result.discount ?? 0;
         setPromoApplied({ code: promoCode.trim(), discount });
         onPromoApplied?.(promoCode.trim(), discount);
         setPromoCode("");

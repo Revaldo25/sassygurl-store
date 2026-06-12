@@ -84,8 +84,11 @@ public class CatalogService : ICatalogService
 
         var game = await _context.Games
             .AsNoTracking()
+            .Include(g => g.ProductCategories)
             .Include(g => g.Products.Where(p => p.IsActive))
                 .ThenInclude(p => p.Provider)
+            .Include(g => g.Products)
+                .ThenInclude(p => p.ProductCategory)
             .FirstOrDefaultAsync(g => g.Slug == slug && g.IsActive);
 
         if (game is null)
@@ -130,7 +133,7 @@ public class CatalogService : ICatalogService
         // Build grouped structure
         var grouped = productDtos
             .GroupBy(p => p.ItemCategory)
-            .OrderBy(g => CategorySortOrder(g.Key))
+            .OrderBy(g => g.Min(p => p.SortOrder) / 10000)
             .Select(g => new GroupedProductsDto
             {
                 Category = new ItemCategoryDto
@@ -139,7 +142,7 @@ public class CatalogService : ICatalogService
                     Label     = g.First().ItemCategoryLabel,
                     Icon      = g.First().ItemCategoryIcon,
                     ItemCount = g.Count(),
-                    SortOrder = CategorySortOrder(g.Key)
+                    SortOrder = g.Min(p => p.SortOrder) / 10000
                 },
                 Items = g.OrderBy(p => p.Price).ToList()
             })
@@ -412,6 +415,11 @@ public class CatalogService : ICatalogService
     /// </summary>
     private static (string Slug, string Label, string Icon, int SortOrder) ClassifyProduct(Models.Product p)
     {
+        if (p.ProductCategory != null)
+        {
+            return (p.ProductCategoryId!, p.ProductCategory.Name, p.ProductCategory.Icon, p.ProductCategory.SortOrder);
+        }
+
         if (!string.IsNullOrWhiteSpace(p.Metadata))
         {
             try

@@ -130,8 +130,19 @@ export async function getCurrentMemberAction() {
   }
 }
 
+import { redirect } from "next/navigation";
+
 export async function logoutAction() {
-  const cookieStore = await cookies();
-  cookieStore.delete("auth_token");
+  try {
+    const cookieStore = await cookies();
+    cookieStore.delete({
+      name: "auth_token",
+      path: "/",
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax"
+    });
+  } catch (e) {
+    console.error("[Logout Action] Error deleting cookie:", e);
+  }
   return { success: true };
 }

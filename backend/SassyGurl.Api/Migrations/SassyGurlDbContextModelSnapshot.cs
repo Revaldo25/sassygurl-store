@@ -35,8 +35,8 @@ namespace SassyGurl.Api.Migrations
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "PromoType", "promo_type", new[] { "flat", "percentage" });
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "ProviderSource", new[] { "DIGIFLAZZ", "VIP" });
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "ProviderSource", "provider_source", new[] { "vip", "digiflazz" });
-            NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "Role", new[] { "CS", "FINANCE", "MEMBER", "RESELLER", "SUPERADMIN", "VIP" });
-            NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "Role", "role", new[] { "member", "reseller", "vip", "cs", "finance", "superadmin" });
+            NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "Role", new[] { "CS", "FINANCE", "MEMBER", "OWNER", "RESELLER", "SUPERADMIN", "VIP" });
+            NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "Role", "role", new[] { "member", "reseller", "vip", "cs", "finance", "superadmin", "owner" });
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "TicketPriority", new[] { "HIGH", "LOW", "MEDIUM", "URGENT" });
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "TicketPriority", "ticket_priority", new[] { "low", "medium", "high", "urgent" });
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "TicketStatus", new[] { "CLOSED", "IN_PROGRESS", "OPEN", "RESOLVED", "WAITING_USER" });
@@ -431,6 +431,10 @@ namespace SassyGurl.Api.Migrations
                         .HasColumnType("decimal(10,2)")
                         .HasColumnName("priceVip");
 
+                    b.Property<string>("ProductCategoryId")
+                        .HasColumnType("text")
+                        .HasColumnName("productCategoryId");
+
                     b.Property<string>("ProviderId")
                         .IsRequired()
                         .HasColumnType("text")
@@ -453,6 +457,8 @@ namespace SassyGurl.Api.Migrations
 
                     b.HasIndex("GameId");
 
+                    b.HasIndex("ProductCategoryId");
+
                     b.HasIndex("ProviderId");
 
                     b.HasIndex("Sku")
@@ -461,6 +467,38 @@ namespace SassyGurl.Api.Migrations
                     b.HasIndex("Sku", "GameId", "IsActive");
 
                     b.ToTable("Product", (string)null);
+                });
+
+            modelBuilder.Entity("SassyGurl.Api.Models.ProductCategory", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasColumnType("text")
+                        .HasColumnName("id");
+
+                    b.Property<string>("GameId")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("gameId");
+
+                    b.Property<string>("Icon")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("icon");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("name");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("integer")
+                        .HasColumnName("sortOrder");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("GameId");
+
+                    b.ToTable("ProductCategory", (string)null);
                 });
 
             modelBuilder.Entity("SassyGurl.Api.Models.Promo", b =>
@@ -1391,6 +1429,11 @@ namespace SassyGurl.Api.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
+                    b.HasOne("SassyGurl.Api.Models.ProductCategory", "ProductCategory")
+                        .WithMany("Products")
+                        .HasForeignKey("ProductCategoryId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
                     b.HasOne("SassyGurl.Api.Models.Provider", "Provider")
                         .WithMany("Products")
                         .HasForeignKey("ProviderId")
@@ -1399,7 +1442,20 @@ namespace SassyGurl.Api.Migrations
 
                     b.Navigation("Game");
 
+                    b.Navigation("ProductCategory");
+
                     b.Navigation("Provider");
+                });
+
+            modelBuilder.Entity("SassyGurl.Api.Models.ProductCategory", b =>
+                {
+                    b.HasOne("SassyGurl.Api.Models.Game", "Game")
+                        .WithMany("ProductCategories")
+                        .HasForeignKey("GameId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Game");
                 });
 
             modelBuilder.Entity("SassyGurl.Api.Models.ProviderHealthLog", b =>
@@ -1550,6 +1606,8 @@ namespace SassyGurl.Api.Migrations
 
             modelBuilder.Entity("SassyGurl.Api.Models.Game", b =>
                 {
+                    b.Navigation("ProductCategories");
+
                     b.Navigation("Products");
 
                     b.Navigation("Reviews");
@@ -1565,6 +1623,11 @@ namespace SassyGurl.Api.Migrations
             modelBuilder.Entity("SassyGurl.Api.Models.Product", b =>
                 {
                     b.Navigation("Transactions");
+                });
+
+            modelBuilder.Entity("SassyGurl.Api.Models.ProductCategory", b =>
+                {
+                    b.Navigation("Products");
                 });
 
             modelBuilder.Entity("SassyGurl.Api.Models.Promo", b =>

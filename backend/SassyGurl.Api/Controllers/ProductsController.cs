@@ -24,7 +24,7 @@ public class ProductsController : ControllerBase
     /// POST /api/products/sync
     /// Triggers the background synchronization of all products from VIP Reseller and Digiflazz.
     /// </summary>
-    [Authorize(Roles = "SUPERADMIN")]
+    [Authorize(Roles = "SUPERADMIN,OWNER")]
     [HttpPost("sync")]
     public async Task<IActionResult> Sync()
     {
@@ -58,10 +58,36 @@ public class ProductsController : ControllerBase
     }
 
     /// <summary>
+    /// GET /api/products/game/{gameId}
+    /// Lists all products for a specific game (Active and Inactive)
+    /// </summary>
+    [Authorize(Roles = "SUPERADMIN,OWNER")]
+    [HttpGet("game/{gameId}")]
+    public async Task<IActionResult> GetByGame(string gameId)
+    {
+        var products = await _context.Products
+            .Where(p => p.GameId == gameId)
+            .Select(p => new {
+                p.Id,
+                p.Name,
+                p.Sku,
+                p.PriceSell,
+                p.IsActive,
+                p.ProductCategoryId,
+                OriginalPrice = p.OriginalPrice ?? p.PriceSell,
+                CategoryName = p.ProductCategory != null ? p.ProductCategory.Name : "Uncategorized"
+            })
+            .OrderBy(p => p.Name)
+            .ToListAsync();
+
+        return Ok(new { success = true, data = products });
+    }
+
+    /// <summary>
     /// GET /api/products/review-queue
     /// Fetch all products that need admin review.
     /// </summary>
-    [Authorize(Roles = "SUPERADMIN")]
+    [Authorize(Roles = "SUPERADMIN,OWNER")]
     [HttpGet("review-queue")]
     public async Task<IActionResult> GetReviewQueue()
     {
@@ -82,7 +108,7 @@ public class ProductsController : ControllerBase
     /// POST /api/products/{id}/resolve
     /// Resolves an ambiguous product (Approve, Reject, or Remap).
     /// </summary>
-    [Authorize(Roles = "SUPERADMIN")]
+    [Authorize(Roles = "SUPERADMIN,OWNER")]
     [HttpPost("{id}/resolve")]
     public async Task<IActionResult> ResolveReview(string id, [FromBody] SassyGurl.Api.DTOs.Catalog.ReviewResolveDto dto)
     {
@@ -154,7 +180,7 @@ public class ProductsController : ControllerBase
     /// GET /api/catalog/health
     /// Returns catalog health metrics for the admin dashboard.
     /// </summary>
-    [Authorize(Roles = "SUPERADMIN")]
+    [Authorize(Roles = "SUPERADMIN,OWNER")]
     [HttpGet("/api/catalog/health")]
     public async Task<IActionResult> GetCatalogHealth()
     {

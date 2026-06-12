@@ -20,6 +20,7 @@ public class SassyGurlDbContext : DbContext
     public DbSet<Review> Reviews { get; set; } = null!;
     public DbSet<Provider> Providers { get; set; } = null!;
     public DbSet<Product> Products { get; set; } = null!;
+    public DbSet<ProductCategory> ProductCategories { get; set; } = null!;
     public DbSet<PaymentMethod> PaymentMethods { get; set; } = null!;
     public DbSet<Promo> Promos { get; set; } = null!;
     public DbSet<Transaction> Transactions { get; set; } = null!;
@@ -76,6 +77,7 @@ public class SassyGurlDbContext : DbContext
         modelBuilder.Entity<TicketMessage>().ToTable("TicketMessage");
         modelBuilder.Entity<SystemAudit>().ToTable("SystemAudit");
         modelBuilder.Entity<VerificationToken>().ToTable("VerificationToken");
+        modelBuilder.Entity<ProductCategory>().ToTable("ProductCategory");
 
         // Convert PascalCase properties to camelCase column names to match Prisma
         foreach (var entity in modelBuilder.Model.GetEntityTypes())
@@ -244,6 +246,18 @@ public class SassyGurlDbContext : DbContext
             .WithMany(u => u.Accounts)
             .HasForeignKey(a => a.UserId)
             .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<ProductCategory>()
+            .HasOne(pc => pc.Game)
+            .WithMany(g => g.ProductCategories)
+            .HasForeignKey(pc => pc.GameId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<Product>()
+            .HasOne(p => p.ProductCategory)
+            .WithMany(pc => pc.Products)
+            .HasForeignKey(p => p.ProductCategoryId)
+            .OnDelete(DeleteBehavior.SetNull);
 
         // ── OrderStatusHistory Configuration (Master Plan §8) ───────────
         modelBuilder.Entity<OrderStatusHistory>(entity =>

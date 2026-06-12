@@ -217,7 +217,7 @@ async function seed() {
         INSERT INTO "Game" (
           id, "categoryId", name, slug, thumbnail, banner,
           "currencyName", "hasServerId", "isActive", "isHot", "sortOrder",
-          publisher, "GuideImage"
+          publisher, "guideImage"
         )
         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,NULL)
         ON CONFLICT (slug) DO UPDATE SET
@@ -248,14 +248,14 @@ async function seed() {
     let pAdded = 0, pUpdated = 0;
     for (const p of PAYMENT_METHODS) {
       const res = await client.query(`
-        INSERT INTO "PaymentMethod" (id, code, name, "Type", logo, "FeeFlat", "FeePercent", "IsActive", "SortOrder")
+        INSERT INTO "PaymentMethod" (id, code, name, type, logo, "feeFlat", "feePercent", "isActive", "sortOrder")
         VALUES ($1,$2,$3,$4::\"PaymentType\",$5,$6,$7,true,$8)
         ON CONFLICT (code) DO UPDATE SET
           name        = EXCLUDED.name,
           logo        = EXCLUDED.logo,
-          "FeeFlat"   = EXCLUDED."FeeFlat",
-          "FeePercent"= EXCLUDED."FeePercent",
-          "SortOrder" = EXCLUDED."SortOrder"
+          "feeFlat"   = EXCLUDED."feeFlat",
+          "feePercent"= EXCLUDED."feePercent",
+          "sortOrder" = EXCLUDED."sortOrder"
         RETURNING (xmax = 0) AS inserted;
       `, [crypto.randomUUID(), p.code, p.name, p.type, p.logo, p.feeFlat, p.feePercent, p.sort]);
       if (res.rows[0]?.inserted) pAdded++; else pUpdated++;
@@ -271,9 +271,20 @@ async function seed() {
     if (existingAdmin.rows.length === 0) {
       const hash = await bcrypt.hash(ADMIN_PASSWORD, 12);
       await client.query(`
-        INSERT INTO "User" (id, email, name, "passwordHash", role, "isVerified", "createdAt")
-        VALUES ($1, $2, $3, $4, 'SUPERADMIN', true, NOW())
-      `, [crypto.randomUUID(), ADMIN_EMAIL, ADMIN_NAME, hash]);
+        INSERT INTO "User" (
+          id, email, name, password, role, "kycStatus", "isVerified", 
+          "referralCode", version, balance, points, "totalCommission", 
+          "createdAt", "updatedAt", "isTwoFactorEnable"
+        )
+        VALUES (
+          $1, $2, $3, $4, 'SUPERADMIN', 'VERIFIED', true, 
+          $5, $6, 0, 0, 0, 
+          NOW(), NOW(), false
+        )
+      `, [
+        crypto.randomUUID(), ADMIN_EMAIL, ADMIN_NAME, hash, 
+        crypto.randomUUID(), crypto.randomUUID()
+      ]);
       console.log(`    ✅ Admin dibuat: ${ADMIN_EMAIL}`);
       console.log(`    ⚠️  Ganti password default setelah login pertama!`);
     } else {
@@ -292,10 +303,10 @@ async function seed() {
     ];
     for (const s of settings) {
       await client.query(`
-        INSERT INTO "SystemSetting" (id, key, value, "updatedAt")
-        VALUES ($1, $2, $3, NOW())
+        INSERT INTO "SystemSetting" (key, value, "updatedAt")
+        VALUES ($1, $2, NOW())
         ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value, "updatedAt" = NOW();
-      `, [crypto.randomUUID(), s.key, s.value]);
+      `, [s.key, s.value]);
     }
     console.log(`    ✅ ${settings.length} settings diterapkan`);
 

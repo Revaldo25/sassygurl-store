@@ -8,7 +8,7 @@ namespace SassyGurl.Api.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-[Authorize(Roles = "SUPERADMIN")]
+[Authorize(Roles = "SUPERADMIN,OWNER")]
 public class SettingsController : ControllerBase
 {
     private readonly ISettingsService _settingsService;

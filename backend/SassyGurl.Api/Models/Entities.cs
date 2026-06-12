@@ -195,6 +195,7 @@ public class Game
 
     // Navigation Properties
     public ICollection<Product> Products { get; set; } = [];
+    public ICollection<ProductCategory> ProductCategories { get; set; } = [];
     public ICollection<Transaction> Transactions { get; set; } = [];
     public ICollection<Review> Reviews { get; set; } = [];
 }
@@ -228,6 +229,25 @@ public class Review
 }
 
 // ============================================================================
+
+public class ProductCategory
+{
+    [Key]
+    public string Id { get; set; } = Guid.NewGuid().ToString();
+
+    public string GameId { get; set; } = null!;
+
+    [ForeignKey(nameof(GameId))]
+    public Game Game { get; set; } = null!;
+
+    public string Name { get; set; } = null!;
+
+    public string Icon { get; set; } = "💎";
+
+    public int SortOrder { get; set; } = 0;
+
+    public ICollection<Product> Products { get; set; } = [];
+}
 // 4. PRODUCT & PROVIDER
 // ============================================================================
 
@@ -283,6 +303,11 @@ public class Product
 
     [ForeignKey(nameof(ProviderId))]
     public Provider Provider { get; set; } = null!;
+
+    public string? ProductCategoryId { get; set; }
+
+    [ForeignKey(nameof(ProductCategoryId))]
+    public ProductCategory? ProductCategory { get; set; }
 
     public string Sku { get; set; } = null!;
 

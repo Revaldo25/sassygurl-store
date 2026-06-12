@@ -12,7 +12,7 @@ namespace SassyGurl.Api.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-[Authorize(Roles = "SUPERADMIN")]
+[Authorize(Roles = "SUPERADMIN,OWNER")]
 public class OpsController : ControllerBase
 {
     private readonly SassyGurlDbContext _context;

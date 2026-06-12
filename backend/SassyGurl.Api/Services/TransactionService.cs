@@ -67,7 +67,7 @@ public class TransactionService : ITransactionService
             GameId = product.GameId,
             ProductId = product.Id,
             Sku = product.Sku,
-            DenomName = product.Name,
+            DenomName = request.Quantity > 1 ? $"{product.Name} (x{request.Quantity})" : product.Name,
             TargetId = request.TargetId,
             ZoneId = request.ZoneId,
             Email = request.Email,
@@ -90,10 +90,11 @@ public class TransactionService : ITransactionService
         _context.Transactions.Add(transaction);
 
         // Generate real SnapToken from Midtrans Sandbox
+        var productNameWithQty = request.Quantity > 1 ? $"{product.Name} (x{request.Quantity})" : product.Name;
         var snapToken = await _midtrans.GenerateSnapTokenAsync(
             invoiceId,
             totalAmount,
-            product.Name,
+            productNameWithQty,
             "SassyGurl User",
             request.Email ?? "",
             request.Whatsapp ?? "");

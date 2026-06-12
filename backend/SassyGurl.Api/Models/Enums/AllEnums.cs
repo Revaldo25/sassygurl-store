@@ -7,7 +7,8 @@ public enum Role
     VIP,
     CS,
     FINANCE,
-    SUPERADMIN
+    SUPERADMIN,
+    OWNER
 }
 
 public enum KycStatus

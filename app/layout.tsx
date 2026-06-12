@@ -46,15 +46,14 @@ export const viewport: Viewport = {
 
 import { Providers } from "@/components/Providers";
 import FloatingNav from "@/components/FloatingNav";
-
-import ThreeJSBackground from "@/components/ThreeJSBackground";
+import { Toaster } from "sonner";
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="id" className="dark scroll-smooth" data-scroll-behavior="smooth">
       <body className={`${jakarta.className} min-h-screen bg-zinc-950 text-white antialiased pb-28`}>
         <div className="fixed inset-0 -z-10 bg-[radial-gradient(circle_at_top,rgba(253,176,192,0.10),transparent_35%),linear-gradient(180deg,#09090b_0%,#09090b_35%,#050505_100%)]" />
-        <ThreeJSBackground />
+        {/* <ThreeJSBackground /> Removed to improve performance and simplicity */}
         <Providers>
           {children}
           <FloatingNav />

@@ -4,6 +4,11 @@ const isProd = process.env.NODE_ENV === "production";
 
 const nextConfig: NextConfig = {
   reactStrictMode: true,
+  // Add Cloudflare tunnel host to allow Dev Server requests
+  allowedDevOrigins: [
+    "reviewing-captain-cream-subscriptions.trycloudflare.com",
+    "sassygurlvip.loca.lt"
+  ],
 
   images: {
     formats: ["image/avif", "image/webp"],
