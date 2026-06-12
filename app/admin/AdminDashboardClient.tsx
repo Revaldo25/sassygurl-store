@@ -2,6 +2,8 @@
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts";
 import { useState, useTransition, useEffect, useRef } from "react";
 import { useSearchParams } from "next/navigation";
+import { logoutAction } from "@/app/actions/auth";
+import { signOut } from "next-auth/react";
 import * as signalR from "@microsoft/signalr";
 import { toast } from "sonner";
 import { motion, AnimatePresence, Variants } from "framer-motion";
@@ -24,6 +26,8 @@ import {
   Activity,
   Zap,
   LogOut,
+  Settings,
+  UploadCloud,
 } from "lucide-react";
 import { formatIDR } from "@/lib/catalog";
 import {
@@ -39,6 +43,10 @@ import {
 } from "@/app/actions/dashboard";
 import { ProviderStatus } from "@/lib/api-adapter";
 import OpsStatusView from "./components/OpsStatusView";
+import PaymentsTab from "./components/PaymentsTab";
+import UsersTab from "./components/UsersTab";
+import SettingsTab from "./components/SettingsTab";
+import ProductCategoriesTab from "./components/ProductCategoriesTab";
 
 type Props = {
   initialStats: OwnerStats | AdminStats;
@@ -48,6 +56,83 @@ type Props = {
   initialGames: any[];
   role: string;
 };
+
+function ImageUploadField({ label, value, onChange, placeholder, aspectRatio = "square" }: { label: string, value: string, onChange: (v: string) => void, placeholder: string, aspectRatio?: "square" | "video" }) {
+  const [isUploading, setIsUploading] = useState(false);
+
+  const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 2 * 1024 * 1024) {
+      toast.error("File terlalu besar. Maksimal 2MB");
+      return;
+    }
+
+    setIsUploading(true);
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      
+      const res = await fetch("/api/upload", {
+        method: "POST",
+        body: formData
+      });
+      const data = await res.json();
+      
+      if (data.success) {
+        onChange(data.url);
+        toast.success("Gambar berhasil diunggah");
+      } else {
+        throw new Error(data.message || "Gagal mengunggah gambar");
+      }
+    } catch (err: any) {
+      toast.error(err.message);
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  return (
+    <div className="space-y-2">
+      <label className="text-[10px] font-black uppercase tracking-widest text-zinc-500">{label}</label>
+      <div className={`relative flex flex-col items-center justify-center rounded-2xl border-2 border-dashed border-white/10 bg-black/40 hover:bg-black/60 hover:border-sakura/50 transition-all overflow-hidden ${aspectRatio === "square" ? "aspect-square w-32" : "aspect-video w-full"}`}>
+        {value ? (
+          <img src={value} alt="Preview" className="w-full h-full object-cover" />
+        ) : (
+          <div className="flex flex-col items-center p-4 text-center">
+            {isUploading ? (
+              <RefreshCw className="h-6 w-6 text-sakura animate-spin" />
+            ) : (
+              <>
+                <UploadCloud className="h-6 w-6 text-zinc-600 mb-2" />
+                <span className="text-[9px] font-bold text-zinc-500 uppercase tracking-widest leading-tight">Click to<br/>Upload</span>
+              </>
+            )}
+          </div>
+        )}
+        <input 
+          type="file" 
+          accept="image/*"
+          onChange={handleUpload}
+          className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+          disabled={isUploading}
+        />
+        {value && !isUploading && (
+          <div className="absolute inset-0 bg-black/60 opacity-0 hover:opacity-100 flex items-center justify-center transition-opacity pointer-events-none">
+            <span className="text-[10px] font-bold text-white bg-black/80 px-2 py-1 rounded">Ganti</span>
+          </div>
+        )}
+      </div>
+      <input 
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className="w-full rounded-xl border border-white/5 bg-black/40 p-3 text-xs font-bold text-white outline-none focus:border-sakura mt-2"
+        placeholder={placeholder}
+      />
+    </div>
+  );
+}
 
 export default function AdminDashboardClient({ initialStats, initialTransactions, initialTotal = 0, providerStatuses, initialGames, role }: Props) {
   const isOwner = role?.toUpperCase() === "SUPERADMIN" || role?.toUpperCase() === "OWNER";
@@ -65,14 +150,14 @@ export default function AdminDashboardClient({ initialStats, initialTransactions
   const searchParams = useSearchParams();
   const tabParam = searchParams.get("tab") as any;
   
-  const [activeTab, setActiveTab] = useState<"overview" | "transactions" | "games" | "payments" | "providers" | "ops">(
-    ["overview", "transactions", "games", "payments", "providers", "ops"].includes(tabParam) ? tabParam : "overview"
+  const [activeTab, setActiveTab] = useState<"overview" | "transactions" | "games" | "categories" | "payments" | "providers" | "ops" | "users" | "settings">(
+    ["overview", "transactions", "games", "categories", "payments", "providers", "ops", "users", "settings"].includes(tabParam) ? tabParam : "overview"
   );
   
   const [searchGame, setSearchGame] = useState("");
 
   useEffect(() => {
-    if (tabParam && ["overview", "transactions", "games", "payments", "providers", "ops"].includes(tabParam)) {
+    if (tabParam && ["overview", "transactions", "games", "payments", "providers", "ops", "users", "settings"].includes(tabParam)) {
       setActiveTab(tabParam);
     }
   }, [tabParam]);
@@ -95,7 +180,8 @@ export default function AdminDashboardClient({ initialStats, initialTransactions
     hasServerId: false,
     isActive: true,
     isHot: false,
-    thumbnail: ""
+    thumbnail: "",
+    banner: ""
   });
 
   const handleSync = async () => {
@@ -204,6 +290,8 @@ export default function AdminDashboardClient({ initialStats, initialTransactions
       });
     });
 
+    connection.start().catch(err => console.error("SignalR Connection Error: ", err));
+
     return () => {
       connection.stop();
     };
@@ -269,11 +357,12 @@ export default function AdminDashboardClient({ initialStats, initialTransactions
       }
 
       if (res.success) {
-        alert(editingGame ? "Game updated!" : "Game created!");
+        toast.success(editingGame ? "Game updated!" : "Game created!");
         setShowGameModal(false);
         setEditingGame(null);
+        window.location.reload();
       } else {
-        alert(res.message);
+        toast.error(res.message);
       }
     });
   }
@@ -283,68 +372,168 @@ export default function AdminDashboardClient({ initialStats, initialTransactions
     startTransition(async () => {
       const res = await deleteGame(id);
       if (res.success) {
-        alert("Game deleted");
+        toast.success("Game deleted");
+        window.location.reload();
       } else {
-        alert(res.message);
+        toast.error(res.message);
       }
     });
   }
 
 
+  const handleLogout = async () => {
+    try {
+      await logoutAction();
+      localStorage.clear();
+      sessionStorage.clear();
+    } catch (e) {
+      console.error("Error clearing C# session", e);
+    } finally {
+      await signOut({ redirect: true, callbackUrl: "/auth/login" });
+    }
+  };
+
+  const navGroups = [
+    {
+      title: "Main",
+      items: [
+        { id: "overview", label: "Ringkasan", icon: LayoutDashboard },
+        { id: "transactions", label: "Transaksi", icon: History },
+      ]
+    },
+    {
+      title: "Management",
+      items: [
+        ...(isOwner || role?.toUpperCase() === "CS" ? [{ id: "users", label: "Kelola User", icon: Users }] : []),
+        ...(isOwner ? [
+          { id: "games", label: "Kelola Game", icon: Gamepad2 },
+          { id: "categories", label: "Kategori Produk", icon: Package }
+        ] : []),
+      ]
+    },
+    {
+      title: "System & Ops",
+      items: [
+        ...(isOwner ? [
+          { id: "payments", label: "Payment Gateway", icon: DollarSign },
+          { id: "providers", label: "Provider Status", icon: Megaphone },
+          { id: "settings", label: "Sistem Settings", icon: Settings },
+          { id: "ops", label: "Ops Status", icon: Zap },
+        ] : [])
+      ]
+    }
+  ];
+
   return (
-    <div className="relative min-h-screen overflow-hidden px-4 pb-20 pt-8 sm:px-6">
-      <div className="pointer-events-none fixed right-0 top-0 h-[600px] w-[600px] rounded-full bg-sakura/5 blur-[150px]" />
-      <div className="pointer-events-none fixed bottom-0 left-0 h-[400px] w-[400px] rounded-full bg-brand-cyan/5 blur-[120px]" />
-
-      <motion.div variants={container} initial="hidden" animate="show" className="relative z-10 mx-auto max-w-[1200px]">
-        <motion.div variants={item} className="mb-10 flex flex-col justify-between gap-6 md:flex-row md:items-end">
-          <div>
-            <div className="mb-2 flex items-center gap-2">
-              <ShieldCheck className="h-5 w-5 text-sakura" />
-              <span className="text-[10px] font-black uppercase tracking-[0.4em] text-sakura">ADMIN COMMAND CENTER</span>
+    <div className="relative flex min-h-screen bg-zinc-950 text-white overflow-hidden">
+      
+      {/* ═══════════════ SIDEBAR ═══════════════ */}
+      <aside className="fixed left-0 top-0 z-50 hidden h-screen w-64 flex-col border-r border-zinc-800 bg-zinc-950/80 backdrop-blur-xl md:flex">
+        <div className="p-6 flex-1 overflow-y-auto scrollbar-hide">
+          <div className="mb-8 flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-sakura to-pink-600 shadow-[0_0_15px_rgba(253,176,192,0.3)]">
+              <ShieldCheck className="h-5 w-5 text-zinc-950" />
             </div>
-            <h1 className="text-4xl font-black tracking-tighter text-white md:text-5xl">Dashboard Sultan</h1>
+            <div>
+              <span className="text-xl font-black tracking-tight text-white">SASSY<span className="text-sakura">GURL</span></span>
+              <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Command Center</p>
+            </div>
           </div>
 
-          <div className="flex gap-3">
-            <button
-              onClick={async () => {
-                const { logoutAction } = await import("@/app/actions/auth");
-                await logoutAction();
-                window.location.href = "/auth/login";
-              }}
-              className="flex items-center gap-2 rounded-2xl border border-red-500/20 bg-red-500/5 px-6 py-3 text-xs font-bold text-red-400 transition hover:bg-red-500/10 active:scale-95"
-            >
-              <LogOut className="h-4 w-4" />
-              Keluar
-            </button>
+          <div className="space-y-8">
+            {navGroups.map((group, idx) => {
+              if (group.items.length === 0) return null;
+              return (
+                <div key={idx}>
+                  <p className="mb-3 text-[10px] font-black uppercase tracking-[0.2em] text-zinc-500">{group.title}</p>
+                  <div className="space-y-1">
+                    {group.items.map((tab) => {
+                      const isActive = activeTab === tab.id;
+                      return (
+                        <button
+                          key={tab.id}
+                          onClick={() => setActiveTab(tab.id as any)}
+                          className={`flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-bold transition-all ${
+                            isActive 
+                              ? "bg-sakura/10 text-sakura shadow-[inset_2px_0_0_0_rgba(253,176,192,1)]" 
+                              : "text-zinc-400 hover:bg-zinc-800/50 hover:text-white"
+                          }`}
+                        >
+                          <tab.icon className={`h-4 w-4 ${isActive ? "text-sakura" : "text-zinc-500"}`} />
+                          {tab.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            })}
           </div>
-        </motion.div>
+        </div>
 
-        <motion.div variants={item} className="mb-8 flex gap-2 overflow-x-auto pb-2">
-          {[
-            { id: "overview", label: "Ringkasan", icon: LayoutDashboard },
-            { id: "transactions", label: "Transaksi", icon: History },
-            ...(isOwner ? [
-              { id: "games", label: "Kelola Game", icon: Gamepad2 },
-              { id: "providers", label: "Provider Status", icon: Megaphone },
-              { id: "ops", label: "Ops Status", icon: Zap },
-            ] : []),
-          ].map((tab) => (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id as typeof activeTab)}
-              className={`inline-flex shrink-0 items-center gap-2 rounded-2xl border px-5 py-3 text-xs font-bold transition-all ${
-                activeTab === tab.id ? "border-sakura/40 bg-sakura/15 text-sakura shadow-[0_0_16px_rgba(253,176,192,0.12)]" : "border-white/5 bg-zinc-900/50 text-zinc-500 hover:bg-zinc-800 hover:text-white"
-              }`}
-            >
-              <tab.icon className="h-4 w-4" />
-              {tab.label}
-            </button>
-          ))}
-        </motion.div>
+        <div className="mt-auto border-t border-zinc-800 p-6">
+          <div className="mb-4 flex items-center gap-3 rounded-xl border border-zinc-800 bg-zinc-900/50 p-3">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-zinc-800 font-black text-white">
+              {(role || "U")[0]}
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-sm font-bold text-white">Administrator</p>
+              <div className="mt-0.5 flex items-center gap-1.5">
+                <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.8)]" />
+                <p className="text-[10px] font-bold uppercase tracking-wider text-emerald-500">{role || "SUPERADMIN"}</p>
+              </div>
+            </div>
+          </div>
+          <button 
+            onClick={handleLogout}
+            className="flex w-full items-center justify-center gap-2 rounded-xl bg-red-500/10 px-4 py-2.5 text-xs font-bold text-red-500 transition hover:bg-red-500/20 active:scale-95"
+          >
+            <LogOut className="h-4 w-4" /> Keluar Sistem
+          </button>
+        </div>
+      </aside>
 
-        <AnimatePresence mode="wait">
+      {/* ═══════════════ MAIN CONTENT ═══════════════ */}
+      <main className="relative flex-1 h-screen overflow-y-auto md:ml-64">
+        {/* Glow Effects */}
+        <div className="pointer-events-none absolute right-0 top-0 h-[500px] w-[500px] rounded-full bg-sakura/5 blur-[120px]" />
+        
+        {/* Mobile Nav (Horizontal Scroll fallback for mobile) */}
+        <div className="md:hidden border-b border-zinc-800 bg-zinc-950/80 p-4 backdrop-blur-xl sticky top-0 z-40">
+           <div className="flex items-center justify-between mb-4">
+             <div className="flex items-center gap-2">
+                <ShieldCheck className="h-5 w-5 text-sakura" />
+                <span className="font-black text-white">SASSY<span className="text-sakura">GURL</span></span>
+             </div>
+             <button onClick={handleLogout} className="p-2 text-red-500 bg-red-500/10 rounded-lg">
+               <LogOut className="h-4 w-4" />
+             </button>
+           </div>
+           <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
+             {navGroups.flatMap(g => g.items).map(tab => (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id as any)}
+                  className={`shrink-0 rounded-lg px-4 py-2 text-xs font-bold transition-all ${
+                    activeTab === tab.id ? "bg-sakura/10 text-sakura border border-sakura/20" : "bg-zinc-900 text-zinc-400"
+                  }`}
+                >
+                  {tab.label}
+                </button>
+             ))}
+           </div>
+        </div>
+
+        <div className="mx-auto max-w-[1200px] p-4 pt-6 md:p-10 pb-20">
+          {/* Header Area in Main Content */}
+          <motion.div variants={item} initial="hidden" animate="show" className="mb-10 hidden md:block">
+            <h1 className="text-3xl font-black tracking-tight text-white md:text-4xl capitalize">
+              {navGroups.flatMap(g => g.items).find(i => i.id === activeTab)?.label || "Dashboard"}
+            </h1>
+            <p className="text-sm text-zinc-500 font-medium mt-2">Manage your platform efficiently.</p>
+          </motion.div>
+
+          <AnimatePresence mode="wait">
           {activeTab === "overview" && (
             <motion.div key="overview" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="space-y-8">
 
@@ -634,7 +823,7 @@ export default function AdminDashboardClient({ initialStats, initialTransactions
             >
               <div className="flex items-center justify-between">
                 <h2 className="flex items-center gap-3 text-sm font-black uppercase tracking-[0.2em] text-white">
-                  <Gamepad2 className="h-5 w-5 text-sakura" /> Manajemen Game & Katalog
+                  <Gamepad2 className="h-5 w-5 text-sakura" /> Manajemen Game & Katalog <span className="text-[10px] text-zinc-400 font-bold bg-white/5 px-2 py-0.5 rounded-full lowercase tracking-normal">({games.length} games)</span>
                 </h2>
                 <button 
                   onClick={() => {
@@ -649,7 +838,8 @@ export default function AdminDashboardClient({ initialStats, initialTransactions
                       hasServerId: false,
                       isActive: true,
                       isHot: false,
-                      thumbnail: ""
+                      thumbnail: "",
+                      banner: ""
                     });
                     setShowGameModal(true);
                   }}
@@ -716,6 +906,7 @@ export default function AdminDashboardClient({ initialStats, initialTransactions
                                     currencyName: game.currencyName,
                                     description: game.description || "",
                                     thumbnail: game.thumbnail || "",
+                                    banner: game.banner || "",
                                     type: game.type || "GAME",
                                     hasServerId: game.hasServerId,
                                     isActive: game.isActive,
@@ -723,13 +914,13 @@ export default function AdminDashboardClient({ initialStats, initialTransactions
                                   });
                                   setShowGameModal(true);
                                 }}
-                                className="rounded-lg bg-white/5 p-2 text-zinc-400 transition hover:bg-white/10 hover:text-white"
+                                className="rounded-lg bg-white/5 p-2 text-zinc-400 transition hover:bg-sakura/20 hover:text-sakura shadow-sm hover:shadow-[0_0_10px_rgba(253,176,192,0.2)]"
                               >
                                 <RefreshCw size={14} />
                               </button>
                               <button 
                                 onClick={() => handleDeleteGame(game.id)}
-                                className="rounded-lg bg-red-500/10 p-2 text-red-400 transition hover:bg-red-500/20"
+                                className="rounded-lg bg-white/5 p-2 text-zinc-400 transition hover:bg-red-500/20 hover:text-red-400 shadow-sm"
                               >
                                 <XCircle size={14} />
                               </button>
@@ -747,12 +938,13 @@ export default function AdminDashboardClient({ initialStats, initialTransactions
                 {showGameModal && (
                   <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm">
                     <motion.div 
-                      initial={{ opacity: 0, scale: 0.95 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      exit={{ opacity: 0, scale: 0.95 }}
-                      className="w-full max-w-lg rounded-2xl border border-white/5 bg-zinc-950 p-6 shadow-2xl max-h-[90vh] overflow-y-auto"
+                      initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                      animate={{ opacity: 1, scale: 1, y: 0 }}
+                      exit={{ opacity: 0, scale: 0.95, y: 20 }}
+                      className="w-full max-w-2xl rounded-[2rem] border border-white/10 bg-zinc-950/80 p-8 shadow-[0_0_50px_rgba(0,0,0,0.5)] backdrop-blur-3xl max-h-[90vh] overflow-y-auto"
                     >
-                      <h2 className="mb-6 text-xl font-black text-white">
+                      <h2 className="mb-6 text-2xl font-black text-white flex items-center gap-3">
+                        <Gamepad2 className="w-8 h-8 text-sakura" />
                         {editingGame ? "Edit Game" : "Tambah Game Baru"}
                       </h2>
                       <form onSubmit={handleGameSubmit} className="space-y-4">
@@ -802,58 +994,75 @@ export default function AdminDashboardClient({ initialStats, initialTransactions
                               <option value="VOUCHER" className="bg-zinc-900">Voucher Digital</option>
                             </select>
                           </div>
-                          <div className="space-y-2">
-                            <label className="text-[10px] font-black uppercase tracking-widest text-zinc-500">URL Gambar (Icon)</label>
-                            <input 
-                              value={gameFormData.thumbnail}
-                              onChange={(e) => setGameFormData({...gameFormData, thumbnail: e.target.value})}
-                              className="w-full rounded-xl border border-white/5 bg-black/40 p-3 text-xs font-bold text-white outline-none focus:border-sakura"
-                              placeholder="https://cloudinary.com/..."
-                            />
-                          </div>
                         </div>
 
-                        <div className="flex flex-wrap gap-6 pt-2 bg-white/[0.02] p-4 rounded-2xl border border-white/5">
-                          <label className="flex items-center gap-3 cursor-pointer group">
-                            <div className={`flex h-5 w-5 items-center justify-center rounded border border-white/10 transition-all ${gameFormData.hasServerId ? "bg-sakura border-sakura" : "bg-black/40 group-hover:border-sakura/50"}`}>
+                        <div className="grid gap-6 sm:grid-cols-2 bg-white/[0.02] p-4 rounded-2xl border border-white/5">
+                          <ImageUploadField
+                            label="URL Gambar (Icon)"
+                            value={gameFormData.thumbnail}
+                            onChange={(v) => setGameFormData({...gameFormData, thumbnail: v})}
+                            placeholder="Upload icon atau paste URL..."
+                            aspectRatio="square"
+                          />
+                          <ImageUploadField
+                            label="URL Banner"
+                            value={gameFormData.banner}
+                            onChange={(v) => setGameFormData({...gameFormData, banner: v})}
+                            placeholder="Upload banner atau paste URL..."
+                            aspectRatio="video"
+                          />
+                        </div>
+                        <div className="grid grid-cols-1 gap-4 pt-4">
+                          <label className="flex items-start gap-4 p-4 cursor-pointer group bg-white/[0.02] border border-white/5 hover:border-white/20 hover:bg-white/[0.04] rounded-2xl transition-all">
+                            <div className={`relative flex items-center justify-center w-6 h-6 rounded border transition-colors shrink-0 mt-0.5 ${gameFormData.hasServerId ? "border-sakura bg-sakura/10" : "border-white/20 bg-black/40 group-hover:border-sakura"}`}>
                               <input 
                                 type="checkbox"
                                 checked={gameFormData.hasServerId}
                                 onChange={(e) => setGameFormData({...gameFormData, hasServerId: e.target.checked})}
                                 className="hidden"
                               />
-                              {gameFormData.hasServerId && <CheckCircle2 className="h-4 w-4 text-zinc-950" />}
+                              {gameFormData.hasServerId && <CheckCircle2 className="h-5 w-5 text-sakura" />}
                             </div>
-                            <span className="text-[11px] font-black text-zinc-400 group-hover:text-white transition-colors">Butuh Server ID</span>
+                            <div className="flex flex-col">
+                              <span className="text-sm font-black text-white group-hover:text-sakura transition-colors">Butuh Server ID / Zone ID</span>
+                              <span className="text-[11px] font-medium text-white/40 mt-1 leading-relaxed">Centang ini jika game memerlukan Server ID atau Zone ID tambahan selain ID utama pengguna (misal: Mobile Legends).</span>
+                            </div>
                           </label>
-                          
-                          <label className="flex items-center gap-3 cursor-pointer group">
-                            <div className={`flex h-5 w-5 items-center justify-center rounded border border-white/10 transition-all ${gameFormData.isActive ? "bg-emerald-500 border-emerald-500" : "bg-black/40 group-hover:border-emerald-500/50"}`}>
+
+                          <label className="flex items-start gap-4 p-4 cursor-pointer group bg-white/[0.02] border border-white/5 hover:border-white/20 hover:bg-white/[0.04] rounded-2xl transition-all">
+                            <div className={`relative flex items-center justify-center w-6 h-6 rounded border transition-colors shrink-0 mt-0.5 ${gameFormData.isActive ? "border-emerald-500 bg-emerald-500/10" : "border-white/20 bg-black/40 group-hover:border-emerald-500"}`}>
                               <input 
                                 type="checkbox"
                                 checked={gameFormData.isActive}
                                 onChange={(e) => setGameFormData({...gameFormData, isActive: e.target.checked})}
                                 className="hidden"
                               />
-                              {gameFormData.isActive && <CheckCircle2 className="h-4 w-4 text-zinc-950" />}
+                              {gameFormData.isActive && <CheckCircle2 className="h-5 w-5 text-emerald-500" />}
                             </div>
-                            <span className="text-[11px] font-black text-zinc-400 group-hover:text-white transition-colors">Aktif</span>
+                            <div className="flex flex-col">
+                              <span className="text-sm font-black text-white group-hover:text-emerald-400 transition-colors">Status Aktif</span>
+                              <span className="text-[11px] font-medium text-white/40 mt-1 leading-relaxed">Nonaktifkan untuk menyembunyikan game ini dari halaman utama agar tidak bisa dibeli oleh pelanggan.</span>
+                            </div>
                           </label>
 
-                          <label className="flex items-center gap-3 cursor-pointer group">
-                            <div className={`flex h-5 w-5 items-center justify-center rounded border border-white/10 transition-all ${gameFormData.isHot ? "bg-orange-500 border-orange-500" : "bg-black/40 group-hover:border-orange-500/50"}`}>
+                          <label className="flex items-start gap-4 p-4 cursor-pointer group bg-white/[0.02] border border-white/5 hover:border-white/20 hover:bg-white/[0.04] rounded-2xl transition-all">
+                            <div className={`relative flex items-center justify-center w-6 h-6 rounded border transition-colors shrink-0 mt-0.5 ${gameFormData.isHot ? "border-orange-500 bg-orange-500/10" : "border-white/20 bg-black/40 group-hover:border-orange-500"}`}>
                               <input 
                                 type="checkbox"
                                 checked={gameFormData.isHot}
                                 onChange={(e) => setGameFormData({...gameFormData, isHot: e.target.checked})}
                                 className="hidden"
                               />
-                              {gameFormData.isHot && <CheckCircle2 className="h-4 w-4 text-zinc-950" />}
+                              {gameFormData.isHot && <CheckCircle2 className="h-5 w-5 text-orange-500" />}
                             </div>
-                            <span className="text-[11px] font-black text-zinc-400 group-hover:text-white transition-colors">🔥 Hot Game</span>
+                            <div className="flex flex-col">
+                              <span className="text-sm font-black text-white group-hover:text-orange-400 transition-colors flex items-center gap-2">
+                                🔥 Hot Game Label
+                              </span>
+                              <span className="text-[11px] font-medium text-white/40 mt-1 leading-relaxed">Berikan emblem "Hot Game" pada banner game ini di halaman katalog untuk menarik perhatian.</span>
+                            </div>
                           </label>
                         </div>
-
                         <div className="flex gap-3 pt-6">
                           <button 
                             type="button"
@@ -878,6 +1087,18 @@ export default function AdminDashboardClient({ initialStats, initialTransactions
             </motion.div>
           )}
 
+          {/* ═══════════════ TAB: CATEGORIES ═══════════════ */}
+          {activeTab === "categories" && (
+            <motion.div
+              key="categories"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+            >
+              <ProductCategoriesTab games={games} />
+            </motion.div>
+          )}
+
           {/* ═══════════════ TAB: PAYMENTS ═══════════════ */}
           {activeTab === "payments" && (
             <motion.div
@@ -885,23 +1106,32 @@ export default function AdminDashboardClient({ initialStats, initialTransactions
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
-              className="space-y-6"
             >
-              <h2 className="flex items-center gap-3 text-sm font-black uppercase tracking-[0.2em] text-white">
-                <DollarSign className="h-5 w-5 text-sakura" /> Payment Gateway Control
-              </h2>
-              <div className="rounded-[2rem] border border-white/5 bg-zinc-900/30 p-8 backdrop-blur-2xl">
-                <p className="text-sm text-zinc-400">
-                  Atur metode pembayaran (QRIS, E-Wallet, VA). Fee flat dan persentase dapat dikonfigurasi secara real-time.
-                </p>
-                <div className="mt-6 flex flex-col items-center justify-center rounded-xl border border-dashed border-amber-500/30 bg-amber-500/5 p-12 text-center text-zinc-400">
-                  <div className="rounded-full bg-amber-500/20 px-3 py-1 mb-4 text-[10px] font-black uppercase tracking-widest text-amber-400">
-                    UI Fallback / Placeholder Mockup
-                  </div>
-                  <p className="font-bold text-white">Modul Payment Gateway Sedang Menunggu API Backend.</p>
-                  <p className="mt-2 text-xs">Simulasi visual tabel akan dikembangkan di pembaruan selanjutnya.</p>
-                </div>
-              </div>
+              <PaymentsTab />
+            </motion.div>
+          )}
+
+          {/* ═══════════════ TAB: USERS ═══════════════ */}
+          {activeTab === "users" && (
+            <motion.div
+              key="users"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+            >
+              <UsersTab role={role} />
+            </motion.div>
+          )}
+
+          {/* ═══════════════ TAB: SETTINGS ═══════════════ */}
+          {activeTab === "settings" && (
+            <motion.div
+              key="settings"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+            >
+              <SettingsTab />
             </motion.div>
           )}
 
@@ -972,7 +1202,8 @@ export default function AdminDashboardClient({ initialStats, initialTransactions
             </motion.div>
           )}
         </AnimatePresence>
-      </motion.div>
+        </div>
+      </main>
     </div>
   );
 }

@@ -34,9 +34,9 @@ export default async function HomePage() {
       {/* ── Banner Carousel (Anime Heroes) ───────────────────────────── */}
       <BannerCarousel />
 
-      {/* ── Holographic Trust Strip ────────────────────────────────────── */}
-      <section className="relative z-20 mx-auto max-w-6xl px-4 py-8 md:px-6 -mt-16">
-        <div className="grid gap-4 grid-cols-1 md:grid-cols-3">
+      {/* ── Holographic Trust Strip (Flash Deal Style) ────────────────────────────────────── */}
+      <section className="relative z-20 mx-auto max-w-6xl px-4 py-6 md:px-6 md:-mt-16 -mt-8">
+        <div className="flex overflow-x-auto snap-x snap-mandatory pb-4 md:pb-0 md:grid md:grid-cols-3 gap-3 md:gap-4 scrollbar-hide">
           {[
             { icon: Zap, title: "Proses Kilat", desc: "Masuk dalam 1-3 Detik" },
             { icon: ShieldCheck, title: "100% Legal & Aman", desc: "Anti-banned jaminan uang kembali" },
@@ -44,15 +44,15 @@ export default async function HomePage() {
           ].map((feat, i) => (
             <div
               key={i}
-              className="group glass-card p-6 flex flex-col gap-4 animate-fade-in-up"
+              className="group glass-card p-4 md:p-6 flex flex-col gap-3 md:gap-4 animate-fade-in-up min-w-[240px] md:min-w-0 snap-center shrink-0"
               style={{ animationDelay: `${i * 0.1 + 0.4}s` }}
             >
-              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-sakura/10 text-sakura border border-sakura/20 group-hover:scale-110 transition-transform duration-300">
-                <feat.icon className="h-6 w-6" />
+              <div className="flex h-10 w-10 md:h-12 md:w-12 shrink-0 items-center justify-center rounded-2xl bg-sakura/10 text-sakura border border-sakura/20 group-hover:scale-110 transition-transform duration-300">
+                <feat.icon className="h-5 w-5 md:h-6 md:w-6" />
               </div>
               <div>
-                <p className="text-base font-bold text-white group-hover:text-sakura transition-colors">{feat.title}</p>
-                <p className="text-sm font-medium text-zinc-500 mt-1">{feat.desc}</p>
+                <p className="text-sm md:text-base font-bold text-white group-hover:text-sakura transition-colors">{feat.title}</p>
+                <p className="text-[11px] md:text-sm font-medium text-zinc-500 mt-1">{feat.desc}</p>
               </div>
             </div>
           ))}

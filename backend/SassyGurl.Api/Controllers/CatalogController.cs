@@ -74,7 +74,7 @@ public class CatalogController : ControllerBase
 
     // ── ADMIN CRUD ────────────────────────────────────────────────────────
     
-    [Authorize(Roles = "SUPERADMIN")]
+    [Authorize(Roles = "SUPERADMIN,OWNER")]
     [HttpPost("games")]
     public async Task<ActionResult<ApiResponse<GameDto>>> CreateGame([FromBody] GameCreateDto dto)
     {
@@ -83,7 +83,7 @@ public class CatalogController : ControllerBase
         return Ok(result);
     }
 
-    [Authorize(Roles = "SUPERADMIN")]
+    [Authorize(Roles = "SUPERADMIN,OWNER")]
     [HttpPut("games/{id}")]
     public async Task<ActionResult<ApiResponse<GameDto>>> UpdateGame(string id, [FromBody] GameUpdateDto dto)
     {
@@ -92,7 +92,7 @@ public class CatalogController : ControllerBase
         return Ok(result);
     }
 
-    [Authorize(Roles = "SUPERADMIN")]
+    [Authorize(Roles = "SUPERADMIN,OWNER")]
     [HttpDelete("games/{id}")]
     public async Task<ActionResult<ApiResponse<bool>>> DeleteGame(string id)
     {
@@ -101,7 +101,7 @@ public class CatalogController : ControllerBase
         return Ok(result);
     }
 
-    [Authorize(Roles = "SUPERADMIN")]
+    [Authorize(Roles = "SUPERADMIN,OWNER")]
     [HttpPost("seed-registry")]
     public async Task<IActionResult> SeedFromRegistry([FromServices] IGameSeeder gameSeeder)
     {

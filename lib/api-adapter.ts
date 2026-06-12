@@ -147,55 +147,95 @@ function mapGame(gameData: any): NormalizedGame {
   const manifest = (gamesManifest as Record<string, any>)[canonicalSlug];
   const registryEntry = gamesRegistry.find(g => g.slug === canonicalSlug);
 
-  // INJECT REAL CATALOG DATA INSTEAD OF HALLUCINATED BACKEND DATA
-  const realProducts = getRealProductsForGame(canonicalSlug, gameData.currencyName ?? "Item");
-  
-  const products: NormalizedProduct[] = realProducts.map((p, index) => {
-    return {
-      id: `real-${canonicalSlug}-${index}`,
-      sku: `SKU-${canonicalSlug}-${index}`,
+  // USE API DATA IF AVAILABLE, OTHERWISE FALLBACK TO REGISTRY
+  let products: NormalizedProduct[] = [];
+  let itemCategories: ItemCategory[] = [];
+  let groupedProducts: GroupedProducts[] = [];
+
+  if (gameData.products && gameData.products.length > 0) {
+    products = gameData.products.map((p: any) => ({
+      id: p.id,
+      sku: p.sku,
       name: p.name,
-      itemCategory: p.type,
-      itemCategoryLabel: p.type === "PASS" ? "Membership & Pass" : "Top Up",
-      itemCategoryIcon: p.type === "PASS" ? "🎫" : "💎",
-      thumbnail: undefined,
+      itemCategory: p.itemCategory,
+      itemCategoryLabel: p.itemCategoryLabel,
+      itemCategoryIcon: p.itemCategoryIcon,
+      thumbnail: p.thumbnail,
       displayPrice: p.price,
-      originalPrice: p.originalPrice > p.price ? p.originalPrice : undefined,
-      discountPercent: p.originalPrice > p.price ? Math.round(((p.originalPrice - p.price) / p.originalPrice) * 100) : 0,
-      isFlashSale: p.type === "PASS", // Just an example, maybe pass is flash sale
-      inStock: true,
-      providerName: "Auto",
-      badges: p.originalPrice > p.price ? [`${Math.round(((p.originalPrice - p.price) / p.originalPrice) * 100)}% OFF`] : [],
-      image: `/images/products/${slug}/default.webp`,
-    };
-  });
+      originalPrice: p.originalPrice,
+      discountPercent: p.discountPercent,
+      isFlashSale: p.isFlashSale,
+      inStock: p.stock > 0,
+      providerName: p.providerName || "Auto",
+      badges: p.discountPercent > 0 ? [`${p.discountPercent}% OFF`] : [],
+      image: p.thumbnail || `/images/products/${slug}/default.webp`
+    }));
+
+    if (gameData.groupedProducts) {
+      groupedProducts = gameData.groupedProducts.map((g: any) => ({
+        category: g.category,
+        items: products.filter(p => p.itemCategory === g.category.slug)
+      }));
+      itemCategories = gameData.itemCategories || groupedProducts.map(g => g.category);
+    } else {
+      const groups: Record<string, NormalizedProduct[]> = {};
+      products.forEach(p => {
+        if (!groups[p.itemCategory]) groups[p.itemCategory] = [];
+        groups[p.itemCategory].push(p);
+      });
+      groupedProducts = Object.keys(groups).map((cat, index) => ({
+        category: { slug: cat, label: cat, icon: "💎", itemCount: groups[cat].length, sortOrder: index },
+        items: groups[cat]
+      }));
+      itemCategories = groupedProducts.map(g => g.category);
+    }
+  } else {
+    // FALLBACK
+    const realProducts = getRealProductsForGame(canonicalSlug, gameData.currencyName ?? "Item");
+    products = realProducts.map((p, index) => {
+      return {
+        id: `real-${canonicalSlug}-${index}`,
+        sku: `SKU-${canonicalSlug}-${index}`,
+        name: p.name,
+        itemCategory: p.type,
+        itemCategoryLabel: p.type === "PASS" ? "Membership & Pass" : "Top Up",
+        itemCategoryIcon: p.type === "PASS" ? "🎫" : "💎",
+        thumbnail: undefined,
+        displayPrice: p.price,
+        originalPrice: p.originalPrice > p.price ? p.originalPrice : undefined,
+        discountPercent: p.originalPrice > p.price ? Math.round(((p.originalPrice - p.price) / p.originalPrice) * 100) : 0,
+        isFlashSale: p.type === "PASS",
+        inStock: true,
+        providerName: "Auto",
+        badges: p.originalPrice > p.price ? [`${Math.round(((p.originalPrice - p.price) / p.originalPrice) * 100)}% OFF`] : [],
+        image: `/images/products/${slug}/default.webp`,
+      };
+    });
+
+    const groups: Record<string, NormalizedProduct[]> = {};
+    products.forEach(p => {
+      if (!groups[p.itemCategory]) groups[p.itemCategory] = [];
+      groups[p.itemCategory].push(p);
+    });
+
+    groupedProducts = Object.keys(groups).map((categoryType, index) => {
+      const isPass = categoryType === "PASS";
+      return {
+        category: {
+          slug: categoryType.toLowerCase(),
+          label: isPass ? "Membership & Pass" : "Top Up Items",
+          icon: isPass ? "🎫" : "💎",
+          itemCount: groups[categoryType].length,
+          sortOrder: index,
+        },
+        items: groups[categoryType]
+      };
+    });
+
+    itemCategories = groupedProducts.map(g => g.category);
+  }
 
   const prices = products.map(p => p.displayPrice).filter(v => v > 0);
-
-  // Group by our new real categories
-  const groups: Record<string, NormalizedProduct[]> = {};
-  products.forEach(p => {
-    if (!groups[p.itemCategory]) groups[p.itemCategory] = [];
-    groups[p.itemCategory].push(p);
-  });
-
-  const groupedProducts: GroupedProducts[] = Object.keys(groups).map((categoryType, index) => {
-    const isPass = categoryType === "PASS";
-    return {
-      category: {
-        slug: categoryType.toLowerCase(),
-        label: isPass ? "Membership & Pass" : "Top Up Items",
-        icon: isPass ? "🎫" : "💎",
-        itemCount: groups[categoryType].length,
-        sortOrder: index,
-      },
-      items: groups[categoryType]
-    };
-  });
-
-  const itemCategories: ItemCategory[] = groupedProducts.map(g => g.category);
-
-
 
   return {
     id:             gameData.id,

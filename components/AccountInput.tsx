@@ -6,7 +6,7 @@ import { ShieldCheck, User, Loader2, BadgeCheck, Lock, ChevronRight, AlertCircle
 import { z } from "zod";
 
 const accountSchema = z.object({
-  id: z.string().min(5, "User ID minimal 5 karakter").max(15, "User ID maksimal 15 karakter").regex(/^\\d+$/, "User ID hanya boleh angka"),
+  id: z.string().min(5, "User ID minimal 5 karakter").max(15, "User ID maksimal 15 karakter").regex(/^\d+$/, "User ID hanya boleh angka"),
   zone: z.string().max(8, "Zone maksimal 8 karakter").optional().or(z.literal("")),
 });
 
@@ -96,7 +96,8 @@ export default function AccountInput({
       clearTimeout(timer);
       controller.abort();
     };
-  }, [id, zone, gameSlug, onResolved, requiresZone, touched]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id, zone, gameSlug, requiresZone, touched]);
 
   const valid = Boolean(username);
 

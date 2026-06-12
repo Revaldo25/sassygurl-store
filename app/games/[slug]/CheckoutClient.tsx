@@ -65,6 +65,7 @@ export default function CheckoutClient({ game, groupedByCategory, paymentGroups 
 
   const [selectedProduct, setSelectedProduct] = useState<NormalizedProduct | null>(null);
   const [selectedPayment, setSelectedPayment] = useState<PaymentMethod | null>(null);
+  const [quantity, setQuantity] = useState(1);
 
   const [whatsapp, setWhatsapp] = useState("");
   const [isCheckingOut, setIsCheckingOut] = useState(false);
@@ -84,11 +85,11 @@ export default function CheckoutClient({ game, groupedByCategory, paymentGroups 
   };
 
   const paymentFee = selectedProduct && selectedPayment
-    ? calcPaymentFee(selectedProduct.displayPrice, selectedPayment)
+    ? calcPaymentFee(selectedProduct.displayPrice * quantity, selectedPayment)
     : 0;
 
   const finalPrice = selectedProduct
-    ? selectedProduct.displayPrice + paymentFee
+    ? (selectedProduct.displayPrice * quantity) + paymentFee
     : null;
 
   const canCheckout = !!userId && !!selectedProduct && !!selectedPayment && !!whatsapp;
@@ -162,6 +163,7 @@ export default function CheckoutClient({ game, groupedByCategory, paymentGroups 
           productId: selectedProduct!.id,
           targetId: userId,
           zoneId: zoneId || undefined,
+          quantity: quantity,
           paymentMethod: selectedPayment!.id,
           whatsapp,
           waNotif: !!whatsapp,
@@ -293,7 +295,14 @@ export default function CheckoutClient({ game, groupedByCategory, paymentGroups 
                       isActive ? "" : "bg-white/5 text-white/50 hover:bg-white/10 hover:text-white"
                     }`}
                   >
-                    {g.category.label}
+                    <div className="flex items-center gap-1.5">
+                      {g.category.icon && (g.category.icon.startsWith('http') || g.category.icon.startsWith('/')) ? (
+                        <img src={g.category.icon} alt="" className="w-3.5 h-3.5 object-contain" />
+                      ) : g.category.icon ? (
+                        <span className="text-xs">{g.category.icon}</span>
+                      ) : null}
+                      <span>{g.category.label}</span>
+                    </div>
                   </button>
                 );
               })}
@@ -303,7 +312,12 @@ export default function CheckoutClient({ game, groupedByCategory, paymentGroups 
             {filteredGroups.length > 0 ? (
               filteredGroups.map((group, idx) => (
                 <div key={idx} className="mb-8 last:mb-0">
-                  <h3 className="text-xs font-bold text-white/40 uppercase tracking-widest mb-3">
+                  <h3 className="text-xs font-bold text-white/40 uppercase tracking-widest mb-3 flex items-center gap-2">
+                    {group.category.icon && (group.category.icon.startsWith('http') || group.category.icon.startsWith('/')) ? (
+                      <img src={group.category.icon} alt="" className="w-4 h-4 object-contain opacity-70" />
+                    ) : group.category.icon ? (
+                      <span>{group.category.icon}</span>
+                    ) : null}
                     {group.category.label}
                   </h3>
                   <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-3">
@@ -370,6 +384,37 @@ export default function CheckoutClient({ game, groupedByCategory, paymentGroups 
                 <p className="text-white/50 text-sm">Item tidak ditemukan.</p>
               </div>
             )}
+
+            {/* QUANTITY SELECTOR */}
+            <AnimatePresence>
+              {selectedProduct && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0, marginTop: 0 }}
+                  animate={{ opacity: 1, height: "auto", marginTop: 24 }}
+                  exit={{ opacity: 0, height: 0, marginTop: 0 }}
+                  className="overflow-hidden"
+                >
+                  <div className="flex items-center justify-between p-4 rounded-2xl border border-white/10 bg-white/[0.02]">
+                    <div>
+                      <h4 className="text-sm font-bold text-white">Jumlah Pembelian</h4>
+                      <p className="text-[10px] text-white/50 mt-0.5">Beli lebih dari 1 untuk produk yang sama</p>
+                    </div>
+                    <div className="flex items-center gap-4 bg-black/40 rounded-xl p-1 border border-white/5">
+                      <button 
+                        onClick={() => setQuantity(Math.max(1, quantity - 1))}
+                        className="w-8 h-8 rounded-lg bg-white/5 hover:bg-white/10 flex items-center justify-center text-white transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                        disabled={quantity <= 1}
+                      >-</button>
+                      <span className="font-black w-4 text-center">{quantity}</span>
+                      <button 
+                        onClick={() => setQuantity(quantity + 1)}
+                        className="w-8 h-8 rounded-lg bg-white/5 hover:bg-white/10 flex items-center justify-center text-white transition-colors"
+                      >+</button>
+                    </div>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
           </section>
         )}
       </div>
@@ -391,7 +436,7 @@ export default function CheckoutClient({ game, groupedByCategory, paymentGroups 
               setSelectedPayment(method);
               if (typeof navigator !== "undefined" && navigator.vibrate) navigator.vibrate(15);
             }}
-            baseTotal={selectedProduct?.displayPrice || 0}
+            baseTotal={selectedProduct ? selectedProduct.displayPrice * quantity : 0}
             accent={accent}
           />
         </section>
@@ -449,7 +494,7 @@ export default function CheckoutClient({ game, groupedByCategory, paymentGroups 
              
              <div className="flex justify-between items-center text-xs">
                <span className="font-bold text-white/50">Item</span>
-               <span className="font-black text-white">{selectedProduct ? getCleanProductName(selectedProduct.name) : "-"}</span>
+               <span className="font-black text-white">{selectedProduct ? `${getCleanProductName(selectedProduct.name)} (x${quantity})` : "-"}</span>
              </div>
 
              {selectedPayment && paymentFee > 0 && (
@@ -463,7 +508,7 @@ export default function CheckoutClient({ game, groupedByCategory, paymentGroups 
            <div className="flex justify-between items-end mb-6">
              <span className="text-sm font-black text-white/60">Total</span>
              <span className="text-2xl font-black leading-none" style={{ color: accent }}>
-               {finalPrice ? formatIDR(finalPrice) : (selectedProduct ? formatIDR(selectedProduct.displayPrice) : "Rp 0")}
+               {finalPrice ? formatIDR(finalPrice) : (selectedProduct ? formatIDR(selectedProduct.displayPrice * quantity) : "Rp 0")}
              </span>
            </div>
            
@@ -501,7 +546,7 @@ export default function CheckoutClient({ game, groupedByCategory, paymentGroups 
                    <ShoppingBag className="w-6 h-6 text-white/70" />
                 </div>
                 <div className="min-w-0">
-                  <p className="text-[10px] font-black text-white/30 uppercase tracking-widest leading-none mb-1">Item Terpilih</p>
+                  <p className="text-[10px] font-black text-white/30 uppercase tracking-widest leading-none mb-1">Item Terpilih {quantity > 1 && `(x${quantity})`}</p>
                   <h4 className="text-sm font-black text-white truncate">{getCleanProductName(selectedProduct.name)}</h4>
                 </div>
               </div>
@@ -515,7 +560,7 @@ export default function CheckoutClient({ game, groupedByCategory, paymentGroups 
                     className="text-xl md:text-2xl font-black tracking-tighter drop-shadow-lg"
                     style={{ color: accent, textShadow: `0 0 20px ${accent}80` }}
                   >
-                    {finalPrice ? formatIDR(finalPrice) : formatIDR(selectedProduct.displayPrice)}
+                    {finalPrice ? formatIDR(finalPrice) : formatIDR(selectedProduct.displayPrice * quantity)}
                   </p>
                 </div>
                 <button
@@ -550,6 +595,7 @@ export default function CheckoutClient({ game, groupedByCategory, paymentGroups 
             paymentFee={paymentFee}
             finalPrice={finalPrice!}
             accent={accent}
+            quantity={quantity}
           />
         )}
       </AnimatePresence>
@@ -586,6 +632,7 @@ function ConfirmModal({
   paymentFee: number;
   finalPrice: number;
   accent: string;
+  quantity: number;
 }) {
   const modalRef = useRef<HTMLDivElement>(null);
 
@@ -654,7 +701,7 @@ function ConfirmModal({
             ["Game", game.name],
             ["Target ID / Server", `${userId}${zoneId ? ` (${zoneId})` : ""}`],
             ...(validatedName ? [["Nickname Akun", validatedName]] : []),
-            ["Nama Item", selectedProduct.name],
+            ["Nama Item", `${selectedProduct.name} (x${quantity})`],
             ["Metode Pembayaran", selectedPayment.name],
             ["WhatsApp Notifikasi", whatsapp],
           ].map(([label, val], i) => (
@@ -666,8 +713,8 @@ function ConfirmModal({
 
           <div className="pt-4 border-t border-white/10 space-y-2">
             <div className="flex justify-between text-white/40">
-              <span>Harga Item</span>
-              <span className="font-semibold">{formatIDR(selectedProduct.displayPrice)}</span>
+              <span>Harga Item {quantity > 1 && `(x${quantity})`}</span>
+              <span className="font-semibold">{formatIDR(selectedProduct.displayPrice * quantity)}</span>
             </div>
             <div className="flex justify-between text-white/40">
               <span>Biaya Admin Gateway</span>

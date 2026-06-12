@@ -74,8 +74,9 @@ public class GameSeeder : IGameSeeder
             int added = 0;
             int updated = 0;
 
-            // Define which Tier 1 games are active
-            var activeSlugs = new HashSet<string> { "mlbb", "ff" }; // PUBG and HOK remain inactive for now
+            // By default let new games be active unless specified otherwise
+            // But we don't overwrite existing games' IsActive status on every startup!
+            var activeSlugs = new HashSet<string> { "mlbb", "ff" };
 
             foreach (var game in games)
             {
@@ -83,8 +84,6 @@ public class GameSeeder : IGameSeeder
                 var name = game.GetProperty("canonical_name").GetString()!;
                 var title = game.GetProperty("display_title").GetString()!;
                 
-                var isActive = activeSlugs.Contains(slug);
-
                 var existing = await _context.Games.FirstOrDefaultAsync(g => g.Slug == slug);
                 if (existing == null)
                 {
@@ -93,14 +92,14 @@ public class GameSeeder : IGameSeeder
                         Id = Guid.NewGuid().ToString(),
                         Slug = slug,
                         Name = title, // Use display_title for storefront
-                        IsActive = isActive
+                        IsActive = true // Make all new games active so user can see them
                     });
                     added++;
                 }
                 else
                 {
                     existing.Name = title;
-                    existing.IsActive = isActive;
+                    // existing.IsActive = isActive; <-- REMOVED: Do not overwrite DB state on startup
                     _context.Update(existing);
                     updated++;
                 }

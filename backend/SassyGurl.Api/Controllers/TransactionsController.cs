@@ -41,7 +41,7 @@ public class TransactionsController : ControllerBase
         return Ok(result);
     }
 
-    [Authorize(Roles = "SUPERADMIN,CS")]
+    [Authorize(Roles = "SUPERADMIN,OWNER,CS")]
     [HttpPatch("{id}/status")]
     public async Task<ActionResult<ApiResponse<string>>> UpdateStatus(string id, [FromBody] UpdateTransactionStatusDto request)
     {

@@ -17,7 +17,7 @@ export default function VerifyOtpPage() {
   return (
     <div className="min-h-screen bg-zinc-950 flex items-center justify-center p-6">
       <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="w-full max-w-[400px]">
-        <div className="glass-elite p-10 rounded-[3rem] border border-white/5 text-center space-y-8">
+        <div className="glass-panel p-10 rounded-[3rem] border border-white/5 text-center space-y-8">
           <div className="w-20 h-20 bg-sakura/10 rounded-full flex items-center justify-center mx-auto mb-6">
             <ShieldCheck className="w-10 h-10 text-sakura" />
           </div>

@@ -61,10 +61,10 @@ export default function InvoicePage() {
   if (error || !invoice) {
     return (
       <div className="min-h-screen flex items-center justify-center text-center px-6">
-        <div className="glass-elite p-10 rounded-[2rem] max-w-md w-full border-red-500/20">
+        <div className="glass-panel p-10 rounded-[2rem] max-w-md w-full border-red-500/20">
           <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
           <h2 className="text-xl font-black text-white mb-2">{error || "Invoice Tidak Ditemukan"}</h2>
-          <button onClick={() => router.push("/")} className="mt-6 w-full btn-sakura py-3">KEMBALI KE BERANDA</button>
+          <button onClick={() => router.push("/")} className="mt-6 w-full bg-sakura text-black font-black hover:bg-sakura/80 py-3 rounded-2xl transition-colors">KEMBALI KE BERANDA</button>
         </div>
       </div>
     );
@@ -79,7 +79,7 @@ export default function InvoicePage() {
   if (isSuccess) {
     return (
       <div className="min-h-screen flex items-center justify-center px-6">
-        <div className="glass-elite p-10 rounded-[2.5rem] text-center max-w-md w-full border-sakura/20">
+        <div className="glass-panel p-10 rounded-[2.5rem] text-center max-w-md w-full border-sakura/20">
           <div className="w-20 h-20 mx-auto rounded-3xl bg-sakura/10 flex items-center justify-center mb-6">
             <CheckCircle2 className="w-10 h-10 text-sakura" />
           </div>
@@ -99,7 +99,7 @@ export default function InvoicePage() {
               </div>
             )}
           </div>
-          <button onClick={() => router.push("/track")} className="w-full btn-sakura py-4 text-xs tracking-widest">
+          <button onClick={() => router.push("/track")} className="w-full bg-sakura text-black font-black hover:bg-sakura/80 rounded-2xl py-4 text-xs tracking-widest transition-colors">
             KE RIWAYAT PESANAN
           </button>
         </div>
@@ -113,7 +113,7 @@ export default function InvoicePage() {
         
         {/* KIRI: INSTRUKSI BAYAR */}
         <div className="lg:col-span-3 space-y-6">
-          <div className="glass-elite p-8 rounded-[2rem] space-y-8">
+          <div className="glass-panel p-8 rounded-[2rem] space-y-8">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <Receipt className="w-5 h-5 text-sakura" />
@@ -146,7 +146,7 @@ export default function InvoicePage() {
 
         {/* KANAN: RINGKASAN */}
         <div className="lg:col-span-2 space-y-6">
-          <div className="glass-elite p-8 rounded-[2rem] space-y-5">
+          <div className="glass-panel p-8 rounded-[2rem] space-y-5">
             <h3 className="text-xs font-black text-white uppercase tracking-widest">Informasi Pesanan</h3>
             <div className="space-y-4 text-[11px] font-bold uppercase tracking-widest text-zinc-500">
               <div className="flex justify-between"><span>Game</span><span className="text-white">{invoice.gameName}</span></div>

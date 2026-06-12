@@ -15,7 +15,32 @@ export default function GameCatalogClient({ games, accent = "#FDB0C0" }: Props) 
   const [searchQuery, setSearchQuery] = useState("");
   const [activeTab, setActiveTab] = useState("SEMUA");
 
-  const categories = ["SEMUA", "POPULER", "MOBILE", "PC"];
+  const categoryCounts = useMemo(() => {
+    let populer = 0;
+    let mobile = 0;
+    let pc = 0;
+    
+    games.forEach(game => {
+      if (game.isHot) populer++;
+      const isMobile = ["mlbb", "genshin", "pubg", "ff", "hsr", "zzz", "wuwa", "hok", "mccg"].includes(game.slug);
+      if (isMobile) mobile++;
+      else pc++;
+    });
+
+    return {
+      SEMUA: games.length,
+      POPULER: populer,
+      MOBILE: mobile,
+      PC: pc
+    };
+  }, [games]);
+
+  const categories = [
+    { id: "SEMUA", label: `SEMUA (${categoryCounts.SEMUA})` },
+    { id: "POPULER", label: `POPULER (${categoryCounts.POPULER})` },
+    { id: "MOBILE", label: `MOBILE (${categoryCounts.MOBILE})` },
+    { id: "PC", label: `PC (${categoryCounts.PC})` }
+  ];
 
   const filteredGames = useMemo(() => {
     return games.filter((game) => {
@@ -43,11 +68,11 @@ export default function GameCatalogClient({ games, accent = "#FDB0C0" }: Props) 
         {/* Category Tabs */}
         <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide md:pb-0 p-1.5 rounded-2xl bg-obsidian-surface/60 border border-obsidian-border backdrop-blur-md w-max" role="tablist">
           {categories.map((tab) => {
-            const isActive = activeTab === tab;
+            const isActive = activeTab === tab.id;
             return (
               <button
-                key={tab}
-                onClick={() => setActiveTab(tab)}
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
                 role="tab"
                 aria-selected={isActive}
                 className={[
@@ -57,7 +82,7 @@ export default function GameCatalogClient({ games, accent = "#FDB0C0" }: Props) 
                     : "text-zinc-500 hover:text-white hover:bg-white/[0.02]"
                 ].join(" ")}
               >
-                {tab}
+                {tab.label}
               </button>
             );
           })}
@@ -82,8 +107,8 @@ export default function GameCatalogClient({ games, accent = "#FDB0C0" }: Props) 
         </div>
       </div>
 
-      {/* ── Game Grid (Boutique Style) ─────────────────── */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 animate-fade-in-up" style={{ animationDelay: '0.4s' }}>
+      {/* ── Game Grid (Boutique Style / App Grid) ─────────────────── */}
+      <div className="grid grid-cols-3 gap-2 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 animate-fade-in-up" style={{ animationDelay: '0.4s' }}>
         {filteredGames.map((game, idx) => (
           <Link
             key={game.slug}
@@ -91,18 +116,18 @@ export default function GameCatalogClient({ games, accent = "#FDB0C0" }: Props) 
             className="group glass-card overflow-hidden flex flex-col transition-all duration-500 hover:-translate-y-2 hover:border-sakura/30 hover:shadow-[0_20px_40px_-15px_rgba(253,176,192,0.2)]"
             style={{ animationDelay: `${idx * 50}ms` }}
           >
-            {/* Image Container (Banner 16:9) */}
-            <div className="relative aspect-[16/9] w-full overflow-hidden bg-obsidian">
+            {/* Image Container (Square App Icon Style) */}
+            <div className="relative aspect-square w-full overflow-hidden bg-obsidian rounded-t-xl md:rounded-none">
               <Image
-                src={game.banner || game.coverImage || "/images/fallbacks/game-default.webp"}
+                src={game.coverImage || game.banner || "/images/fallbacks/game-default.webp"}
                 alt={game.name}
                 fill
-                sizes="(max-width: 640px) 100vw, (max-width: 768px) 50vw, 33vw"
+                sizes="(max-width: 640px) 33vw, (max-width: 768px) 25vw, 20vw"
                 className="object-cover transition-transform duration-700 group-hover:scale-110"
               />
               
               {/* Premium Gradient Overlay */}
-              <div className="absolute inset-0 bg-gradient-to-t from-obsidian via-obsidian/60 to-transparent opacity-90 transition-opacity duration-300 group-hover:opacity-100" />
+              <div className="absolute inset-0 bg-gradient-to-t from-obsidian/90 via-obsidian/20 to-transparent opacity-80 md:opacity-90 transition-opacity duration-300 group-hover:opacity-100" />
 
               {/* Glowing Aura on Hover */}
               <div className="absolute inset-0 opacity-0 group-hover:opacity-100 bg-sakura-glow mix-blend-screen transition-opacity duration-500" />
@@ -118,13 +143,11 @@ export default function GameCatalogClient({ games, accent = "#FDB0C0" }: Props) 
               </div>
 
               {/* Info Container over Image */}
-              <div className="absolute inset-x-0 bottom-0 p-4 flex flex-col z-10 translate-y-2 group-hover:translate-y-0 transition-transform duration-300">
-                {/* Subtle top border in info section */}
-                <div className="h-[1px] w-8 bg-white/20 mb-3 group-hover:bg-sakura/50 transition-colors" />
-                <h3 className="line-clamp-2 text-sm font-bold leading-tight text-white group-hover:text-glow-sakura transition-all duration-300">
+              <div className="absolute inset-x-0 bottom-0 p-2 md:p-3 flex flex-col z-10">
+                <h3 className="line-clamp-2 text-[10px] md:text-xs font-bold leading-tight text-white group-hover:text-glow-sakura transition-all duration-300">
                   {game.name}
                 </h3>
-                <p className="mt-1.5 text-[10px] font-semibold tracking-wider uppercase text-zinc-400 group-hover:text-sakura transition-colors">
+                <p className="mt-0.5 md:mt-1 text-[8px] md:text-[9px] font-semibold tracking-wider uppercase text-zinc-400 group-hover:text-sakura transition-colors">
                   {game.currencyName}
                 </p>
               </div>

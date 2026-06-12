@@ -420,3 +420,112 @@ export async function resolveProductAction(
     return { success: false, message: error.message || "Gagal mengubah status produk." };
   }
 }
+
+// --------------------------------------------------------------------------------
+// ENTERPRISE MODULES: USERS, PAYMENTS, SETTINGS
+// --------------------------------------------------------------------------------
+
+export async function getUsersAction(search: string = "", page: number = 1, limit: number = 15): Promise<{ users: any[]; total: number }> {
+  try {
+    const params = new URLSearchParams({ search, page: page.toString(), limit: limit.toString() });
+    const response = await fetchApi<ApiResponse<any>>(`/Users?${params.toString()}`);
+    if (response.success && response.data) {
+      return { users: response.data.data, total: response.data.total };
+    }
+    return { users: [], total: 0 };
+  } catch (error) {
+    console.error("Error getUsersAction:", error);
+    return { users: [], total: 0 };
+  }
+}
+
+export async function updateUserRoleAction(id: string, role: string): Promise<{ success: boolean; message: string }> {
+  try {
+    const response = await fetchApi<ApiResponse<string>>(`/Users/${id}/role`, {
+      method: "PATCH",
+      body: JSON.stringify({ role })
+    });
+    revalidatePath("/admin");
+    return { success: response.success, message: response.message };
+  } catch (error: any) {
+    return { success: false, message: error.message || "Gagal update role" };
+  }
+}
+
+export async function toggleUserBanAction(id: string, isBanned: boolean): Promise<{ success: boolean; message: string }> {
+  try {
+    const response = await fetchApi<ApiResponse<string>>(`/Users/${id}/ban`, {
+      method: "PATCH",
+      body: JSON.stringify({ isBanned })
+    });
+    revalidatePath("/admin");
+    return { success: response.success, message: response.message };
+  } catch (error: any) {
+    return { success: false, message: error.message || "Gagal update status ban" };
+  }
+}
+
+export async function getPaymentMethodsAction(): Promise<any[]> {
+  try {
+    const response = await fetchApi<ApiResponse<any[]>>(`/PaymentMethods`);
+    if (response.success && response.data) {
+      return response.data;
+    }
+    return [];
+  } catch (error) {
+    console.error("Error getPaymentMethodsAction:", error);
+    return [];
+  }
+}
+
+export async function updatePaymentMethodFeeAction(id: string, feeFlat: number, feePercent: number): Promise<{ success: boolean; message: string }> {
+  try {
+    const response = await fetchApi<ApiResponse<string>>(`/PaymentMethods/${id}/fee`, {
+      method: "PATCH",
+      body: JSON.stringify({ feeFlat, feePercent })
+    });
+    revalidatePath("/admin");
+    return { success: response.success, message: response.message };
+  } catch (error: any) {
+    return { success: false, message: error.message || "Gagal update fee" };
+  }
+}
+
+export async function togglePaymentMethodAction(id: string, isActive: boolean): Promise<{ success: boolean; message: string }> {
+  try {
+    const response = await fetchApi<ApiResponse<string>>(`/PaymentMethods/${id}/toggle`, {
+      method: "PATCH",
+      body: JSON.stringify({ isActive })
+    });
+    revalidatePath("/admin");
+    return { success: response.success, message: response.message };
+  } catch (error: any) {
+    return { success: false, message: error.message || "Gagal update status payment" };
+  }
+}
+
+export async function getSystemSettingsAction(): Promise<any[]> {
+  try {
+    const response = await fetchApi<ApiResponse<any[]>>(`/Settings`);
+    if (response.success && response.data) {
+      return response.data;
+    }
+    return [];
+  } catch (error) {
+    console.error("Error getSystemSettingsAction:", error);
+    return [];
+  }
+}
+
+export async function updateSystemSettingAction(key: string, value: string): Promise<{ success: boolean; message: string }> {
+  try {
+    const response = await fetchApi<ApiResponse<any>>(`/Settings`, {
+      method: "PUT",
+      body: JSON.stringify({ key, value })
+    });
+    revalidatePath("/admin");
+    return { success: response.success, message: response.message };
+  } catch (error: any) {
+    return { success: false, message: error.message || "Gagal update setting" };
+  }
+}
