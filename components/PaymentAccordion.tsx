@@ -87,17 +87,17 @@ export default function PaymentAccordion({
     if (c.includes("OVO"))        return "/images/ui/payment-ovo.svg";
     if (c.includes("DANA"))       return "/images/ui/payment-dana.svg";
     if (c.includes("SHOPEE") || c.includes("SPAY")) return "/images/ui/payment-shopee.svg";
-    if (c.includes("LINKAJA"))    return "/images/ui/payment-dana.svg"; // closest match
+    if (c.includes("LINKAJA"))    return "/images/payments/default.webp"; 
     // Virtual Account — masing-masing bank punya ikon sendiri
     if (c.includes("BCA"))        return "/images/ui/payment-bca.svg";
     if (c.includes("BNI"))        return "/images/ui/payment-bni.svg";
     if (c.includes("BRI"))        return "/images/ui/payment-bri.svg";
     if (c.includes("MANDIRI"))    return "/images/ui/payment-mandiri.svg";
-    if (c.includes("BSI") || c.includes("PERMATA") || c.includes("CIMB") || c.includes("DANAMON")) return "/images/ui/payment-mandiri.svg";
+    if (c.includes("BSI") || c.includes("PERMATA") || c.includes("CIMB") || c.includes("DANAMON")) return "/images/payments/default.webp";
     // Retail
     if (c.includes("ALFAMART") || c.includes("INDOMARET")) return "/images/ui/payment-retail.svg";
 
-    return "/images/ui/payment-qris.svg"; // safe default
+    return "/images/payments/default.webp"; // safe default
   };
 
   return (

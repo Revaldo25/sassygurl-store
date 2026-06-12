@@ -17,6 +17,10 @@ public interface IAuthService
     Task<ApiResponse<string>> RegisterAsync(RegisterRequestDto request);
     Task<ApiResponse<AuthResponseDto>> VerifyOtpAsync(VerifyOtpRequestDto request);
     Task<ApiResponse<AuthResponseDto>> SocialLoginAsync(SocialLoginRequestDto request);
+    Task<ApiResponse<string>> ForgotPasswordAsync(ForgotPasswordRequestDto request);
+    Task<ApiResponse<string>> ResetPasswordAsync(ResetPasswordRequestDto request);
+    Task<ApiResponse<AuthResponseDto>> UpdateProfileAsync(string userId, UpdateProfileRequestDto request);
+    Task<ApiResponse<string>> ChangePasswordAsync(string userId, ChangePasswordRequestDto request);
 }
 
 public class AuthService : IAuthService
@@ -166,6 +170,7 @@ public class AuthService : IAuthService
         if (_environment.IsDevelopment())
         {
             _logger.LogDebug("[DEV ONLY] OTP for {Identifier}: {Otp}", token.Identifier, otp);
+            return ApiResponse<string>.Ok(request.Method == "email" ? request.Email! : request.Phone!, $"[DEV] OTP Anda: {otp}");
         }
 
         return ApiResponse<string>.Ok(request.Method == "email" ? request.Email! : request.Phone!, "OTP Terkirim! Silakan cek email/WhatsApp Anda.");
@@ -223,4 +228,85 @@ public class AuthService : IAuthService
         var token = tokenHandler.CreateToken(tokenDescriptor);
         return tokenHandler.WriteToken(token);
     }
+
+    public async Task<ApiResponse<string>> ForgotPasswordAsync(ForgotPasswordRequestDto request)
+    {
+        var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == request.Identifier || u.Phone == request.Identifier);
+        if (user == null) return ApiResponse<string>.Fail("Akun tidak ditemukan.");
+
+        var otp = new Random().Next(100000, 999999).ToString();
+        var token = new VerificationToken
+        {
+            Identifier = request.Identifier,
+            Token = otp,
+            Expires = DateTime.UtcNow.AddMinutes(10)
+        };
+
+        _context.VerificationTokens.Add(token);
+        await _context.SaveChangesAsync();
+
+        if (_environment.IsDevelopment())
+        {
+            _logger.LogDebug("[DEV ONLY] Forgot Password OTP for {Identifier}: {Otp}", token.Identifier, otp);
+            return ApiResponse<string>.Ok(request.Identifier, $"[DEV] OTP Anda: {otp}");
+        }
+
+        return ApiResponse<string>.Ok(request.Identifier, "Kode OTP telah dikirim!");
+    }
+
+    public async Task<ApiResponse<string>> ResetPasswordAsync(ResetPasswordRequestDto request)
+    {
+        var tokenRecord = await _context.VerificationTokens
+            .FirstOrDefaultAsync(t => t.Identifier == request.Identifier && t.Token == request.Otp);
+
+        if (tokenRecord == null) return ApiResponse<string>.Fail("Kode OTP Salah atau tidak ditemukan!");
+        if (DateTime.UtcNow > tokenRecord.Expires) return ApiResponse<string>.Fail("Kode OTP sudah kedaluwarsa!");
+
+        var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == request.Identifier || u.Phone == request.Identifier);
+        if (user == null) return ApiResponse<string>.Fail("User tidak ditemukan.");
+
+        user.Password = BCrypt.Net.BCrypt.HashPassword(request.NewPassword);
+        _context.VerificationTokens.RemoveRange(_context.VerificationTokens.Where(t => t.Identifier == request.Identifier));
+        await _context.SaveChangesAsync();
+
+        return ApiResponse<string>.Ok("OK", "Password berhasil direset! Silakan login dengan password baru.");
+    }
+
+    public async Task<ApiResponse<AuthResponseDto>> UpdateProfileAsync(string userId, UpdateProfileRequestDto request)
+    {
+        var user = await _context.Users.FindAsync(userId);
+        if (user == null) return ApiResponse<AuthResponseDto>.Fail("Akun tidak ditemukan.");
+
+        user.Name = request.Name;
+        user.Phone = request.Whatsapp;
+        
+        await _context.SaveChangesAsync();
+        
+        return ApiResponse<AuthResponseDto>.Ok(new AuthResponseDto
+        {
+            Token = GenerateJwtToken(user),
+            RefreshToken = "",
+            UserId = user.Id,
+            Name = user.Name ?? "Member",
+            Role = user.Role.ToString()
+        }, "Profil berhasil diperbarui!");
+    }
+
+    public async Task<ApiResponse<string>> ChangePasswordAsync(string userId, ChangePasswordRequestDto request)
+    {
+        var user = await _context.Users.FindAsync(userId);
+        if (user == null) return ApiResponse<string>.Fail("Akun tidak ditemukan.");
+
+        if (string.IsNullOrEmpty(user.Password)) 
+            return ApiResponse<string>.Fail("Akun ini terdaftar via Social Login. Anda tidak memiliki password.");
+
+        bool isMatch = BCrypt.Net.BCrypt.Verify(request.OldPassword, user.Password);
+        if (!isMatch) return ApiResponse<string>.Fail("Password saat ini salah.");
+
+        user.Password = BCrypt.Net.BCrypt.HashPassword(request.NewPassword);
+        await _context.SaveChangesAsync();
+
+        return ApiResponse<string>.Ok("OK", "Password berhasil diubah.");
+    }
 }
+

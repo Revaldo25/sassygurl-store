@@ -22,8 +22,8 @@ export default function GameError({
       
       <div className="flex-1 flex items-center justify-center p-4">
         <div className="max-w-md w-full rounded-[2.5rem] border border-white/10 bg-zinc-900/50 backdrop-blur-2xl p-8 text-center shadow-2xl">
-          <div className="w-20 h-20 bg-rose-500/10 rounded-[2rem] flex items-center justify-center mx-auto mb-6 border border-rose-500/20">
-            <AlertTriangle className="w-10 h-10 text-rose-500" />
+          <div className="w-20 h-20 bg-status-danger/10 rounded-[2rem] flex items-center justify-center mx-auto mb-6 border border-status-danger/20">
+            <AlertTriangle className="w-10 h-10 text-status-danger" />
           </div>
           
           <h2 className="text-2xl font-black text-white mb-2">Terjadi Kesalahan</h2>

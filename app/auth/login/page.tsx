@@ -27,6 +27,27 @@ export default function LoginElitePage() {
     setLoading(true);
 
     try {
+      // FIX: Use Next.js proxy rewrite for Ngrok compatibility
+      const apiUrl = typeof window !== "undefined" && window.location.hostname !== "localhost" 
+        ? "/api/backend" 
+        : (process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api");
+
+      const validateRes = await fetch(`${apiUrl}/auth/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: "login",
+          method: "email",
+          email: formData.email,
+          password: formData.password
+        })
+      });
+
+      const validateData = await validateRes.json();
+      if (!validateData.success) {
+        throw new Error(validateData.message || "Email atau password salah.");
+      }
+
       const res = await signIn("credentials", {
         redirect: false,
         email: formData.email,
@@ -34,12 +55,7 @@ export default function LoginElitePage() {
       });
 
       if (res?.error) {
-        // NextAuth encodes the error message from authorize() throw
-        // Extract actual message from the error string
-        const errorMessage = res.error === "CredentialsSignin" 
-          ? "Email atau password salah." 
-          : decodeURIComponent(res.error);
-        throw new Error(errorMessage);
+        throw new Error("Terjadi kesalahan konfigurasi NextAuth.");
       }
 
       router.push("/dashboard");
@@ -136,7 +152,7 @@ export default function LoginElitePage() {
                 <AnimatePresence>
                   {errorMsg && (
                     <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} className="overflow-hidden">
-                      <div className="flex items-center gap-3 p-4 rounded-xl bg-red-500/10 border border-red-500/20 text-red-500 mb-2">
+                      <div className="flex items-center gap-3 p-4 rounded-xl bg-status-danger/10 border border-status-danger/20 text-status-danger mb-2">
                         <AlertCircle className="w-5 h-5 shrink-0" />
                         <p className="text-xs font-bold uppercase tracking-wide">{errorMsg}</p>
                       </div>

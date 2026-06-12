@@ -49,40 +49,44 @@ export default function SiteHeader() {
             </button>
           </div>
 
-          {/* Center: Logo */}
-          <div className="flex-1 flex justify-center md:justify-start">
+          {/* Left / Center: Logo */}
+          <div className="flex-1 md:flex-none flex justify-center md:justify-start">
             <Link href="/" className="group flex items-center gap-3 transition-transform hover:scale-105">
               <SassyLogo size="sm" />
             </Link>
           </div>
 
-          {/* Right: Search / Actions */}
-          <div className="absolute right-4 md:relative md:right-0 flex items-center gap-2">
-            <button 
-              onClick={() => {
-                const catalog = document.getElementById("catalog");
-                if (catalog) {
-                  catalog.scrollIntoView({ behavior: "smooth" });
-                  setTimeout(() => {
-                    document.getElementById("catalog-search")?.focus();
-                  }, 500);
-                }
-              }}
-              className="p-2 -mr-2 text-white/80 hover:text-sakura transition-colors rounded-full hover:bg-white/5"
-              aria-label="Search"
-            >
-              <Search className="w-5 h-5" />
-            </button>
-            {/* Desktop only user button if needed, but FloatingNav handles it mostly */}
+          {/* Center: Desktop Navigation Links */}
+          <div className="hidden md:flex flex-1 items-center justify-center gap-8">
+            {navItems.map((item) => (
+              <Link 
+                key={item.href} 
+                href={item.href}
+                className="text-sm font-medium text-white/70 hover:text-sakura transition-colors relative group"
+              >
+                {item.label}
+                <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-sakura transition-all duration-300 group-hover:w-full rounded-full"></span>
+              </Link>
+            ))}
+          </div>
+
+          {/* Right: Actions */}
+          <div className="absolute right-4 md:relative md:right-0 flex items-center gap-4">
             <div className="hidden md:block">
                {isAuthenticated ? (
-                 <Link href={isAdmin ? "/admin" : "/dashboard"} className="p-2 text-white/80 hover:text-sakura rounded-full hover:bg-white/5 flex items-center gap-2">
-                    <User className="w-5 h-5" />
+                 <Link href={isAdmin ? "/admin" : "/dashboard"} className="flex items-center gap-2 px-4 py-1.5 rounded-full bg-sakura/10 text-sakura border border-sakura/20 hover:bg-sakura/20 transition-colors text-sm font-bold shadow-[0_0_15px_rgba(253,176,192,0.15)]">
+                    <User className="w-4 h-4" />
+                    <span>{isAdmin ? "Admin Panel" : "Member Area"}</span>
                  </Link>
                ) : (
-                 <Link href="/auth/login" className="px-4 py-1.5 rounded-full bg-white/10 hover:bg-white/20 text-sm font-semibold transition-colors">
-                   Login
-                 </Link>
+                 <div className="flex items-center gap-3">
+                   <Link href="/auth/login" className="text-sm font-semibold text-white/80 hover:text-white transition-colors px-2">
+                     Masuk
+                   </Link>
+                   <Link href="/auth/register" className="px-5 py-1.5 rounded-full bg-sakura text-obsidian text-sm font-bold hover:bg-sakura/90 transition-colors shadow-[0_0_15px_rgba(253,176,192,0.3)]">
+                     Daftar
+                   </Link>
+                 </div>
                )}
             </div>
           </div>

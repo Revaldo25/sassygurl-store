@@ -148,7 +148,7 @@ export default function RegisterElitePage() {
                 <AnimatePresence>
                   {errorMsg && (
                     <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} className="overflow-hidden">
-                      <div className="flex items-center gap-3 p-5 rounded-2xl bg-red-500/10 border border-red-500/20 text-red-500 mb-2">
+                      <div className="flex items-center gap-3 p-5 rounded-2xl bg-status-danger/10 border border-status-danger/20 text-status-danger mb-2">
                         <AlertCircle className="w-5 h-5 shrink-0" /><p className="text-xs font-black uppercase tracking-widest">{errorMsg}</p>
                       </div>
                     </motion.div>
@@ -195,10 +195,10 @@ export default function RegisterElitePage() {
                     <AnimatePresence>
                       {formData.password.length > 0 && (
                         <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} className="pt-4 grid grid-cols-2 gap-4 overflow-hidden border-t border-white/5 mt-2">
-                          <div className={`flex items-center gap-2 text-[10px] font-black uppercase tracking-wider ${rules.length ? "text-emerald-400" : "text-zinc-600"}`}>{rules.length ? <CheckCircle2 className="w-4 h-4" /> : <XCircle className="w-4 h-4" />} 8-32 Karakter</div>
-                          <div className={`flex items-center gap-2 text-[10px] font-black uppercase tracking-wider ${rules.uppercase ? "text-emerald-400" : "text-zinc-600"}`}>{rules.uppercase ? <CheckCircle2 className="w-4 h-4" /> : <XCircle className="w-4 h-4" />} Huruf Besar</div>
-                          <div className={`flex items-center gap-2 text-[10px] font-black uppercase tracking-wider ${rules.number ? "text-emerald-400" : "text-zinc-600"}`}>{rules.number ? <CheckCircle2 className="w-4 h-4" /> : <XCircle className="w-4 h-4" />} Angka</div>
-                          <div className={`flex items-center gap-2 text-[10px] font-black uppercase tracking-wider ${rules.special ? "text-emerald-400" : "text-zinc-600"}`}>{rules.special ? <CheckCircle2 className="w-4 h-4" /> : <XCircle className="w-4 h-4" />} Simbol Unik</div>
+                          <div className={`flex items-center gap-2 text-[10px] font-black uppercase tracking-wider ${rules.length ? "text-status-success" : "text-zinc-600"}`}>{rules.length ? <CheckCircle2 className="w-4 h-4" /> : <XCircle className="w-4 h-4" />} 8-32 Karakter</div>
+                          <div className={`flex items-center gap-2 text-[10px] font-black uppercase tracking-wider ${rules.uppercase ? "text-status-success" : "text-zinc-600"}`}>{rules.uppercase ? <CheckCircle2 className="w-4 h-4" /> : <XCircle className="w-4 h-4" />} Huruf Besar</div>
+                          <div className={`flex items-center gap-2 text-[10px] font-black uppercase tracking-wider ${rules.number ? "text-status-success" : "text-zinc-600"}`}>{rules.number ? <CheckCircle2 className="w-4 h-4" /> : <XCircle className="w-4 h-4" />} Angka</div>
+                          <div className={`flex items-center gap-2 text-[10px] font-black uppercase tracking-wider ${rules.special ? "text-status-success" : "text-zinc-600"}`}>{rules.special ? <CheckCircle2 className="w-4 h-4" /> : <XCircle className="w-4 h-4" />} Simbol Unik</div>
                         </motion.div>
                       )}
                     </AnimatePresence>

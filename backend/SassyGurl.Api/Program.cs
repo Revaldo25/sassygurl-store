@@ -420,6 +420,10 @@ try
     // ── Idempotency Middleware — after auth, before endpoint execution ───
     app.UseIdempotency();
 
+    // Serve static files (like uploaded images)
+    app.UseStaticFiles();
+    
+    // Map Endpoints
     app.MapControllers();
     app.MapHub<NotificationHub>("/hubs/notifications");
     app.MapHealthChecks("/health");

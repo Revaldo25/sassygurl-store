@@ -84,7 +84,7 @@ export default function ReviewQueueClient() {
   }
 
   if (loadError) {
-    return <div className="text-red-400 text-center py-12 font-medium">{loadError}</div>;
+    return <div className="text-status-danger text-center py-12 font-medium">{loadError}</div>;
   }
 
   if (products.length === 0) {
@@ -141,7 +141,7 @@ export default function ReviewQueueClient() {
                     <div className="text-xs text-neutral-500">{p.source}</div>
                   </td>
                   <td className="py-3 px-4">
-                    <span className="inline-block bg-yellow-500/10 text-yellow-500 text-xs px-2 py-1 rounded">
+                    <span className="inline-block bg-status-warning/10 text-status-warning text-xs px-2 py-1 rounded">
                       {metaObj.categoryGroup || 'AMBIGUOUS'}
                     </span>
                   </td>
@@ -150,14 +150,14 @@ export default function ReviewQueueClient() {
                       <button
                         disabled={isResolving}
                         onClick={() => handleResolve(p.id, 'APPROVE')}
-                        className="bg-emerald-500 hover:bg-emerald-600 disabled:opacity-50 text-white px-3 py-1.5 rounded text-xs font-medium transition"
+                        className="bg-status-success hover:bg-status-success disabled:opacity-50 text-white px-3 py-1.5 rounded text-xs font-medium transition"
                       >
                         Approve
                       </button>
                       <button
                         disabled={isResolving}
                         onClick={() => handleResolve(p.id, 'REJECT')}
-                        className="bg-red-500 hover:bg-red-600 disabled:opacity-50 text-white px-3 py-1.5 rounded text-xs font-medium transition"
+                        className="bg-status-danger hover:bg-status-danger disabled:opacity-50 text-white px-3 py-1.5 rounded text-xs font-medium transition"
                       >
                         Reject
                       </button>

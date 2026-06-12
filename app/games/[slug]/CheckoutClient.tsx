@@ -92,7 +92,8 @@ export default function CheckoutClient({ game, groupedByCategory, paymentGroups 
     ? (selectedProduct.displayPrice * quantity) + paymentFee
     : null;
 
-  const canCheckout = !!userId && !!selectedProduct && !!selectedPayment && !!whatsapp;
+  const isWhatsappInvalid = whatsapp.length > 0 && (whatsapp.length < 9 || whatsapp.length > 14 || !whatsapp.startsWith("8"));
+  const canCheckout = !!userId && !!selectedProduct && !!selectedPayment && !!whatsapp && !isWhatsappInvalid;
 
   const filteredGroups = groupedByCategory
     .filter(g => activeTab === "ALL" || g.category.label.toUpperCase() === activeTab)
@@ -140,9 +141,17 @@ export default function CheckoutClient({ game, groupedByCategory, paymentGroups 
     }
 
     // Generate fresh UUID for idempotency protection (Phase 1 rule compliance)
-    const uuid = typeof crypto !== "undefined" && crypto.randomUUID 
-      ? crypto.randomUUID() 
-      : Math.random().toString(36).substring(2) + Date.now().toString(36);
+    const generateUUID = () => {
+      if (typeof crypto !== "undefined" && crypto.randomUUID) {
+        return crypto.randomUUID();
+      }
+      return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+        const r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8);
+        return v.toString(16);
+      });
+    };
+    
+    const uuid = generateUUID();
     
     setIdempotencyKey(uuid);
     setShowConfirmModal(true);
@@ -248,8 +257,8 @@ export default function CheckoutClient({ game, groupedByCategory, paymentGroups 
 
         {/* STEP 2: PILIH PRODUK */}
         {groupedByCategory.length === 0 ? (
-          <div className="rounded-3xl border border-red-500/10 bg-red-500/5 p-8 text-center mt-6">
-            <AlertCircle className="w-10 h-10 text-red-500 mx-auto mb-3" />
+          <div className="rounded-3xl border border-status-danger/10 bg-status-danger/5 p-8 text-center mt-6">
+            <AlertCircle className="w-10 h-10 text-status-danger mx-auto mb-3" />
             <h3 className="text-lg font-black text-white mb-2">Item Sedang Tidak Tersedia</h3>
             <p className="text-sm text-white/50">Mohon maaf, produk untuk {game.name} saat ini sedang kosong.</p>
           </div>
@@ -361,7 +370,7 @@ export default function CheckoutClient({ game, groupedByCategory, paymentGroups 
 
                           {/* Promo badge */}
                           {product.isFlashSale && (
-                            <div className="absolute top-0 right-0 bg-rose-500 text-[8px] font-black uppercase text-white px-2 py-0.5 rounded-bl-xl shadow-lg">
+                            <div className="absolute top-0 right-0 bg-status-danger text-[8px] font-black uppercase text-white px-2 py-0.5 rounded-bl-xl shadow-lg">
                               PROMO
                             </div>
                           )}
@@ -426,7 +435,7 @@ export default function CheckoutClient({ game, groupedByCategory, paymentGroups 
         
         {/* STEP 3: PEMBAYARAN */}
         <section className={`glass-panel rounded-3xl p-5 md:p-6 transition-all ${
-          selectedProduct ? "opacity-100" : "opacity-40 grayscale pointer-events-none"
+          selectedProduct ? "opacity-100" : "opacity-60"
         }`}>
           <StepHeader num={3} title="Pembayaran" icon={Wallet} done={!!selectedPayment} />
           <PaymentAccordion 
@@ -443,7 +452,7 @@ export default function CheckoutClient({ game, groupedByCategory, paymentGroups 
 
         {/* STEP 4: KONTAK & CHECKOUT */}
         <section className={`glass-panel rounded-3xl p-5 md:p-6 transition-all duration-500 mt-5 mb-10 lg:mb-0 ${
-          selectedPayment ? "opacity-100" : "opacity-40 grayscale pointer-events-none"
+          selectedPayment ? "opacity-100" : "opacity-60"
         }`}>
           <StepHeader num={4} title="Informasi Kontak" icon={UserRound} />
 
@@ -464,17 +473,29 @@ export default function CheckoutClient({ game, groupedByCategory, paymentGroups 
                   value={whatsapp}
                   onChange={e => {
                     const val = e.target.value.replace(/\D/g, "");
-                    setWhatsapp(val.startsWith("0") ? val.substring(1) : val);
+                    setWhatsapp(val.startsWith("0") ? val.substring(1) : val.startsWith("62") ? val.substring(2) : val);
                   }}
                   placeholder="81234567890"
-                  className="w-full bg-black/40 border border-white/10 rounded-2xl py-4 pl-14 pr-6 text-sm text-white placeholder:text-white/20 focus:outline-none focus:border-sakura focus:ring-4 focus:ring-sakura/10 transition-all font-bold"
+                  className={`w-full bg-black/40 border rounded-2xl py-4 pl-14 pr-6 text-sm text-white placeholder:text-white/20 focus:outline-none transition-all font-bold ${
+                    isWhatsappInvalid 
+                      ? "border-status-danger/50 focus:border-status-danger focus:ring-4 focus:ring-status-danger/10" 
+                      : "border-white/10 focus:border-sakura focus:ring-4 focus:ring-sakura/10"
+                  }`}
                   inputMode="numeric"
+                  aria-invalid={isWhatsappInvalid}
                 />
               </div>
-              <p className="text-[10px] text-blue-400 mt-3 font-medium flex items-center gap-2 bg-blue-500/10 p-2.5 rounded-xl border border-blue-500/20">
-                <AlertCircle className="w-3.5 h-3.5 shrink-0" />
-                Nomor ini akan digunakan untuk mengirimkan rincian pesanan.
-              </p>
+              {isWhatsappInvalid ? (
+                <p className="text-[10px] text-status-danger mt-3 font-medium flex items-center gap-2 bg-status-danger/10 p-2.5 rounded-xl border border-status-danger/20">
+                  <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                  Format nomor tidak valid. Gunakan format seperti 81234567890 (tanpa awalan 0/62).
+                </p>
+              ) : (
+                <p className="text-[10px] text-status-info mt-3 font-medium flex items-center gap-2 bg-status-info/10 p-2.5 rounded-xl border border-status-info/20">
+                  <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                  Nomor ini akan digunakan untuk mengirimkan rincian pesanan.
+                </p>
+              )}
             </div>
           </div>
         </section>
@@ -602,7 +623,7 @@ export default function CheckoutClient({ game, groupedByCategory, paymentGroups 
 
       {/* Midtrans Snap — loaded only on checkout pages */}
       <Script
-        src="https://app.sandbox.midtrans.com/snap/snap.js"
+        src={process.env.NEXT_PUBLIC_MIDTRANS_SNAP_URL || (process.env.NEXT_PUBLIC_MIDTRANS_CLIENT_KEY?.startsWith("SB-") ? "https://app.sandbox.midtrans.com/snap/snap.js" : "https://app.midtrans.com/snap/snap.js")}
         data-client-key={process.env.NEXT_PUBLIC_MIDTRANS_CLIENT_KEY}
         strategy="lazyOnload"
       />
@@ -617,7 +638,7 @@ function ConfirmModal({
   onClose, onConfirm, isLoading,
   game, userId, zoneId, validatedName,
   selectedProduct, selectedPayment,
-  whatsapp, paymentFee, finalPrice, accent,
+  whatsapp, paymentFee, finalPrice, accent, quantity
 }: {
   onClose: () => void;
   onConfirm: () => void;
@@ -707,7 +728,7 @@ function ConfirmModal({
           ].map(([label, val], i) => (
             <div key={i} className="flex justify-between py-2 border-b border-obsidian-border hover:border-white/20 last:border-0 items-center">
               <span className="text-white/40 font-semibold">{label}</span>
-              <span className={`font-black ${label === "Nickname Akun" ? "text-emerald-400" : "text-white"}`}>{val}</span>
+              <span className={`font-black ${label === "Nickname Akun" ? "text-status-success" : "text-white"}`}>{val}</span>
             </div>
           ))}
 

@@ -54,7 +54,10 @@ public class GameValidationController : ControllerBase
 
         if (string.IsNullOrEmpty(apiKey) || string.IsNullOrEmpty(apiId))
         {
-            return StatusCode(503, new { success = false, message = "Provider credentials not configured." });
+            // [MOCK UNTUK DEMO] Jika API Key VIP Reseller kosong, kembalikan nickname statis
+            _logger.LogWarning("VipReseller credentials not configured. Returning mock nickname for demo.");
+            string mockNickname = $"SassyPlayer_{request.TargetId.Substring(0, Math.Min(3, request.TargetId.Length))}";
+            return Ok(new { success = true, data = new { nickname = mockNickname, game = request.GameCode } });
         }
 
         try

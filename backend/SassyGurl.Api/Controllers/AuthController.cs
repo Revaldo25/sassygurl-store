@@ -81,4 +81,44 @@ public class AuthController : ControllerBase
             Role = string.IsNullOrWhiteSpace(role) ? "MEMBER" : role
         }));
     }
+
+    [HttpPost("forgot-password")]
+    public async Task<IActionResult> ForgotPassword([FromBody] ForgotPasswordRequestDto request)
+    {
+        var response = await _authService.ForgotPasswordAsync(request);
+        if (!response.Success) return BadRequest(response);
+        return Ok(response);
+    }
+
+    [HttpPost("reset-password")]
+    public async Task<IActionResult> ResetPassword([FromBody] ResetPasswordRequestDto request)
+    {
+        var response = await _authService.ResetPasswordAsync(request);
+        if (!response.Success) return BadRequest(response);
+        return Ok(response);
+    }
+
+    [Authorize]
+    [HttpPut("me/profile")]
+    public async Task<IActionResult> UpdateProfile([FromBody] UpdateProfileRequestDto request)
+    {
+        var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        if (string.IsNullOrEmpty(userId)) return Unauthorized();
+
+        var response = await _authService.UpdateProfileAsync(userId, request);
+        if (!response.Success) return BadRequest(response);
+        return Ok(response);
+    }
+
+    [Authorize]
+    [HttpPut("me/password")]
+    public async Task<IActionResult> ChangePassword([FromBody] ChangePasswordRequestDto request)
+    {
+        var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        if (string.IsNullOrEmpty(userId)) return Unauthorized();
+
+        var response = await _authService.ChangePasswordAsync(userId, request);
+        if (!response.Success) return BadRequest(response);
+        return Ok(response);
+    }
 }

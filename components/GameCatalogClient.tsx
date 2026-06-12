@@ -66,7 +66,7 @@ export default function GameCatalogClient({ games, accent = "#FDB0C0" }: Props) 
       <div className="mb-10 flex flex-col gap-6 md:flex-row md:items-center md:justify-between animate-fade-in-up" style={{ animationDelay: '0.2s' }}>
         
         {/* Category Tabs */}
-        <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide md:pb-0 p-1.5 rounded-2xl bg-obsidian-surface/60 border border-obsidian-border backdrop-blur-md w-max" role="tablist">
+        <div className="flex gap-2 overflow-x-auto pb-2 no-scrollbar md:pb-0 p-1.5 rounded-2xl bg-obsidian-surface/60 border border-obsidian-border backdrop-blur-md w-max" role="tablist">
           {categories.map((tab) => {
             const isActive = activeTab === tab.id;
             return (

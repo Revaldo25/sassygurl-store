@@ -68,7 +68,16 @@ export default function AccountInput({
       try {
         // ── Server Action: backend URL tidak bocor ke browser ──────────────
         const { validateAccountAction } = await import("@/app/actions/marketing");
-        const result = await validateAccountAction(gameSlug, id, zone);
+        
+        // Timeout 15 detik agar tidak hang
+        const timeoutPromise = new Promise<any>((_, reject) => 
+          setTimeout(() => reject(new Error("Timeout")), 15000)
+        );
+
+        const result = await Promise.race([
+          validateAccountAction(gameSlug, id, zone),
+          timeoutPromise
+        ]);
 
         if (controller.signal.aborted) return;
 
@@ -83,7 +92,7 @@ export default function AccountInput({
       } catch (err: any) {
         if (controller.signal.aborted) return;
         setUsername(null);
-        setErrorMsg("Sistem sedang memvalidasi... silakan coba lagi.");
+        setErrorMsg(err.message === "Timeout" ? "Koneksi ke server terlalu lama. Silakan coba lagi." : "Sistem sedang memvalidasi... silakan coba lagi.");
         onResolved?.({ id, zone, username: null });
       } finally {
         if (!controller.signal.aborted) setLoading(false);

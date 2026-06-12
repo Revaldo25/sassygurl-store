@@ -42,8 +42,8 @@ export default function OpsStatusView() {
 
   if (error) {
     return (
-      <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="p-8 text-center text-red-500 font-mono text-sm border border-red-500/20 bg-red-500/5 rounded-[2rem]">
-        <Terminal className="h-6 w-6 text-red-500 mx-auto mb-3" />
+      <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="p-8 text-center text-status-danger font-mono text-sm border border-status-danger/20 bg-status-danger/5 rounded-[2rem]">
+        <Terminal className="h-6 w-6 text-status-danger mx-auto mb-3" />
         ERROR: {error}
       </motion.div>
     );
@@ -68,7 +68,7 @@ export default function OpsStatusView() {
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {/* DB Connection */}
-        <motion.div whileHover={{ y: -4 }} className={`rounded-[2rem] border p-6 backdrop-blur-md ${data.databaseConnected ? "border-emerald-500/20 bg-emerald-500/5 text-emerald-400 shadow-[0_0_20px_rgba(16,185,129,0.05)]" : "border-red-500/20 bg-red-500/5 text-red-400"}`}>
+        <motion.div whileHover={{ y: -4 }} className={`rounded-[2rem] border p-6 backdrop-blur-md ${data.databaseConnected ? "border-status-success/20 bg-status-success/5 text-status-success shadow-[0_0_20px_rgba(16,185,129,0.05)]" : "border-status-danger/20 bg-status-danger/5 text-status-danger"}`}>
           <p className="mb-3 flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.3em] text-zinc-500">
             <Database className="h-3.5 w-3.5" /> Database
           </p>
@@ -76,7 +76,7 @@ export default function OpsStatusView() {
         </motion.div>
 
         {/* Redis Connection */}
-        <motion.div whileHover={{ y: -4 }} className={`rounded-[2rem] border p-6 backdrop-blur-md ${data.redisConnected ? "border-emerald-500/20 bg-emerald-500/5 text-emerald-400 shadow-[0_0_20px_rgba(16,185,129,0.05)]" : "border-red-500/20 bg-red-500/5 text-red-400"}`}>
+        <motion.div whileHover={{ y: -4 }} className={`rounded-[2rem] border p-6 backdrop-blur-md ${data.redisConnected ? "border-status-success/20 bg-status-success/5 text-status-success shadow-[0_0_20px_rgba(16,185,129,0.05)]" : "border-status-danger/20 bg-status-danger/5 text-status-danger"}`}>
           <p className="mb-3 flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.3em] text-zinc-500">
             <Server className="h-3.5 w-3.5" /> Redis Cache
           </p>
@@ -84,7 +84,7 @@ export default function OpsStatusView() {
         </motion.div>
 
         {/* Pending Review Queue */}
-        <motion.div whileHover={{ y: -4 }} className={`rounded-[2rem] border p-6 backdrop-blur-md ${data.pendingReviewQueueCount > 0 ? "border-amber-500/20 bg-amber-500/5 text-amber-400 shadow-[0_0_20px_rgba(245,158,11,0.05)]" : "border-emerald-500/20 bg-emerald-500/5 text-emerald-400"}`}>
+        <motion.div whileHover={{ y: -4 }} className={`rounded-[2rem] border p-6 backdrop-blur-md ${data.pendingReviewQueueCount > 0 ? "border-status-warning/20 bg-status-warning/5 text-status-warning shadow-[0_0_20px_rgba(245,158,11,0.05)]" : "border-status-success/20 bg-status-success/5 text-status-success"}`}>
           <p className="mb-3 flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.3em] text-zinc-500">
             <ShieldAlert className="h-3.5 w-3.5" /> Review Queue
           </p>
@@ -92,7 +92,7 @@ export default function OpsStatusView() {
         </motion.div>
 
         {/* Refund Queue */}
-        <motion.div whileHover={{ y: -4 }} className={`rounded-[2rem] border p-6 backdrop-blur-md ${data.refundQueueCount > 0 ? "border-red-500/20 bg-red-500/5 text-red-400 shadow-[0_0_20px_rgba(239,68,68,0.05)]" : "border-emerald-500/20 bg-emerald-500/5 text-emerald-400"}`}>
+        <motion.div whileHover={{ y: -4 }} className={`rounded-[2rem] border p-6 backdrop-blur-md ${data.refundQueueCount > 0 ? "border-status-danger/20 bg-status-danger/5 text-status-danger shadow-[0_0_20px_rgba(239,68,68,0.05)]" : "border-status-success/20 bg-status-success/5 text-status-success"}`}>
           <p className="mb-3 flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.3em] text-zinc-500">
             <AlertTriangle className="h-3.5 w-3.5" /> Refund Queue
           </p>
@@ -108,19 +108,19 @@ export default function OpsStatusView() {
           <div className="space-y-4 text-zinc-400">
             <div className="flex justify-between items-center border-b border-white/5 pb-3">
               <span>System Uptime:</span>
-              <span className="text-emerald-400 font-bold bg-emerald-500/10 px-3 py-1 rounded-lg">{data.systemUptime}</span>
+              <span className="text-status-success font-bold bg-status-success/10 px-3 py-1 rounded-lg">{data.systemUptime}</span>
             </div>
             <div className="flex justify-between items-center border-b border-white/5 pb-3">
               <span>Last DB Backup:</span>
-              <span className={data.lastBackupTimestamp === "N/A" ? "text-red-400 font-bold" : "text-white font-bold"}>{data.lastBackupTimestamp}</span>
+              <span className={data.lastBackupTimestamp === "N/A" ? "text-status-danger font-bold" : "text-white font-bold"}>{data.lastBackupTimestamp}</span>
             </div>
             <div className="flex justify-between items-center border-b border-white/5 pb-3">
               <span>Last Catalog Sync:</span>
-              <span className={data.lastCatalogSync === "N/A" ? "text-red-400 font-bold" : "text-white font-bold"}>{data.lastCatalogSync}</span>
+              <span className={data.lastCatalogSync === "N/A" ? "text-status-danger font-bold" : "text-white font-bold"}>{data.lastCatalogSync}</span>
             </div>
             <div className="flex justify-between items-center">
               <span>Notification Failures (24h):</span>
-              <span className={(data.recentNotificationFailures === "N/A" || parseInt(data.recentNotificationFailures) > 0) ? "text-red-400 font-bold" : "text-emerald-400 font-bold"}>{data.recentNotificationFailures}</span>
+              <span className={(data.recentNotificationFailures === "N/A" || parseInt(data.recentNotificationFailures) > 0) ? "text-status-danger font-bold" : "text-status-success font-bold"}>{data.recentNotificationFailures}</span>
             </div>
           </div>
         </motion.div>
@@ -133,7 +133,7 @@ export default function OpsStatusView() {
                 <div key={p.name} className="flex justify-between items-center border-b border-white/5 pb-3">
                   <span className="text-zinc-300 font-bold">{p.name}</span>
                   <div className="text-right">
-                    <span className={`inline-block px-3 py-1 rounded-lg font-bold mb-1 ${p.status === 'OK' ? 'bg-emerald-500/10 text-emerald-400' : 'bg-red-500/10 text-red-400'}`}>{p.status}</span>
+                    <span className={`inline-block px-3 py-1 rounded-lg font-bold mb-1 ${p.status === 'OK' ? 'bg-status-success/10 text-status-success' : 'bg-status-danger/10 text-status-danger'}`}>{p.status}</span>
                     <span className="block text-[10px] text-zinc-500 font-sans tracking-widest uppercase">{p.latencyMs}ms latency</span>
                   </div>
                 </div>
