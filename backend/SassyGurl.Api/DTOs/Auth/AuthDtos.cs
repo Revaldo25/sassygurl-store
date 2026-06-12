@@ -55,3 +55,36 @@ public class CurrentUserDto
     public string Name { get; set; } = null!;
     public string Role { get; set; } = null!;
 }
+
+public class ForgotPasswordRequestDto
+{
+    [Required]
+    public string Identifier { get; set; } = null!;
+}
+
+public class ResetPasswordRequestDto
+{
+    [Required]
+    public string Identifier { get; set; } = null!;
+    [Required]
+    public string Otp { get; set; } = null!;
+    [Required]
+    [MinLength(6)]
+    public string NewPassword { get; set; } = null!;
+}
+
+public class UpdateProfileRequestDto
+{
+    [Required]
+    public string Name { get; set; } = null!;
+    public string? Whatsapp { get; set; }
+}
+
+public class ChangePasswordRequestDto
+{
+    [Required]
+    public string OldPassword { get; set; } = null!;
+    [Required]
+    [MinLength(6)]
+    public string NewPassword { get; set; } = null!;
+}

@@ -95,7 +95,7 @@ export default function PaymentsTab() {
                     />
                   </div>
                   <div className="flex items-end h-full mb-0.5 ml-2">
-                    <button onClick={() => handleSaveFee(method.id)} className="p-1.5 bg-emerald-500/20 text-emerald-400 rounded hover:bg-emerald-500/40 mr-1"><Check className="w-4 h-4"/></button>
+                    <button onClick={() => handleSaveFee(method.id)} className="p-1.5 bg-status-success/20 text-status-success rounded hover:bg-status-success/40 mr-1"><Check className="w-4 h-4"/></button>
                     <button onClick={() => setEditingId(null)} className="p-1.5 bg-zinc-800 text-zinc-400 rounded hover:bg-zinc-700"><X className="w-4 h-4"/></button>
                   </div>
                 </div>
@@ -115,8 +115,8 @@ export default function PaymentsTab() {
                 disabled={isPending}
                 className={`flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all w-full md:w-auto ${
                   method.isActive 
-                    ? "bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 border border-emerald-500/20" 
-                    : "bg-red-500/10 text-red-400 hover:bg-red-500/20 border border-red-500/20"
+                    ? "bg-status-success/10 text-status-success hover:bg-status-success/20 border border-status-success/20" 
+                    : "bg-status-danger/10 text-status-danger hover:bg-status-danger/20 border border-status-danger/20"
                 }`}
               >
                 <Power className="w-4 h-4" />

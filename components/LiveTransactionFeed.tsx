@@ -21,12 +21,10 @@ export default function LiveTransactionFeed({ initialData }: { initialData: Publ
   useEffect(() => {
     let active = true;
     const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
-    const baseUrl = apiUrl.replace(/\/api$/, "");
-
     // 1. Initialize connection if not already created
     if (!connectionRef.current) {
       connectionRef.current = new signalR.HubConnectionBuilder()
-        .withUrl(`${baseUrl}/hubs/notifications`)
+        .withUrl("/hubs/notifications")
         .withAutomaticReconnect([0, 2000, 5000, 10000, 30000])
         .build();
     }

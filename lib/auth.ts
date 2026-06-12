@@ -1,10 +1,17 @@
-// lib/auth.ts
-import NextAuth from "next-auth";
+import NextAuth, { CredentialsSignin } from "next-auth";
 import Google from "next-auth/providers/google";
 import Facebook from "next-auth/providers/facebook";
 import Credentials from "next-auth/providers/credentials";
 import { fetchApi } from "./api-client";
 import { cookies } from "next/headers";
+
+class CustomAuthError extends CredentialsSignin {
+  code: string;
+  constructor(message: string) {
+    super(message);
+    this.code = message;
+  }
+}
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   session: { 
@@ -62,12 +69,12 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
               apiToken: response.data.token,
             };
           }
-          // Backend returned success:false — throw with actual message
-          throw new Error(response.message || "Login gagal.");
+          // Backend returned success:false — throw CustomAuthError
+          throw new CustomAuthError(response.message || "Login gagal.");
         } catch (error: any) {
-          // If it's our own thrown error, re-throw it so NextAuth passes the message
+          if (error instanceof CustomAuthError) throw error;
           console.error("NextAuth Authorize Error:", error.message);
-          throw error;
+          throw new CustomAuthError(error.message || "Kesalahan konfigurasi");
         }
       },
     }),

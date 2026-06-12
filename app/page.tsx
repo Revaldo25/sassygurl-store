@@ -36,7 +36,7 @@ export default async function HomePage() {
 
       {/* ── Holographic Trust Strip (Flash Deal Style) ────────────────────────────────────── */}
       <section className="relative z-20 mx-auto max-w-6xl px-4 py-6 md:px-6 md:-mt-16 -mt-8">
-        <div className="flex overflow-x-auto snap-x snap-mandatory pb-4 md:pb-0 md:grid md:grid-cols-3 gap-3 md:gap-4 scrollbar-hide">
+        <div className="flex overflow-x-auto snap-x snap-mandatory pb-4 md:pb-0 md:grid md:grid-cols-3 gap-3 md:gap-4 no-scrollbar">
           {[
             { icon: Zap, title: "Proses Kilat", desc: "Masuk dalam 1-3 Detik" },
             { icon: ShieldCheck, title: "100% Legal & Aman", desc: "Anti-banned jaminan uang kembali" },
@@ -71,8 +71,8 @@ export default async function HomePage() {
           <div className="glass-panel rounded-[2rem] p-6 lg:p-8">
             <div className="flex items-center gap-3 mb-8 border-b border-obsidian-border pb-4">
               <span className="relative flex h-3 w-3">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span>
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-status-success opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-3 w-3 bg-status-success"></span>
               </span>
               <h3 className="text-xl font-bold text-white tracking-tight">Live VIP Purchases</h3>
             </div>

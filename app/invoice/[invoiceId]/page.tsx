@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { 
   Clock, CheckCircle2, Loader2, Receipt, AlertCircle
@@ -36,6 +36,8 @@ export default function InvoicePage() {
     fetchInvoice();
   }, [fetchInvoice]);
 
+  const pollCount = useRef(0);
+
   // ── Auto-refresh setiap 5 detik selama status masih pending ──
   useEffect(() => {
     if (!invoice) return;
@@ -46,7 +48,14 @@ export default function InvoicePage() {
       invoice.orderStatus === "PROCESSING";
     if (!isPending) return;
 
-    const interval = setInterval(fetchInvoice, 5000);
+    const interval = setInterval(() => {
+      pollCount.current += 1;
+      if (pollCount.current > 30) {
+        clearInterval(interval);
+        return;
+      }
+      fetchInvoice();
+    }, 5000);
     return () => clearInterval(interval);
   }, [invoice, fetchInvoice]);
 
@@ -61,8 +70,8 @@ export default function InvoicePage() {
   if (error || !invoice) {
     return (
       <div className="min-h-screen flex items-center justify-center text-center px-6">
-        <div className="glass-panel p-10 rounded-[2rem] max-w-md w-full border-red-500/20">
-          <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
+        <div className="glass-panel p-10 rounded-[2rem] max-w-md w-full border-status-danger/20">
+          <AlertCircle className="w-12 h-12 text-status-danger mx-auto mb-4" />
           <h2 className="text-xl font-black text-white mb-2">{error || "Invoice Tidak Ditemukan"}</h2>
           <button onClick={() => router.push("/")} className="mt-6 w-full bg-sakura text-black font-black hover:bg-sakura/80 py-3 rounded-2xl transition-colors">KEMBALI KE BERANDA</button>
         </div>
@@ -127,7 +136,7 @@ export default function InvoicePage() {
             <div className="bg-zinc-950/50 rounded-3xl p-8 text-center border border-white/5 relative overflow-hidden">
               {isFailed ? (
                 <div className="space-y-4">
-                  <AlertCircle className="w-16 h-16 text-red-500 mx-auto" />
+                  <AlertCircle className="w-16 h-16 text-status-danger mx-auto" />
                   <p className="text-xl font-black text-white uppercase tracking-widest">PESANAN GAGAL/KADALUARSA</p>
                   <p className="text-zinc-500 text-sm">Silakan buat pesanan baru.</p>
                 </div>

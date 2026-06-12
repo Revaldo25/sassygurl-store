@@ -40,9 +40,9 @@ export default function CekPesanan() {
   };
 
   const getStatusConfig = (status: string) => {
-    if (status === 'SUCCESS') return { color: "text-emerald-400 bg-emerald-500/10 border-emerald-500/20", icon: CheckCircle2 };
-    if (status === 'FAILED') return { color: "text-red-400 bg-red-500/10 border-red-500/20", icon: XCircle };
-    return { color: "text-amber-400 bg-amber-500/10 border-amber-500/20", icon: Clock };
+    if (status === 'SUCCESS') return { color: "text-status-success bg-status-success/10 border-status-success/20", icon: CheckCircle2 };
+    if (status === 'FAILED') return { color: "text-status-danger bg-status-danger/10 border-status-danger/20", icon: XCircle };
+    return { color: "text-status-warning bg-status-warning/10 border-status-warning/20", icon: Clock };
   };
 
   return (
@@ -88,7 +88,7 @@ export default function CekPesanan() {
 
           <AnimatePresence mode="wait">
             {error && (
-              <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="mb-8 rounded-2xl border border-red-500/20 bg-red-500/10 p-4 text-center text-sm font-bold text-red-400">
+              <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="mb-8 rounded-2xl border border-status-danger/20 bg-status-danger/10 p-4 text-center text-sm font-bold text-status-danger">
                 {error}
               </motion.div>
             )}

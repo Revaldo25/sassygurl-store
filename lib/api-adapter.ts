@@ -190,49 +190,10 @@ function mapGame(gameData: any): NormalizedGame {
       itemCategories = groupedProducts.map(g => g.category);
     }
   } else {
-    // FALLBACK
-    const realProducts = getRealProductsForGame(canonicalSlug, gameData.currencyName ?? "Item");
-    products = realProducts.map((p, index) => {
-      return {
-        id: `real-${canonicalSlug}-${index}`,
-        sku: `SKU-${canonicalSlug}-${index}`,
-        name: p.name,
-        itemCategory: p.type,
-        itemCategoryLabel: p.type === "PASS" ? "Membership & Pass" : "Top Up",
-        itemCategoryIcon: p.type === "PASS" ? "🎫" : "💎",
-        thumbnail: undefined,
-        displayPrice: p.price,
-        originalPrice: p.originalPrice > p.price ? p.originalPrice : undefined,
-        discountPercent: p.originalPrice > p.price ? Math.round(((p.originalPrice - p.price) / p.originalPrice) * 100) : 0,
-        isFlashSale: p.type === "PASS",
-        inStock: true,
-        providerName: "Auto",
-        badges: p.originalPrice > p.price ? [`${Math.round(((p.originalPrice - p.price) / p.originalPrice) * 100)}% OFF`] : [],
-        image: `/images/products/${slug}/default.webp`,
-      };
-    });
-
-    const groups: Record<string, NormalizedProduct[]> = {};
-    products.forEach(p => {
-      if (!groups[p.itemCategory]) groups[p.itemCategory] = [];
-      groups[p.itemCategory].push(p);
-    });
-
-    groupedProducts = Object.keys(groups).map((categoryType, index) => {
-      const isPass = categoryType === "PASS";
-      return {
-        category: {
-          slug: categoryType.toLowerCase(),
-          label: isPass ? "Membership & Pass" : "Top Up Items",
-          icon: isPass ? "🎫" : "💎",
-          itemCount: groups[categoryType].length,
-          sortOrder: index,
-        },
-        items: groups[categoryType]
-      };
-    });
-
-    itemCategories = groupedProducts.map(g => g.category);
+    // No products from API and we refuse to use fake data
+    products = [];
+    groupedProducts = [];
+    itemCategories = [];
   }
 
   const prices = products.map(p => p.displayPrice).filter(v => v > 0);

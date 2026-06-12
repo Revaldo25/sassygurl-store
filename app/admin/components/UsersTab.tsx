@@ -117,11 +117,11 @@ export default function UsersTab({ role }: { role?: string }) {
                   </td>
                   <td className="p-4">
                     {user.isBanned ? (
-                      <span className="inline-flex items-center gap-1.5 px-2 py-1 rounded-md bg-red-500/10 text-red-400 text-xs font-medium">
+                      <span className="inline-flex items-center gap-1.5 px-2 py-1 rounded-md bg-status-danger/10 text-status-danger text-xs font-medium">
                         <Ban className="w-3 h-3" /> Banned
                       </span>
                     ) : (
-                      <span className="inline-flex items-center gap-1.5 px-2 py-1 rounded-md bg-emerald-500/10 text-emerald-400 text-xs font-medium">
+                      <span className="inline-flex items-center gap-1.5 px-2 py-1 rounded-md bg-status-success/10 text-status-success text-xs font-medium">
                         <UserCheck className="w-3 h-3" /> Active
                       </span>
                     )}
@@ -138,8 +138,8 @@ export default function UsersTab({ role }: { role?: string }) {
                           disabled={isPending}
                           className={`text-xs px-3 py-1 rounded border transition-colors ${
                             user.isBanned 
-                              ? "border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/10" 
-                              : "border-red-500/30 text-red-400 hover:bg-red-500/10"
+                              ? "border-status-success/30 text-status-success hover:bg-status-success/10" 
+                              : "border-status-danger/30 text-status-danger hover:bg-status-danger/10"
                           }`}
                         >
                           {user.isBanned ? "Unban" : "Ban User"}

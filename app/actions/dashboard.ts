@@ -200,7 +200,7 @@ export async function triggerCatalogSync(): Promise<{ success: boolean; message:
     const response = await fetchApi<ApiResponse<any>>('/Sync/all', {
       method: 'POST',
       headers: {
-        'X-Webhook-Secret': 'SASSY_ELITE_SECURE_2026'
+        'X-Webhook-Secret': process.env.WEBHOOK_SECRET || ''
       }
     });
     

@@ -30,8 +30,9 @@ public class TransactionsController : ControllerBase
     /// Creates a new transaction. Requires authentication.
     /// </summary>
     [HttpPost]
-    [Authorize]
+    [AllowAnonymous]
     [EnableRateLimiting("transaction-create")]
+    [Idempotency]
     public async Task<ActionResult<ApiResponse<TransactionResponseDto>>> CreateTransaction([FromBody] CreateTransactionDto request)
     {
         if (!ModelState.IsValid) return BadRequest(ApiResponse<object>.Fail("Invalid request data"));

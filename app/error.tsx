@@ -22,12 +22,12 @@ export default function GlobalError({
       <SiteHeader />
 
       <div className="flex-1 flex items-center justify-center px-4 py-16">
-        <div className="relative w-full max-w-md overflow-hidden rounded-[2.5rem] border border-red-500/10 bg-zinc-900/40 p-8 text-center backdrop-blur-3xl shadow-2xl">
+        <div className="relative w-full max-w-md overflow-hidden rounded-[2.5rem] border border-status-danger/10 bg-zinc-900/40 p-8 text-center backdrop-blur-3xl shadow-2xl">
           {/* Neon Top Glow */}
-          <div className="absolute -top-24 left-1/2 -translate-x-1/2 h-48 w-48 rounded-full bg-red-500/10 blur-[80px]" />
+          <div className="absolute -top-24 left-1/2 -translate-x-1/2 h-48 w-48 rounded-full bg-status-danger/10 blur-[80px]" />
 
           {/* Warning Icon */}
-          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-red-500/10 text-red-400 mb-6">
+          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-status-danger/10 text-status-danger mb-6">
             <AlertTriangle className="h-8 w-8" />
           </div>
 

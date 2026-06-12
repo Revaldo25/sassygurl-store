@@ -15,7 +15,7 @@ export default function CatalogHealthClient() {
   );
 
   if (isLoading) return <div className="text-white text-center py-12">Loading Health Metrics...</div>;
-  if (error) return <div className="text-red-500 text-center py-12">Failed to load health metrics.</div>;
+  if (error) return <div className="text-status-danger text-center py-12">Failed to load health metrics.</div>;
 
   const metrics = data?.data || {};
 
@@ -25,14 +25,14 @@ export default function CatalogHealthClient() {
       <HealthCard 
         title="Total Products" 
         value={metrics.totalProducts} 
-        icon={<Database className="h-5 w-5 text-blue-400" />} 
+        icon={<Database className="h-5 w-5 text-status-info" />} 
       />
       
       {/* Active Products */}
       <HealthCard 
         title="Active / Publishable" 
         value={metrics.activeProducts} 
-        icon={<CheckCircle className="h-5 w-5 text-emerald-400" />} 
+        icon={<CheckCircle className="h-5 w-5 text-status-success" />} 
         trend={`${metrics.inactiveProducts} inactive`}
       />
 
@@ -40,7 +40,7 @@ export default function CatalogHealthClient() {
       <HealthCard 
         title="Ambiguous (Needs Review)" 
         value={metrics.needsReviewProducts} 
-        icon={<ShieldAlert className={`h-5 w-5 ${metrics.needsReviewProducts > 0 ? 'text-rose-500' : 'text-emerald-400'}`} />} 
+        icon={<ShieldAlert className={`h-5 w-5 ${metrics.needsReviewProducts > 0 ? 'text-status-danger' : 'text-status-success'}`} />} 
         alert={metrics.needsReviewProducts > 0}
       />
 
@@ -48,7 +48,7 @@ export default function CatalogHealthClient() {
       <HealthCard 
         title="Missing Categories" 
         value={metrics.productsWithoutGrouping} 
-        icon={<AlertTriangle className={`h-5 w-5 ${metrics.productsWithoutGrouping > 0 ? 'text-amber-500' : 'text-emerald-400'}`} />} 
+        icon={<AlertTriangle className={`h-5 w-5 ${metrics.productsWithoutGrouping > 0 ? 'text-status-warning' : 'text-status-success'}`} />} 
         alert={metrics.productsWithoutGrouping > 0}
       />
 
@@ -56,7 +56,7 @@ export default function CatalogHealthClient() {
       <HealthCard 
         title="Sync Status" 
         value={metrics.syncStatus} 
-        icon={<Activity className="h-5 w-5 text-emerald-400" />} 
+        icon={<Activity className="h-5 w-5 text-status-success" />} 
         trend={metrics.syncFailures > 0 ? `${metrics.syncFailures} recent failures` : "100% success rate"}
         alert={metrics.syncFailures > 0}
       />
@@ -80,7 +80,7 @@ export default function CatalogHealthClient() {
 
 function HealthCard({ title, value, icon, trend, alert }: { title: string, value: string | number, icon: React.ReactNode, trend?: string, alert?: boolean }) {
   return (
-    <div className={`bg-neutral-900 border ${alert ? 'border-rose-500/50 bg-rose-500/5' : 'border-white/10'} rounded-2xl p-5 flex flex-col justify-between`}>
+    <div className={`bg-neutral-900 border ${alert ? 'border-status-danger/50 bg-status-danger/5' : 'border-white/10'} rounded-2xl p-5 flex flex-col justify-between`}>
       <div className="flex justify-between items-start mb-4">
         <p className="text-sm font-medium text-neutral-400">{title}</p>
         <div className="p-2 bg-white/5 rounded-lg">
@@ -88,7 +88,7 @@ function HealthCard({ title, value, icon, trend, alert }: { title: string, value
         </div>
       </div>
       <div>
-        <h3 className={`text-3xl font-black ${alert ? 'text-rose-400' : 'text-white'}`}>{value}</h3>
+        <h3 className={`text-3xl font-black ${alert ? 'text-status-danger' : 'text-white'}`}>{value}</h3>
         {trend && (
           <p className="text-xs text-neutral-500 mt-2">{trend}</p>
         )}

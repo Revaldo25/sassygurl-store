@@ -1,7 +1,8 @@
 import { auth } from "@/lib/auth"
 import { NextResponse } from "next/server"
+import { jwtVerify } from "jose"
 
-export default auth((req) => {
+export default auth(async (req) => {
   const nextAuthSession = req.auth;
   const csharpToken = req.cookies.get("auth_token")?.value;
   
@@ -13,15 +14,19 @@ export default auth((req) => {
   if ((nextAuthSession?.user as any)?.role) {
     role = (nextAuthSession?.user as any).role;
   } else if (csharpToken) {
-    // Decode C# JWT payload at the edge without verifying signature
-    // Since NextAuth usually handles standard login, this is a fallback for direct C# auth.
     try {
-      const payloadBase64 = csharpToken.split('.')[1];
-      const decodedPayload = Buffer.from(payloadBase64, 'base64').toString('utf8');
-      const json = JSON.parse(decodedPayload);
-      role = json["http://schemas.microsoft.com/ws/2008/06/identity/claims/role"] || json.role || "MEMBER";
+      // Decode and VERIFY C# JWT payload at the edge
+      const rawSecret = process.env.JWT_SECRET || process.env.AUTH_SECRET;
+      if (!rawSecret) throw new Error("Missing JWT_SECRET in environment variables");
+      const secret = new TextEncoder().encode(rawSecret);
+      const { payload } = await jwtVerify(csharpToken, secret);
+      
+      role = (payload["http://schemas.microsoft.com/ws/2008/06/identity/claims/role"] as string) || 
+             (payload.role as string) || 
+             "MEMBER";
     } catch (e) {
-      console.error("Failed to decode C# JWT token at edge", e);
+      console.error("Failed to verify C# JWT token at edge", e);
+      // Don't trust the token if signature verification fails
     }
   }
 

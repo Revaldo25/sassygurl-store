@@ -1,6 +1,5 @@
 import { getOwnerStats, getAdminStats, getAdminTransactions, getAdminGames } from "@/app/actions/dashboard";
 import { getProviderStatuses } from "@/lib/api-adapter";
-import SiteHeader from "@/components/SiteHeader";
 import AdminDashboardClient from "./AdminDashboardClient";
 import { auth } from "@/lib/auth";
 import { redirect } from "next/navigation";
@@ -30,7 +29,6 @@ export default async function AdminPage() {
 
   return (
     <main className="min-h-screen bg-zinc-950 text-white">
-      <SiteHeader />
       <AdminDashboardClient 
         initialStats={stats} 
         initialTransactions={transactions} 

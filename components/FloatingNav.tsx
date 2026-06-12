@@ -36,8 +36,8 @@ export default function FloatingNav() {
     return () => observer.disconnect();
   }, [pathname]);
 
-  // Hide floating nav on admin pages
-  if (pathname.startsWith("/admin")) return null;
+  // Hide floating nav on admin and dashboard pages
+  if (pathname.startsWith("/admin") || pathname.startsWith("/dashboard")) return null;
 
   const navItems = [
     { href: "/", label: "Beranda", icon: Home },

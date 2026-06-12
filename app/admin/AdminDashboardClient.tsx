@@ -47,6 +47,7 @@ import PaymentsTab from "./components/PaymentsTab";
 import UsersTab from "./components/UsersTab";
 import SettingsTab from "./components/SettingsTab";
 import ProductCategoriesTab from "./components/ProductCategoriesTab";
+import ProductManagerModal from "./components/ProductManagerModal";
 
 type Props = {
   initialStats: OwnerStats | AdminStats;
@@ -170,6 +171,7 @@ export default function AdminDashboardClient({ initialStats, initialTransactions
   // Game Form State
   const [showGameModal, setShowGameModal] = useState(false);
   const [editingGame, setEditingGame] = useState<any>(null);
+  const [manageProductsGame, setManageProductsGame] = useState<any>(null);
   const [gameFormData, setGameFormData] = useState({
     name: "",
     slug: "",
@@ -197,13 +199,13 @@ export default function AdminDashboardClient({ initialStats, initialTransactions
     let mounted = true;
     if (connectionRef.current) return;
 
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5009/api";
     const baseUrl = apiUrl.replace(/\/api$/, "");
     
     const connection = new signalR.HubConnectionBuilder()
-      .withUrl(`${baseUrl}/hubs/notifications`)
-      .configureLogging(signalR.LogLevel.Warning)
-      .withAutomaticReconnect([0, 2000, 5000, 10000, 30000])
+      .withUrl("/hubs/notifications", {
+        accessTokenFactory: () => document.cookie.split('; ').find(row => row.startsWith('auth_token='))?.split('=')[1] || ""
+      }).withAutomaticReconnect([0, 2000, 5000, 10000, 30000])
       .build();
 
     connectionRef.current = connection;
@@ -429,7 +431,7 @@ export default function AdminDashboardClient({ initialStats, initialTransactions
       
       {/* ═══════════════ SIDEBAR ═══════════════ */}
       <aside className="fixed left-0 top-0 z-50 hidden h-screen w-64 flex-col border-r border-zinc-800 bg-zinc-950/80 backdrop-blur-xl md:flex">
-        <div className="p-6 flex-1 overflow-y-auto scrollbar-hide">
+        <div className="p-6 flex-1 overflow-y-auto no-scrollbar">
           <div className="mb-8 flex items-center gap-3">
             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-sakura to-pink-600 shadow-[0_0_15px_rgba(253,176,192,0.3)]">
               <ShieldCheck className="h-5 w-5 text-zinc-950" />
@@ -455,7 +457,7 @@ export default function AdminDashboardClient({ initialStats, initialTransactions
                           onClick={() => setActiveTab(tab.id as any)}
                           className={`flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-bold transition-all ${
                             isActive 
-                              ? "bg-sakura/10 text-sakura shadow-[inset_2px_0_0_0_rgba(253,176,192,1)]" 
+                              ? "bg-sakura/10 text-sakura shadow-[inset_2px_0_0_0,rgba(253,176,192,1)]" 
                               : "text-zinc-400 hover:bg-zinc-800/50 hover:text-white"
                           }`}
                         >
@@ -479,14 +481,14 @@ export default function AdminDashboardClient({ initialStats, initialTransactions
             <div className="min-w-0 flex-1">
               <p className="truncate text-sm font-bold text-white">Administrator</p>
               <div className="mt-0.5 flex items-center gap-1.5">
-                <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.8)]" />
-                <p className="text-[10px] font-bold uppercase tracking-wider text-emerald-500">{role || "SUPERADMIN"}</p>
+                <span className="h-1.5 w-1.5 rounded-full bg-status-success animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.8)]" />
+                <p className="text-[10px] font-bold uppercase tracking-wider text-status-success">{role || "SUPERADMIN"}</p>
               </div>
             </div>
           </div>
           <button 
             onClick={handleLogout}
-            className="flex w-full items-center justify-center gap-2 rounded-xl bg-red-500/10 px-4 py-2.5 text-xs font-bold text-red-500 transition hover:bg-red-500/20 active:scale-95"
+            className="flex w-full items-center justify-center gap-2 rounded-xl bg-status-danger/10 px-4 py-2.5 text-xs font-bold text-status-danger transition hover:bg-status-danger/20 active:scale-95"
           >
             <LogOut className="h-4 w-4" /> Keluar Sistem
           </button>
@@ -505,11 +507,11 @@ export default function AdminDashboardClient({ initialStats, initialTransactions
                 <ShieldCheck className="h-5 w-5 text-sakura" />
                 <span className="font-black text-white">SASSY<span className="text-sakura">GURL</span></span>
              </div>
-             <button onClick={handleLogout} className="p-2 text-red-500 bg-red-500/10 rounded-lg">
+             <button onClick={handleLogout} className="p-2 text-status-danger bg-status-danger/10 rounded-lg">
                <LogOut className="h-4 w-4" />
              </button>
            </div>
-           <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
+           <div className="flex gap-2 overflow-x-auto pb-2 no-scrollbar">
              {navGroups.flatMap(g => g.items).map(tab => (
                 <button
                   key={tab.id}
@@ -547,7 +549,7 @@ export default function AdminDashboardClient({ initialStats, initialTransactions
                     {providerStatusesList.map((ps: any) => (
                       <div key={ps.name} className="group flex items-center justify-between rounded-2xl border border-white/5 bg-white/[0.02] p-5 transition-all hover:bg-white/[0.05]">
                         <div className="flex items-center gap-4">
-                          <div className={`h-3 w-3 rounded-full ${ps.isActive ? "bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.5)]" : "bg-red-500 animate-pulse"}`} />
+                          <div className={`h-3 w-3 rounded-full ${ps.isActive ? "bg-status-success shadow-[0_0_10px_rgba(16,185,129,0.5)]" : "bg-status-danger animate-pulse"}`} />
                           <div>
                             <p className="text-xs font-black text-white">{ps.name}</p>
                             <p className="text-[10px] font-bold text-zinc-500">{ps.isActive ? "Online" : "Trouble"}</p>
@@ -572,11 +574,11 @@ export default function AdminDashboardClient({ initialStats, initialTransactions
                     </button>
                     <a href="/admin/catalog-health" className="flex w-full items-center justify-between rounded-xl bg-white/5 p-4 text-xs font-bold text-white transition-all hover:bg-white/10">
                       <span>Catalog Health</span>
-                      <Activity className="h-4 w-4 text-emerald-400" />
+                      <Activity className="h-4 w-4 text-status-success" />
                     </a>
                     <a href="/admin/review" className="flex w-full items-center justify-between rounded-xl bg-white/5 p-4 text-xs font-bold text-white transition-all hover:bg-white/10">
                       <span>Review Queue</span>
-                      <ShieldCheck className="h-4 w-4 text-amber-400" />
+                      <ShieldCheck className="h-4 w-4 text-status-warning" />
                     </a>
                   </div>
                 </div>
@@ -587,10 +589,10 @@ export default function AdminDashboardClient({ initialStats, initialTransactions
                 {[
                   ...(isOwner ? [
                     { label: "Total Omzet", value: formatIDR(ownerStats.totalRevenue), color: "text-white", accent: "border-sakura/20 bg-sakura/5" },
-                    { label: "Laba Bersih", value: formatIDR(ownerStats.netProfit), color: "text-emerald-400", accent: "border-emerald-500/20 bg-emerald-500/5" },
+                    { label: "Laba Bersih", value: formatIDR(ownerStats.netProfit), color: "text-status-success", accent: "border-status-success/20 bg-status-success/5" },
                     { label: "Omzet Hari Ini", value: formatIDR(ownerStats.todayRevenue), color: "text-brand-cyan", accent: "border-brand-cyan/20 bg-brand-cyan/5" },
                   ] : []),
-                  { label: "Total Member", value: String(stats.totalUsers), color: "text-amber-400", accent: "border-amber-500/20 bg-amber-500/5" },
+                  { label: "Total Member", value: String(stats.totalUsers), color: "text-status-warning", accent: "border-status-warning/20 bg-status-warning/5" },
                   { label: "Produk Aktif", value: String(stats.totalProducts), color: "text-pink-400", accent: "border-pink-500/20 bg-pink-500/5" },
                   { label: "Total Game", value: String(stats.totalGames), color: "text-violet-400", accent: "border-violet-500/20 bg-violet-500/5" },
                 ].map((stat, i) => (
@@ -605,7 +607,7 @@ export default function AdminDashboardClient({ initialStats, initialTransactions
               {isOwner && (
                 <div className="rounded-[2.5rem] border border-white/5 bg-zinc-900/20 p-8 backdrop-blur-2xl">
                   <h3 className="mb-6 flex items-center gap-3 text-sm font-black uppercase tracking-[0.2em] text-white">
-                    <TrendingUp className="h-5 w-5 text-emerald-400" /> Net Profit (Last 7 Days)
+                    <TrendingUp className="h-5 w-5 text-status-success" /> Net Profit (Last 7 Days)
                   </h3>
                   <div className="min-h-[300px] w-full" style={{ position: 'relative' }}>
                     <ResponsiveContainer width="100%" height={300}>
@@ -639,9 +641,9 @@ export default function AdminDashboardClient({ initialStats, initialTransactions
                 </h3>
                 <div className="grid gap-4 sm:grid-cols-3">
                   {[
-                    { label: "Sukses", count: stats.successTransactions, color: "text-emerald-400 bg-emerald-500/10 border-emerald-500/20" },
-                    { label: "Pending", count: stats.pendingTransactions, color: "text-amber-400 bg-amber-500/10 border-amber-500/20" },
-                    { label: "Gagal", count: stats.failedTransactions, color: "text-red-400 bg-red-500/10 border-red-500/20" },
+                    { label: "Sukses", count: stats.successTransactions, color: "text-status-success bg-status-success/10 border-status-success/20" },
+                    { label: "Pending", count: stats.pendingTransactions, color: "text-status-warning bg-status-warning/10 border-status-warning/20" },
+                    { label: "Gagal", count: stats.failedTransactions, color: "text-status-danger bg-status-danger/10 border-status-danger/20" },
                   ].map((s) => (
                     <div key={s.label} className={`rounded-2xl border p-6 text-center ${s.color}`}>
                       <p className="text-3xl font-black">{s.count}</p>
@@ -699,7 +701,7 @@ export default function AdminDashboardClient({ initialStats, initialTransactions
 
               {/* Table */}
               <div className="overflow-x-auto p-4">
-                <table className="w-full text-left">
+                <table className="hidden w-full text-left md:table">
                   <thead className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-600">
                     <tr>
                       <th className="px-6 py-4">Invoice</th>
@@ -736,7 +738,7 @@ export default function AdminDashboardClient({ initialStats, initialTransactions
                           {formatIDR(tx.amount)}
                         </td>
                         {isOwner && (
-                          <td className="px-5 py-4 text-right font-mono text-sm text-emerald-400">
+                          <td className="px-5 py-4 text-right font-mono text-sm text-status-success">
                             +{formatIDR(tx.profit)}
                           </td>
                         )}
@@ -745,7 +747,7 @@ export default function AdminDashboardClient({ initialStats, initialTransactions
                             {tx.orderStatus === "PENDING" && (
                               <button
                                 onClick={() => handleStatusUpdate(tx.id, "PROCESSING")}
-                                className="rounded-lg border border-amber-500/20 bg-amber-500/10 px-3 py-1.5 text-[10px] font-bold text-amber-400 transition hover:bg-amber-500/20"
+                                className="rounded-lg border border-status-warning/20 bg-status-warning/10 px-3 py-1.5 text-[10px] font-bold text-status-warning transition hover:bg-status-warning/20"
                               >
                                 Process
                               </button>
@@ -753,7 +755,7 @@ export default function AdminDashboardClient({ initialStats, initialTransactions
                             {(tx.orderStatus === "PENDING" || tx.orderStatus === "PROCESSING" || tx.orderStatus === "ERROR") && (
                               <button
                                 onClick={() => handleStatusUpdate(tx.id, "SUCCESS")}
-                                className="rounded-lg border border-emerald-500/20 bg-emerald-500/10 px-3 py-1.5 text-[10px] font-bold text-emerald-400 transition hover:bg-emerald-500/20"
+                                className="rounded-lg border border-status-success/20 bg-status-success/10 px-3 py-1.5 text-[10px] font-bold text-status-success transition hover:bg-status-success/20"
                               >
                                 ✓ Done
                               </button>
@@ -761,8 +763,14 @@ export default function AdminDashboardClient({ initialStats, initialTransactions
                             {(tx.orderStatus === "ERROR" || tx.orderStatus === "PENDING") && (
                               <button
                                 onClick={() => {
-                                  alert("Auto-Healing diproses... Mencoba sinkronisasi ulang dengan API Provider.");
-                                  handleStatusUpdate(tx.id, "PROCESSING");
+                                  toast.promise(
+                                    handleStatusUpdate(tx.id, "PROCESSING"),
+                                    {
+                                      loading: 'Auto-Healing diproses... Sinkronisasi API',
+                                      success: 'Auto-Healing berhasil! Status: PROCESSING',
+                                      error: 'Gagal melakukan Auto-Heal'
+                                    }
+                                  );
                                 }}
                                 className="rounded-lg border border-cyan-500/20 bg-cyan-500/10 px-3 py-1.5 text-[10px] font-bold text-cyan-400 transition hover:bg-cyan-500/20"
                                 title="Auto-Heal Transaction (Retry API)"
@@ -776,6 +784,41 @@ export default function AdminDashboardClient({ initialStats, initialTransactions
                     ))}
                   </tbody>
                 </table>
+
+                {/* Mobile View */}
+                <div className="space-y-4 md:hidden">
+                  {transactions.map((tx) => (
+                    <div key={tx.id} className="space-y-5 rounded-3xl border border-white/10 bg-zinc-900/50 p-6">
+                      <div className="flex items-start justify-between">
+                        <div>
+                          <div className="text-xs font-black uppercase tracking-widest text-zinc-500">{tx.invoiceId}</div>
+                          <div className="mt-1 text-sm font-black uppercase text-white">{tx.gameName}</div>
+                        </div>
+                        <AdminStatusBadge status={tx.orderStatus} />
+                      </div>
+                      <div className="flex items-end justify-between border-t border-white/10 pt-4">
+                        <div>
+                          <div className="text-[10px] font-bold italic text-zinc-500">{tx.productName}</div>
+                          <div className="mt-1 text-lg font-black tracking-tighter text-white">{formatIDR(tx.amount)}</div>
+                          {isOwner && (
+                            <div className="mt-1 text-xs font-black text-status-success">+{formatIDR(tx.profit)} Profit</div>
+                          )}
+                        </div>
+                        <div className="flex flex-col items-end gap-2">
+                          {tx.orderStatus === "PENDING" && (
+                            <button onClick={() => handleStatusUpdate(tx.id, "PROCESSING")} className="rounded-lg border border-status-warning/20 bg-status-warning/10 px-3 py-1.5 text-[10px] font-bold text-status-warning">Process</button>
+                          )}
+                          {(tx.orderStatus === "PENDING" || tx.orderStatus === "PROCESSING" || tx.orderStatus === "ERROR") && (
+                            <button onClick={() => handleStatusUpdate(tx.id, "SUCCESS")} className="rounded-lg border border-status-success/20 bg-status-success/10 px-3 py-1.5 text-[10px] font-bold text-status-success">✓ Done</button>
+                          )}
+                          {(tx.orderStatus === "ERROR" || tx.orderStatus === "PENDING") && (
+                            <button onClick={() => toast.promise(handleStatusUpdate(tx.id, "PROCESSING"), { loading: 'Healing...', success: 'Healed!' })} className="rounded-lg border border-cyan-500/20 bg-cyan-500/10 px-3 py-1.5 text-[10px] font-bold text-cyan-400">⚡ Heal</button>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
 
                 {transactions.length === 0 && (
                   <div className="py-16 text-center">
@@ -890,12 +933,19 @@ export default function AdminDashboardClient({ initialStats, initialTransactions
                           <td className="px-6 py-4 text-xs text-zinc-500">{game.publisher || "-"}</td>
                           <td className="px-6 py-4 text-xs text-zinc-500">{game.currencyName}</td>
                           <td className="px-6 py-4 text-center">
-                            <span className={`rounded-full px-3 py-1 text-[9px] font-bold ${game.isActive ? "bg-emerald-500/10 text-emerald-400" : "bg-red-500/10 text-red-400"}`}>
+                            <span className={`rounded-full px-3 py-1 text-[9px] font-bold ${game.isActive ? "bg-status-success/10 text-status-success" : "bg-status-danger/10 text-status-danger"}`}>
                               {game.isActive ? "ACTIVE" : "INACTIVE"}
                             </span>
                           </td>
                           <td className="px-6 py-4 text-center">
                             <div className="flex items-center justify-center gap-2">
+                              <button 
+                                onClick={() => setManageProductsGame(game)}
+                                title="Kelola Item/Produk"
+                                className="rounded-lg bg-white/5 p-2 text-zinc-400 transition hover:bg-amber-500/20 hover:text-amber-500 shadow-sm"
+                              >
+                                <Package size={14} />
+                              </button>
                               <button 
                                 onClick={() => {
                                   setEditingGame(game);
@@ -914,13 +964,15 @@ export default function AdminDashboardClient({ initialStats, initialTransactions
                                   });
                                   setShowGameModal(true);
                                 }}
+                                title="Edit Game"
                                 className="rounded-lg bg-white/5 p-2 text-zinc-400 transition hover:bg-sakura/20 hover:text-sakura shadow-sm hover:shadow-[0_0_10px_rgba(253,176,192,0.2)]"
                               >
                                 <RefreshCw size={14} />
                               </button>
                               <button 
                                 onClick={() => handleDeleteGame(game.id)}
-                                className="rounded-lg bg-white/5 p-2 text-zinc-400 transition hover:bg-red-500/20 hover:text-red-400 shadow-sm"
+                                title="Hapus Game"
+                                className="rounded-lg bg-white/5 p-2 text-zinc-400 transition hover:bg-status-danger/20 hover:text-status-danger shadow-sm"
                               >
                                 <XCircle size={14} />
                               </button>
@@ -1030,17 +1082,17 @@ export default function AdminDashboardClient({ initialStats, initialTransactions
                           </label>
 
                           <label className="flex items-start gap-4 p-4 cursor-pointer group bg-white/[0.02] border border-white/5 hover:border-white/20 hover:bg-white/[0.04] rounded-2xl transition-all">
-                            <div className={`relative flex items-center justify-center w-6 h-6 rounded border transition-colors shrink-0 mt-0.5 ${gameFormData.isActive ? "border-emerald-500 bg-emerald-500/10" : "border-white/20 bg-black/40 group-hover:border-emerald-500"}`}>
+                            <div className={`relative flex items-center justify-center w-6 h-6 rounded border transition-colors shrink-0 mt-0.5 ${gameFormData.isActive ? "border-status-success bg-status-success/10" : "border-white/20 bg-black/40 group-hover:border-status-success"}`}>
                               <input 
                                 type="checkbox"
                                 checked={gameFormData.isActive}
                                 onChange={(e) => setGameFormData({...gameFormData, isActive: e.target.checked})}
                                 className="hidden"
                               />
-                              {gameFormData.isActive && <CheckCircle2 className="h-5 w-5 text-emerald-500" />}
+                              {gameFormData.isActive && <CheckCircle2 className="h-5 w-5 text-status-success" />}
                             </div>
                             <div className="flex flex-col">
-                              <span className="text-sm font-black text-white group-hover:text-emerald-400 transition-colors">Status Aktif</span>
+                              <span className="text-sm font-black text-white group-hover:text-status-success transition-colors">Status Aktif</span>
                               <span className="text-[11px] font-medium text-white/40 mt-1 leading-relaxed">Nonaktifkan untuk menyembunyikan game ini dari halaman utama agar tidak bisa dibeli oleh pelanggan.</span>
                             </div>
                           </label>
@@ -1084,6 +1136,13 @@ export default function AdminDashboardClient({ initialStats, initialTransactions
                   </div>
                 )}
               </AnimatePresence>
+
+              {manageProductsGame && (
+                <ProductManagerModal 
+                  game={manageProductsGame} 
+                  onClose={() => setManageProductsGame(null)} 
+                />
+              )}
             </motion.div>
           )}
 
@@ -1148,7 +1207,7 @@ export default function AdminDashboardClient({ initialStats, initialTransactions
                 <Megaphone className="h-5 w-5 text-sakura" /> Status Provider API
               </h2>
               <div className="grid gap-4 sm:grid-cols-2">
-                {providerStatuses.map((provider) => (
+                {providerStatusesList.map((provider) => (
                   <div
                     key={provider.name}
                     className="rounded-[2rem] border border-white/5 bg-zinc-900/30 p-8 backdrop-blur-2xl"
@@ -1158,18 +1217,18 @@ export default function AdminDashboardClient({ initialStats, initialTransactions
                       <span
                         className={`inline-flex items-center gap-1.5 rounded-full border px-4 py-1.5 text-[10px] font-bold ${
                           provider.isActive
-                            ? "border-emerald-500/20 bg-emerald-500/10 text-emerald-400"
-                            : "border-red-500/20 bg-red-500/10 text-red-400"
+                            ? "border-status-success/20 bg-status-success/10 text-status-success"
+                            : "border-status-danger/20 bg-status-danger/10 text-status-danger"
                         }`}
                       >
-                        <span className={`h-2 w-2 rounded-full ${provider.isActive ? "bg-emerald-400" : "bg-red-400"}`} />
+                        <span className={`h-2 w-2 rounded-full ${provider.isActive ? "bg-status-success" : "bg-status-danger"}`} />
                         {provider.isActive ? "ACTIVE" : "DOWN"}
                       </span>
                     </div>
                     <div className="grid grid-cols-2 gap-4">
                       <div className="rounded-2xl border border-white/5 bg-zinc-950/50 p-4">
                         <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">Success Rate</p>
-                        <p className="mt-2 text-2xl font-black text-emerald-400">
+                        <p className="mt-2 text-2xl font-black text-status-success">
                           {provider.successRate < 0 ? "N/A" : `${provider.successRate}%`}
                         </p>
                       </div>
@@ -1211,12 +1270,12 @@ export default function AdminDashboardClient({ initialStats, initialTransactions
 function AdminStatusBadge({ status }: { status: string }) {
   const config =
     status === "SUCCESS"
-      ? { color: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20", icon: CheckCircle2 }
+      ? { color: "bg-status-success/10 text-status-success border-status-success/20", icon: CheckCircle2 }
       : status === "PROCESSING"
-        ? { color: "bg-blue-500/10 text-blue-400 border-blue-500/20", icon: RefreshCw }
+        ? { color: "bg-status-info/10 text-status-info border-status-info/20", icon: RefreshCw }
         : status === "PENDING"
-          ? { color: "bg-amber-500/10 text-amber-400 border-amber-500/20", icon: Clock }
-          : { color: "bg-red-500/10 text-red-400 border-red-500/20", icon: XCircle };
+          ? { color: "bg-status-warning/10 text-status-warning border-status-warning/20", icon: Clock }
+          : { color: "bg-status-danger/10 text-status-danger border-status-danger/20", icon: XCircle };
 
   return (
     <span className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[9px] font-black ${config.color}`}>

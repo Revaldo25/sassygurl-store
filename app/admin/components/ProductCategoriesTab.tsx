@@ -342,7 +342,7 @@ export default function ProductCategoriesTab({ games }: { games: any[] }) {
                     <div className="font-bold text-white flex items-center gap-2">
                       {c.name}
                       {c.sortOrder === 0 && (
-                        <span className="text-[10px] bg-amber-500/20 text-amber-400 px-1.5 py-0.5 rounded font-bold border border-amber-500/30">
+                        <span className="text-[10px] bg-status-warning/20 text-status-warning px-1.5 py-0.5 rounded font-bold border border-status-warning/30">
                           🌟 Prioritas
                         </span>
                       )}
@@ -358,10 +358,10 @@ export default function ProductCategoriesTab({ games }: { games: any[] }) {
                   >
                     Atur Produk
                   </button>
-                  <button onClick={() => handleEdit(c)} className="p-1.5 bg-blue-500/20 text-blue-400 rounded-lg hover:bg-blue-500/40 transition-colors">
+                  <button onClick={() => handleEdit(c)} className="p-1.5 bg-status-info/20 text-status-info rounded-lg hover:bg-status-info/40 transition-colors">
                     <Edit className="w-4 h-4" />
                   </button>
-                  <button onClick={() => handleDelete(c.id)} className="p-1.5 bg-red-500/20 text-red-400 rounded-lg hover:bg-red-500/40 transition-colors">
+                  <button onClick={() => handleDelete(c.id)} className="p-1.5 bg-status-danger/20 text-status-danger rounded-lg hover:bg-status-danger/40 transition-colors">
                     <Trash2 className="w-4 h-4" />
                   </button>
                 </div>
@@ -425,7 +425,7 @@ export default function ProductCategoriesTab({ games }: { games: any[] }) {
                       <div>
                         <div className="font-medium text-white flex items-center gap-2">
                           {p.name}
-                          {!p.isActive && <span className="text-[10px] bg-red-500/20 text-red-400 px-1.5 py-0.5 rounded uppercase font-bold">Inactive</span>}
+                          {!p.isActive && <span className="text-[10px] bg-status-danger/20 text-status-danger px-1.5 py-0.5 rounded uppercase font-bold">Inactive</span>}
                         </div>
                         <div className="text-xs text-white/50">SKU: {p.sku} | Harga: Rp {p.price.toLocaleString("id-ID")}</div>
                       </div>

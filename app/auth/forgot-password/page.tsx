@@ -1,9 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence, Variants } from "framer-motion";
 import { Mail, Phone, Lock, ArrowRight, ShieldCheck, CheckCircle2, AlertCircle, Eye, EyeOff, XCircle, KeyRound, ShieldAlert, ArrowLeft, RefreshCw } from "lucide-react";
 import Link from "next/link";
+import { requestPasswordResetAction, verifyResetOtpAction, resetPasswordAction } from "@/app/actions/auth";
+import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 
 export default function ForgotPasswordElitePage() {
@@ -18,6 +20,15 @@ export default function ForgotPasswordElitePage() {
   const [showPassword, setShowPassword] = useState(false);
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [timer, setTimer] = useState(60);
+  const [resendLoading, setResendLoading] = useState(false);
+
+  useEffect(() => {
+    if (step === 2 && timer > 0) {
+      const interval = setInterval(() => setTimer(prev => prev - 1), 1000);
+      return () => clearInterval(interval);
+    }
+  }, [step, timer]);
 
   const rules = {
     length: newPassword.length >= 8 && newPassword.length <= 32,
@@ -33,14 +44,52 @@ export default function ForgotPasswordElitePage() {
     e.preventDefault();
     if (!identity) return setErrorMsg("Masukkan Email atau Nomor WA Anda.");
     setErrorMsg(""); setLoading(true);
-    setTimeout(() => { setLoading(false); setStep(2); }, 1500);
+    
+    const res = await requestPasswordResetAction(identity);
+    setLoading(false);
+    
+    if (res.success) {
+      toast.success(res.message);
+      setTimer(60);
+      setStep(2);
+    } else {
+      setErrorMsg(res.message);
+    }
+  };
+
+  const handleResendOTP = async () => {
+    if (timer > 0 || resendLoading) return;
+    setResendLoading(true);
+    setErrorMsg("");
+    
+    const res = await requestPasswordResetAction(identity);
+    setResendLoading(false);
+    
+    if (res.success) {
+      toast.success("Kode keamanan baru telah dikirim!");
+      setTimer(60);
+      setOtp(["", "", "", "", "", ""]);
+    } else {
+      setErrorMsg(res.message);
+    }
   };
 
   const handleVerifyOTP = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!isOtpComplete) return setErrorMsg("Masukkan 6 digit kode keamanan.");
     setErrorMsg(""); setLoading(true);
-    setTimeout(() => { setLoading(false); setStep(3); }, 1500);
+    
+    const otpString = otp.join("");
+    const res = await verifyResetOtpAction(identity, otpString);
+    setLoading(false);
+    
+    if (res.success) {
+      toast.success(res.message);
+      setStep(3);
+    } else {
+      setErrorMsg(res.message);
+      setOtp(["", "", "", "", "", ""]); // Reset OTP input
+    }
   };
 
   const handleResetPassword = async (e: React.FormEvent) => {
@@ -48,7 +97,16 @@ export default function ForgotPasswordElitePage() {
     if (!isPasswordValid) return setErrorMsg("Penuhi syarat keamanan password.");
     if (newPassword !== confirmPassword) return setErrorMsg("Password tidak cocok.");
     setErrorMsg(""); setLoading(true);
-    setTimeout(() => { setLoading(false); router.push("/auth/login?reset=success"); }, 2000);
+    
+    const res = await resetPasswordAction(identity, otp.join(""), newPassword);
+    setLoading(false);
+    
+    if (res.success) {
+      toast.success(res.message);
+      router.push("/auth/login?reset=success");
+    } else {
+      setErrorMsg(res.message);
+    }
   };
 
   const handleOtpChange = (element: HTMLInputElement, index: number) => {
@@ -116,7 +174,7 @@ export default function ForgotPasswordElitePage() {
           <div className="mt-12 text-center space-y-4">
             <AnimatePresence mode="wait">
               {step === 1 && <motion.h1 key="h1" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="text-3xl font-black text-white tracking-tight">Otorisasi Identitas</motion.h1>}
-              {step === 2 && <motion.h1 key="h2" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-500 tracking-tight">Verifikasi 2-Arah</motion.h1>}
+              {step === 2 && <motion.h1 key="h2" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-status-info tracking-tight">Verifikasi 2-Arah</motion.h1>}
               {step === 3 && <motion.h1 key="h3" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-sakura to-pink-500 tracking-tight">Enkripsi Sandi Baru</motion.h1>}
             </AnimatePresence>
             <p className="text-zinc-500 text-xs font-bold uppercase tracking-[0.2em] max-w-[250px] mx-auto leading-relaxed">Jalur aman dilindungi oleh lapisan AES-256 Bit.</p>
@@ -146,7 +204,7 @@ export default function ForgotPasswordElitePage() {
                     </div>
 
                     <form onSubmit={handleRequestReset} className="space-y-6">
-                      {errorMsg && <div className="flex items-center gap-3 p-4 rounded-xl bg-red-500/10 border border-red-500/20 text-red-500 text-xs font-bold uppercase tracking-wide"><AlertCircle className="w-5 h-5 shrink-0" />{errorMsg}</div>}
+                      {errorMsg && <div className="flex items-center gap-3 p-4 rounded-xl bg-status-danger/10 border border-status-danger/20 text-status-danger text-xs font-bold uppercase tracking-wide"><AlertCircle className="w-5 h-5 shrink-0" />{errorMsg}</div>}
                       
                       <div className="space-y-2">
                         <label className="text-[10px] font-black text-zinc-400 uppercase tracking-widest pl-1">Identitas Akun</label>
@@ -173,7 +231,7 @@ export default function ForgotPasswordElitePage() {
                     </div>
 
                     <form onSubmit={handleVerifyOTP} className="space-y-8">
-                      {errorMsg && <div className="flex items-center gap-3 p-4 rounded-xl bg-red-500/10 border border-red-500/20 text-red-500 text-xs font-bold uppercase tracking-wide"><AlertCircle className="w-5 h-5 shrink-0" />{errorMsg}</div>}
+                      {errorMsg && <div className="flex items-center gap-3 p-4 rounded-xl bg-status-danger/10 border border-status-danger/20 text-status-danger text-xs font-bold uppercase tracking-wide"><AlertCircle className="w-5 h-5 shrink-0" />{errorMsg}</div>}
                       
                       <div className="flex justify-between gap-2 sm:gap-3">
                         {otp.map((data, index) => (
@@ -184,12 +242,22 @@ export default function ForgotPasswordElitePage() {
                       </div>
 
                       {/* TOMBOL PINTAR: Menyala saat 6 digit lengkap! */}
-                      <button type="submit" disabled={loading || !isOtpComplete} className={`w-full py-5 rounded-2xl font-black text-sm uppercase tracking-widest flex items-center justify-center gap-3 transition-all duration-500 active:scale-[0.98] ${isOtpComplete ? "bg-gradient-to-r from-cyan-400 to-blue-500 text-white shadow-[0_0_30px_rgba(34,211,238,0.4)] hover:shadow-[0_0_40px_rgba(34,211,238,0.6)]" : "bg-white/5 text-zinc-500 border border-white/5 cursor-not-allowed"}`}>
+                      <button type="submit" disabled={loading || !isOtpComplete} className={`w-full py-5 rounded-2xl font-black text-sm uppercase tracking-widest flex items-center justify-center gap-3 transition-all duration-500 active:scale-[0.98] ${isOtpComplete ? "bg-gradient-to-r from-cyan-400 to-status-info text-white shadow-[0_0_30px_rgba(34,211,238,0.4)] hover:shadow-[0_0_40px_rgba(34,211,238,0.6)]" : "bg-white/5 text-zinc-500 border border-white/5 cursor-not-allowed"}`}>
                         {loading ? <RefreshCw className="w-5 h-5 animate-spin" /> : <>Verifikasi Sekarang <ShieldCheck className="w-5 h-5" /></>}
                       </button>
 
                       <div className="text-center">
-                        <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Belum menerima kode? <button type="button" className="text-white hover:text-cyan-400 transition-colors">Kirim Ulang</button></p>
+                        <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">
+                          Belum menerima kode?{" "}
+                          <button 
+                            type="button" 
+                            onClick={handleResendOTP}
+                            disabled={timer > 0 || resendLoading}
+                            className={`transition-colors ${timer > 0 ? "text-zinc-600 cursor-not-allowed" : "text-white hover:text-cyan-400"}`}
+                          >
+                            {resendLoading ? "Mengirim..." : timer > 0 ? `Kirim Ulang (${timer}s)` : "Kirim Ulang"}
+                          </button>
+                        </p>
                       </div>
                     </form>
                   </motion.div>
@@ -204,7 +272,7 @@ export default function ForgotPasswordElitePage() {
                     </div>
 
                     <form onSubmit={handleResetPassword} className="space-y-6">
-                      {errorMsg && <div className="flex items-center gap-3 p-4 rounded-xl bg-red-500/10 border border-red-500/20 text-red-500 text-xs font-bold uppercase tracking-wide"><AlertCircle className="w-5 h-5 shrink-0" />{errorMsg}</div>}
+                      {errorMsg && <div className="flex items-center gap-3 p-4 rounded-xl bg-status-danger/10 border border-status-danger/20 text-status-danger text-xs font-bold uppercase tracking-wide"><AlertCircle className="w-5 h-5 shrink-0" />{errorMsg}</div>}
                       
                       <div className="space-y-5">
                         <div className="space-y-2">
@@ -219,10 +287,10 @@ export default function ForgotPasswordElitePage() {
                           <AnimatePresence>
                             {newPassword.length > 0 && (
                               <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }} className="pt-3 grid grid-cols-2 gap-3 overflow-hidden">
-                                <div className={`flex items-center gap-2 text-[10px] font-bold uppercase tracking-wider ${rules.length ? "text-emerald-400" : "text-zinc-500"}`}>{rules.length ? <CheckCircle2 className="w-3.5 h-3.5" /> : <XCircle className="w-3.5 h-3.5" />} 8-32 Karakter</div>
-                                <div className={`flex items-center gap-2 text-[10px] font-bold uppercase tracking-wider ${rules.uppercase ? "text-emerald-400" : "text-zinc-500"}`}>{rules.uppercase ? <CheckCircle2 className="w-3.5 h-3.5" /> : <XCircle className="w-3.5 h-3.5" />} Huruf Besar</div>
-                                <div className={`flex items-center gap-2 text-[10px] font-bold uppercase tracking-wider ${rules.number ? "text-emerald-400" : "text-zinc-500"}`}>{rules.number ? <CheckCircle2 className="w-3.5 h-3.5" /> : <XCircle className="w-3.5 h-3.5" />} Angka</div>
-                                <div className={`flex items-center gap-2 text-[10px] font-bold uppercase tracking-wider ${rules.special ? "text-emerald-400" : "text-zinc-500"}`}>{rules.special ? <CheckCircle2 className="w-3.5 h-3.5" /> : <XCircle className="w-3.5 h-3.5" />} Simbol Unik</div>
+                                <div className={`flex items-center gap-2 text-[10px] font-bold uppercase tracking-wider ${rules.length ? "text-status-success" : "text-zinc-500"}`}>{rules.length ? <CheckCircle2 className="w-3.5 h-3.5" /> : <XCircle className="w-3.5 h-3.5" />} 8-32 Karakter</div>
+                                <div className={`flex items-center gap-2 text-[10px] font-bold uppercase tracking-wider ${rules.uppercase ? "text-status-success" : "text-zinc-500"}`}>{rules.uppercase ? <CheckCircle2 className="w-3.5 h-3.5" /> : <XCircle className="w-3.5 h-3.5" />} Huruf Besar</div>
+                                <div className={`flex items-center gap-2 text-[10px] font-bold uppercase tracking-wider ${rules.number ? "text-status-success" : "text-zinc-500"}`}>{rules.number ? <CheckCircle2 className="w-3.5 h-3.5" /> : <XCircle className="w-3.5 h-3.5" />} Angka</div>
+                                <div className={`flex items-center gap-2 text-[10px] font-bold uppercase tracking-wider ${rules.special ? "text-status-success" : "text-zinc-500"}`}>{rules.special ? <CheckCircle2 className="w-3.5 h-3.5" /> : <XCircle className="w-3.5 h-3.5" />} Simbol Unik</div>
                               </motion.div>
                             )}
                           </AnimatePresence>

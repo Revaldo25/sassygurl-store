@@ -4,10 +4,11 @@ const isProd = process.env.NODE_ENV === "production";
 
 const nextConfig: NextConfig = {
   reactStrictMode: true,
-  // Add Cloudflare tunnel host to allow Dev Server requests
+  // Add Cloudflare and ngrok tunnel host to allow Dev Server requests
   allowedDevOrigins: [
     "reviewing-captain-cream-subscriptions.trycloudflare.com",
-    "sassygurlvip.loca.lt"
+    "sassygurlvip.loca.lt",
+    "unpresentative-apolonia-otherwise.ngrok-free.dev"
   ],
 
   images: {
@@ -44,6 +45,23 @@ const nextConfig: NextConfig = {
     }
 
     return [{ source: "/(.*)", headers: securityHeaders }];
+  },
+
+  async rewrites() {
+    return [
+      {
+        source: "/api/backend/:path*",
+        destination: "http://localhost:5009/api/:path*",
+      },
+      {
+        source: "/hubs/:path*",
+        destination: "http://localhost:5009/hubs/:path*",
+      },
+      {
+        source: "/uploads/:path*",
+        destination: "http://localhost:5009/uploads/:path*",
+      },
+    ];
   },
 
   async redirects() {
