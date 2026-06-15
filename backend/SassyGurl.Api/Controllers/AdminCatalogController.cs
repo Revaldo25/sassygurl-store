@@ -113,6 +113,42 @@ public class AdminCatalogController : ControllerBase
         return Ok(new { success = true, added });
     }
 
+    [HttpPost("recalc-prices")]
+    public async Task<IActionResult> RecalcPrices()
+    {
+        var products = await _context.Products.ToListAsync();
+        var updated = 0;
+        foreach (var p in products)
+        {
+            var basePrice = p.PriceModal;
+            decimal marginPercent = 0.03m; // Default
+            if (basePrice < 50000m) {
+                marginPercent = 0.02m;
+            } else if (basePrice >= 50000m && basePrice < 200000m) {
+                marginPercent = 0.05m;
+            } else if (basePrice >= 200000m && basePrice < 500000m) {
+                marginPercent = 0.10m;
+            } else if (basePrice >= 500000m) {
+                marginPercent = 0.15m;
+            }
+
+            decimal rawSalePrice = basePrice * (1m + marginPercent);
+            decimal salePrice = Math.Ceiling(rawSalePrice / 100m) * 100m;
+            
+            p.Margin = salePrice - basePrice;
+            p.PriceSell = salePrice;
+            p.OriginalPrice = salePrice * 1.15m;
+            p.PriceMember = salePrice * 0.98m;
+            p.PriceReseller = salePrice * 0.95m;
+            p.PriceVip = salePrice * 0.90m;
+            updated++;
+        }
+
+        await _context.SaveChangesAsync();
+        return Ok(new { success = true, message = $"Recalculated prices for {updated} products" });
+    }
+
+
     public class SeedRequest
     {
         public string HtmlContent { get; set; } = "";
