@@ -50,9 +50,9 @@ public class DashboardController : ControllerBase
     /// </summary>
     [Authorize(Roles = "SUPERADMIN,OWNER")]
     [HttpGet("owner/stats")]
-    public async Task<ActionResult<ApiResponse<OwnerStatsDto>>> GetOwnerStats()
+    public async Task<ActionResult<ApiResponse<OwnerStatsDto>>> GetOwnerStats([FromQuery] int? days)
     {
-        var result = await _dashboardService.GetOwnerStatsAsync();
+        var result = await _dashboardService.GetOwnerStatsAsync(days);
         return Ok(result);
     }
 

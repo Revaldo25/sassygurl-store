@@ -193,6 +193,13 @@ public class Game
 
     public int SortOrder { get; set; } = 0;
 
+    public int TotalSold { get; set; } = 0;
+
+    [Column(TypeName = "decimal(3,2)")]
+    public decimal AverageRating { get; set; } = 0;
+
+    public int TotalReviews { get; set; } = 0;
+
     // Navigation Properties
     public ICollection<Product> Products { get; set; } = [];
     public ICollection<ProductCategory> ProductCategories { get; set; } = [];

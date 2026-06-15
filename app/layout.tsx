@@ -47,6 +47,7 @@ export const viewport: Viewport = {
 
 import { Providers } from "@/components/Providers";
 import FloatingNav from "@/components/FloatingNav";
+import CustomerServiceWidget from "@/components/CustomerServiceWidget";
 import { Toaster } from "sonner";
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
@@ -59,6 +60,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <Providers>
           {children}
           <FloatingNav />
+          <CustomerServiceWidget />
         </Providers>
       </body>
     </html>

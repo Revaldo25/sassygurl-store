@@ -120,6 +120,9 @@ export default async function GameSlugPage({
         description={game.description}
         isHot={game.isHot}
         productCount={game.productCount}
+        totalSold={game.totalSold}
+        averageRating={game.averageRating}
+        totalReviews={game.totalReviews}
       />
 
       {/* ═══ Main Content ═══ */}

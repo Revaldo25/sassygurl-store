@@ -56,18 +56,9 @@ export default function SiteHeader() {
             </Link>
           </div>
 
-          {/* Center: Desktop Navigation Links */}
+          {/* Center: Clean Spacer */}
           <div className="hidden md:flex flex-1 items-center justify-center gap-8">
-            {navItems.map((item) => (
-              <Link 
-                key={item.href} 
-                href={item.href}
-                className="text-sm font-medium text-white/70 hover:text-sakura transition-colors relative group"
-              >
-                {item.label}
-                <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-sakura transition-all duration-300 group-hover:w-full rounded-full"></span>
-              </Link>
-            ))}
+            {/* Desktop links removed as per user feedback, now centralized in FloatingNav */}
           </div>
 
           {/* Right: Actions */}

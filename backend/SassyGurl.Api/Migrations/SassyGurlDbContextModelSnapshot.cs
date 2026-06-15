@@ -192,6 +192,10 @@ namespace SassyGurl.Api.Migrations
                         .HasColumnType("text")
                         .HasColumnName("id");
 
+                    b.Property<decimal>("AverageRating")
+                        .HasColumnType("decimal(3,2)")
+                        .HasColumnName("averageRating");
+
                     b.Property<string>("Banner")
                         .HasColumnType("text")
                         .HasColumnName("banner");
@@ -247,6 +251,14 @@ namespace SassyGurl.Api.Migrations
                     b.Property<string>("Thumbnail")
                         .HasColumnType("text")
                         .HasColumnName("thumbnail");
+
+                    b.Property<int>("TotalReviews")
+                        .HasColumnType("integer")
+                        .HasColumnName("totalReviews");
+
+                    b.Property<int>("TotalSold")
+                        .HasColumnType("integer")
+                        .HasColumnName("totalSold");
 
                     b.HasKey("Id");
 

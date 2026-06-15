@@ -47,6 +47,12 @@ export type DailyRevenue = {
   orderCount: number;
 };
 
+export type TopGame = {
+  gameName: string;
+  orderCount: number;
+  totalSales: number;
+};
+
 export type OwnerStats = {
   totalRevenue: number;
   totalProviderCost: number;
@@ -62,6 +68,7 @@ export type OwnerStats = {
   totalProducts: number;
   refundQueueCount: number;
   dailyRevenue: DailyRevenue[];
+  topGames: TopGame[];
 };
 
 // API ApiResponse matching C# wrapper
@@ -98,27 +105,21 @@ export async function getMemberDashboardStats(): Promise<DashboardStats> {
 }
 
 export async function getMemberTransactions(
-  filter: "ALL" | "SUCCESS" | "PENDING" | "FAILED" = "ALL",
+  filter: string = "ALL",
   search: string = ""
-): Promise<RecentTransaction[]> {
+): Promise<PaginatedResponse<RecentTransaction>> {
   try {
     const params = new URLSearchParams();
-    if (filter && filter !== "ALL") params.append("filter", filter);
-    if (search) params.append("search", search);
+    if (filter) params.append('filter', filter);
+    if (search) params.append('search', search);
 
     const response = await fetchApi<ApiResponse<PaginatedResponse<RecentTransaction>>>(`/Dashboard/member/transactions?${params.toString()}`);
     if (response.success && response.data) {
-      return response.data.data;
+      return response.data;
     }
-    return [];
+    return { success: true, data: [], total: 0, page: 1, perPage: 20 };
   } catch (error) {
     console.error("Error getMemberTransactions:", error);
-    return [];
-  }
-}
-
-// --------------------------------------------------------------------------------
-// ADMIN DASHBOARD ACTIONS
 // --------------------------------------------------------------------------------
 
 export async function getAdminStats(): Promise<AdminStats> {
@@ -213,16 +214,88 @@ export async function triggerCatalogSync(): Promise<{ success: boolean; message:
   }
 }
 
-export async function getAdminGames(): Promise<any[]> {
+export async function getAdminGames() {
   try {
-    const response = await fetchApi<ApiResponse<any[]>>('/Catalog/games');
-    if (response.success && response.data) {
-      return response.data;
-    }
+    const response = await fetchApi<ApiResponse<any[]>>("/AdminCatalog/games");
+    if (response.success && response.data) return response.data;
     return [];
   } catch (error) {
     console.error("Error getAdminGames:", error);
     return [];
+  }
+}
+
+export async function createGame(gameData: any) {
+  try {
+    const response = await fetchApi<ApiResponse<any>>("/AdminCatalog/games", {
+      method: "POST",
+      body: JSON.stringify(gameData)
+    });
+    revalidatePath("/admin");
+    return response;
+  } catch (error: any) {
+    return { success: false, message: error.message };
+  }
+}
+
+export async function updateGame(id: string, gameData: any) {
+  try {
+    const response = await fetchApi<ApiResponse<any>>(`/AdminCatalog/games/${id}`, {
+      method: "PUT",
+      body: JSON.stringify(gameData)
+    });
+    revalidatePath("/admin");
+    return response;
+  } catch (error: any) {
+    return { success: false, message: error.message };
+  }
+}
+
+export async function deleteGame(id: string) {
+  try {
+    const response = await fetchApi<ApiResponse<any>>(`/AdminCatalog/games/${id}`, {
+      method: "DELETE"
+    });
+    revalidatePath("/admin");
+    return response;
+  } catch (error: any) {
+    return { success: false, message: error.message };
+  }
+}
+
+export async function getGameProductsAdmin(gameId: string) {
+  try {
+    const response = await fetchApi<ApiResponse<any[]>>(`/AdminCatalog/games/${gameId}/products`);
+    if (response.success && response.data) return response.data;
+    return [];
+  } catch (error) {
+    console.error("Error getGameProductsAdmin:", error);
+    return [];
+  }
+}
+
+export async function createProduct(productData: any) {
+  try {
+    const response = await fetchApi<ApiResponse<any>>("/AdminCatalog/products", {
+      method: "POST",
+      body: JSON.stringify(productData)
+    });
+    revalidatePath("/admin");
+    return response;
+  } catch (error: any) {
+    return { success: false, message: error.message };
+  }
+}
+
+export async function deleteProduct(id: string) {
+  try {
+    const response = await fetchApi<ApiResponse<any>>(`/AdminCatalog/products/${id}`, {
+      method: "DELETE"
+    });
+    revalidatePath("/admin");
+    return response;
+  } catch (error: any) {
+    return { success: false, message: error.message };
   }
 }
 

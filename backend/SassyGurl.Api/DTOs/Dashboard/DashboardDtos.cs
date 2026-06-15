@@ -57,6 +57,7 @@ public class OwnerStatsDto
     public int TotalProducts { get; set; }
     public int RefundQueueCount { get; set; }
     public List<DailyRevenueDto> DailyRevenue { get; set; } = [];
+    public List<TopGameDto> TopGames { get; set; } = [];
 }
 
 public class DailyRevenueDto
@@ -65,4 +66,11 @@ public class DailyRevenueDto
     public decimal Revenue { get; set; }
     public decimal Profit { get; set; }
     public int OrderCount { get; set; }
+}
+
+public class TopGameDto
+{
+    public string GameName { get; set; } = null!;
+    public int OrderCount { get; set; }
+    public decimal TotalSales { get; set; }
 }

@@ -559,7 +559,16 @@ public class SyncEngine : ISyncEngine
         }
 
         // ── Dynamic Pricing Sultan ───────────────────────────────────────────
-        decimal marginPercent = _config.GetValue<decimal>("Pricing:MarginPercentage", 0.03m); // 3% margin
+        decimal marginPercent = 0.03m; // Default
+        if (basePrice < 50000m) {
+            marginPercent = 0.02m;
+        } else if (basePrice >= 50000m && basePrice < 200000m) {
+            marginPercent = 0.05m;
+        } else if (basePrice >= 200000m && basePrice < 500000m) {
+            marginPercent = 0.10m;
+        } else if (basePrice >= 500000m) {
+            marginPercent = 0.15m;
+        }
         
         // Harga Jual = CEILING((Harga Modal * (1 + Margin)) / 100) * 100
         decimal rawSalePrice = basePrice * (1m + marginPercent);

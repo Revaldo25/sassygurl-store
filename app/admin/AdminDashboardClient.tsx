@@ -28,6 +28,7 @@ import {
   LogOut,
   Settings,
   UploadCloud,
+  Download,
 } from "lucide-react";
 import { formatIDR } from "@/lib/catalog";
 import {
@@ -137,10 +138,11 @@ function ImageUploadField({ label, value, onChange, placeholder, aspectRatio = "
 
 export default function AdminDashboardClient({ initialStats, initialTransactions, initialTotal = 0, providerStatuses, initialGames, role }: Props) {
   const isOwner = role?.toUpperCase() === "SUPERADMIN" || role?.toUpperCase() === "OWNER";
-  const ownerStats = initialStats as OwnerStats;
+  const [ownerStatsState, setOwnerStatsState] = useState<OwnerStats>(initialStats as OwnerStats);
   const adminStats = initialStats as AdminStats;
 
   const [stats] = useState(initialStats);
+  const [timeFilter, setTimeFilter] = useState<number | undefined>(7);
   const [transactions, setTransactions] = useState(initialTransactions);
   const [providerStatusesList, setProviderStatusesList] = useState(providerStatuses);
   const [games, setGames] = useState(initialGames);
@@ -226,6 +228,10 @@ export default function AdminDashboardClient({ initialStats, initialTransactions
             toast.success(`Admin: Transaksi #${data.transactionId.substring(0, 5)}... Diperbarui!`, {
               description: `Status: ${data.paymentStatus}`,
             });
+            // Auto refresh stats on payment success
+            if (data.paymentStatus === "PAID" && isOwner) {
+              getOwnerStats(timeFilter).then(stats => setOwnerStatsState(stats));
+            }
           }
 
           return updated;
@@ -297,7 +303,30 @@ export default function AdminDashboardClient({ initialStats, initialTransactions
     return () => {
       connection.stop();
     };
-  }, []);
+  }, [isOwner, timeFilter]);
+
+  const loadOwnerStats = async (days: number | undefined) => {
+    setTimeFilter(days);
+    const data = await getOwnerStats(days);
+    setOwnerStatsState(data);
+  };
+
+  const exportToCSV = () => {
+    if (!ownerStatsState || !ownerStatsState.dailyRevenue) return;
+    
+    let csvContent = "data:text/csv;charset=utf-8,Tanggal,Pendapatan (IDR),Profit (IDR),Total Transaksi\n";
+    ownerStatsState.dailyRevenue.forEach(row => {
+      csvContent += `${row.date},${row.revenue},${row.profit},${row.orderCount}\n`;
+    });
+
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", `Laporan_Keuangan_SassyGurl_${timeFilter || 'All'}_Hari.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
 
   function handleFilterChange(newFilter: string) {
     setFilter(newFilter);
@@ -584,13 +613,42 @@ export default function AdminDashboardClient({ initialStats, initialTransactions
                 </div>
               </motion.div>
 
+              {/* Filter Row and Export */}
+              {isOwner && (
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mt-6">
+                  <div className="flex items-center gap-2 overflow-x-auto pb-2 md:pb-0 hide-scrollbar">
+                    {[
+                      { label: "Hari ini", value: 1 },
+                      { label: "7 Hari", value: 7 },
+                      { label: "30 Hari", value: 30 },
+                      { label: "Semua", value: undefined }
+                    ].map(opt => (
+                      <button
+                        key={opt.label}
+                        onClick={() => loadOwnerStats(opt.value)}
+                        className={`whitespace-nowrap px-4 py-1.5 rounded-full text-xs font-bold transition-all ${timeFilter === opt.value ? "bg-sakura text-obsidian shadow-[0_0_15px_rgba(253,176,192,0.3)]" : "bg-white/5 text-zinc-400 hover:bg-white/10 hover:text-white"}`}
+                      >
+                        {opt.label}
+                      </button>
+                    ))}
+                  </div>
+                  
+                  <button 
+                    onClick={exportToCSV}
+                    className="flex items-center gap-2 px-4 py-2 bg-white/5 border border-white/10 hover:bg-white/10 rounded-lg text-xs font-bold text-white transition-colors"
+                  >
+                    <Download size={14} /> Export CSV
+                  </button>
+                </div>
+              )}
+
               {/* Stats Grid */}
               <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
                 {[
                   ...(isOwner ? [
-                    { label: "Total Omzet", value: formatIDR(ownerStats.totalRevenue), color: "text-white", accent: "border-sakura/20 bg-sakura/5" },
-                    { label: "Laba Bersih", value: formatIDR(ownerStats.netProfit), color: "text-status-success", accent: "border-status-success/20 bg-status-success/5" },
-                    { label: "Omzet Hari Ini", value: formatIDR(ownerStats.todayRevenue), color: "text-brand-cyan", accent: "border-brand-cyan/20 bg-brand-cyan/5" },
+                    { label: "Total Omzet", value: formatIDR(ownerStatsState.totalRevenue), color: "text-white", accent: "border-sakura/20 bg-sakura/5" },
+                    { label: "Laba Bersih", value: formatIDR(ownerStatsState.netProfit), color: "text-status-success", accent: "border-status-success/20 bg-status-success/5" },
+                    { label: "Omzet Hari Ini", value: formatIDR(ownerStatsState.todayRevenue), color: "text-brand-cyan", accent: "border-brand-cyan/20 bg-brand-cyan/5" },
                   ] : []),
                   { label: "Total Member", value: String(stats.totalUsers), color: "text-status-warning", accent: "border-status-warning/20 bg-status-warning/5" },
                   { label: "Produk Aktif", value: String(stats.totalProducts), color: "text-pink-400", accent: "border-pink-500/20 bg-pink-500/5" },
@@ -602,34 +660,64 @@ export default function AdminDashboardClient({ initialStats, initialTransactions
                   </motion.div>
                 ))}
               </div>
-
-              {/* Owner Revenue Chart */}
+              
+              {/* Owner Revenue Chart & Top Games PieChart */}
               {isOwner && (
-                <div className="rounded-[2.5rem] border border-white/5 bg-zinc-900/20 p-8 backdrop-blur-2xl">
-                  <h3 className="mb-6 flex items-center gap-3 text-sm font-black uppercase tracking-[0.2em] text-white">
-                    <TrendingUp className="h-5 w-5 text-status-success" /> Net Profit (Last 7 Days)
-                  </h3>
-                  <div className="min-h-[300px] w-full" style={{ position: 'relative' }}>
-                    <ResponsiveContainer width="100%" height={300}>
-                      <AreaChart data={ownerStats.dailyRevenue?.length > 0 ? ownerStats.dailyRevenue : [{ date: "N/A", revenue: 0, profit: 0, orderCount: 0 }]}>
-                        <defs>
-                          <linearGradient id="profitGrad" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="5%" stopColor="#10b981" stopOpacity={0.3}/>
-                            <stop offset="95%" stopColor="#10b981" stopOpacity={0}/>
-                          </linearGradient>
-                          <linearGradient id="revGrad" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="5%" stopColor="#FDB0C0" stopOpacity={0.3}/>
-                            <stop offset="95%" stopColor="#FDB0C0" stopOpacity={0}/>
-                          </linearGradient>
-                        </defs>
-                        <CartesianGrid strokeDasharray="3 3" stroke="#ffffff05" vertical={false} />
-                        <XAxis dataKey="date" stroke="#52525b" fontSize={10} tickFormatter={(val) => val !== "N/A" ? new Date(val).toLocaleDateString('id-ID', { day: '2-digit', month: 'short' }) : val} />
-                        <YAxis stroke="#52525b" fontSize={10} tickFormatter={(v) => `Rp ${(v / 1000).toLocaleString()}k`} />
-                        <Tooltip contentStyle={{ backgroundColor: '#09090b', border: '1px solid #ffffff10', borderRadius: '16px', fontSize: '12px' }} />
-                        <Area type="monotone" dataKey="revenue" stroke="#FDB0C0" strokeWidth={3} fillOpacity={1} fill="url(#revGrad)" />
-                        <Area type="monotone" dataKey="profit" stroke="#10b981" strokeWidth={2} fillOpacity={1} fill="url(#profitGrad)" />
-                      </AreaChart>
-                    </ResponsiveContainer>
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                  <div className="lg:col-span-2 rounded-[2.5rem] border border-white/5 bg-zinc-900/20 p-8 backdrop-blur-2xl">
+                    <h3 className="mb-6 flex items-center gap-3 text-sm font-black uppercase tracking-[0.2em] text-white">
+                      <TrendingUp className="h-5 w-5 text-status-success" /> Financial Radar
+                    </h3>
+                    <div className="min-h-[300px] w-full" style={{ position: 'relative' }}>
+                      <ResponsiveContainer width="100%" height={300}>
+                        <AreaChart data={ownerStatsState.dailyRevenue?.length > 0 ? ownerStatsState.dailyRevenue : [{ date: "N/A", revenue: 0, profit: 0, orderCount: 0 }]}>
+                          <defs>
+                            <linearGradient id="profitGrad" x1="0" y1="0" x2="0" y2="1">
+                              <stop offset="5%" stopColor="#10b981" stopOpacity={0.3}/>
+                              <stop offset="95%" stopColor="#10b981" stopOpacity={0}/>
+                            </linearGradient>
+                            <linearGradient id="revGrad" x1="0" y1="0" x2="0" y2="1">
+                              <stop offset="5%" stopColor="#FDB0C0" stopOpacity={0.3}/>
+                              <stop offset="95%" stopColor="#FDB0C0" stopOpacity={0}/>
+                            </linearGradient>
+                          </defs>
+                          <CartesianGrid strokeDasharray="3 3" stroke="#ffffff05" vertical={false} />
+                          <XAxis dataKey="date" stroke="#52525b" fontSize={10} tickFormatter={(val) => val !== "N/A" ? new Date(val).toLocaleDateString('id-ID', { day: '2-digit', month: 'short' }) : val} />
+                          <YAxis stroke="#52525b" fontSize={10} tickFormatter={(v) => `Rp ${(v / 1000).toLocaleString()}k`} />
+                          <Tooltip contentStyle={{ backgroundColor: '#09090b', border: '1px solid #ffffff10', borderRadius: '16px', fontSize: '12px' }} />
+                          <Area type="monotone" dataKey="revenue" stroke="#FDB0C0" strokeWidth={3} fillOpacity={1} fill="url(#revGrad)" />
+                          <Area type="monotone" dataKey="profit" stroke="#10b981" strokeWidth={2} fillOpacity={1} fill="url(#profitGrad)" />
+                        </AreaChart>
+                      </ResponsiveContainer>
+                    </div>
+                  </div>
+
+                  <div className="rounded-[2.5rem] border border-white/5 bg-zinc-900/20 p-8 backdrop-blur-2xl">
+                    <h3 className="mb-6 flex items-center gap-3 text-sm font-black uppercase tracking-[0.2em] text-white">
+                      <Gamepad2 className="h-5 w-5 text-sakura" /> Top Game Terlaris
+                    </h3>
+                    {ownerStatsState.topGames?.length > 0 ? (
+                      <div className="space-y-4 mt-6">
+                        {ownerStatsState.topGames.map((game, i) => (
+                          <div key={i} className="flex flex-col gap-1">
+                              <div className="flex items-center justify-between text-xs">
+                                <span className="font-bold text-white truncate max-w-[150px]">{game.gameName}</span>
+                                <span className="text-sakura font-bold">{formatIDR(game.totalSales)}</span>
+                              </div>
+                              <div className="flex items-center justify-between text-[10px] text-zinc-500 uppercase tracking-widest font-black">
+                                <span>{game.orderCount} Transaksi</span>
+                              </div>
+                              <div className="h-1.5 w-full bg-white/5 rounded-full overflow-hidden">
+                                <div className="h-full bg-sakura rounded-full" style={{ width: `${(game.totalSales / ownerStatsState.topGames[0].totalSales) * 100}%` }} />
+                              </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="flex h-48 items-center justify-center text-sm text-zinc-500">
+                        Belum ada data penjualan.
+                      </div>
+                    )}
                   </div>
                 </div>
               )}
