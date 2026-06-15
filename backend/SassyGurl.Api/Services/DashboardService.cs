@@ -12,7 +12,7 @@ public interface IDashboardService
     Task<ApiResponse<PaginatedResponse<RecentTransactionDto>>> GetMemberTransactionsAsync(string userId, string filter, string search);
     Task<ApiResponse<AdminStatsDto>> GetAdminStatsAsync();
     Task<ApiResponse<PaginatedResponse<RecentTransactionDto>>> GetAdminTransactionsAsync(string filter, string search, int page, int limit);
-    Task<ApiResponse<OwnerStatsDto>> GetOwnerStatsAsync();
+    Task<ApiResponse<OwnerStatsDto>> GetOwnerStatsAsync(int? days);
 }
 
 public class DashboardService : IDashboardService
@@ -193,11 +193,21 @@ public class DashboardService : IDashboardService
         });
     }
 
-    public async Task<ApiResponse<OwnerStatsDto>> GetOwnerStatsAsync()
+    public async Task<ApiResponse<OwnerStatsDto>> GetOwnerStatsAsync(int? days)
     {
         var paidQuery = _context.Transactions
             .AsNoTracking()
             .Where(t => t.PaymentStatus == PaymentStatus.PAID);
+
+        var allTxQuery = _context.Transactions.AsNoTracking().AsQueryable();
+
+        // Apply days filter
+        if (days.HasValue && days.Value > 0)
+        {
+            var cutoff = DateTime.UtcNow.Date.AddDays(-days.Value);
+            paidQuery = paidQuery.Where(t => t.CreatedAt >= cutoff);
+            allTxQuery = allTxQuery.Where(t => t.CreatedAt >= cutoff);
+        }
 
         // Core financial metrics: Revenue = Sum(PriceSell), Cost = Sum(PriceModal)
         var totalRevenue = await paidQuery.SumAsync(t => (decimal?)t.PriceSell) ?? 0m;
@@ -206,12 +216,11 @@ public class DashboardService : IDashboardService
         // Today's snapshot
         var todayUtc = DateTime.UtcNow.Date;
         var tomorrowUtc = todayUtc.AddDays(1);
-        var todayQuery = paidQuery.Where(t => t.PaidAt != null && t.PaidAt.Value >= todayUtc && t.PaidAt.Value < tomorrowUtc);
+        var todayQuery = _context.Transactions.AsNoTracking().Where(t => t.PaymentStatus == PaymentStatus.PAID && t.PaidAt != null && t.PaidAt.Value >= todayUtc && t.PaidAt.Value < tomorrowUtc);
         var todayRevenue = await todayQuery.SumAsync(t => (decimal?)t.PriceSell) ?? 0m;
         var todayCost = await todayQuery.SumAsync(t => (decimal?)t.PriceModal) ?? 0m;
 
         // Transaction counters
-        var allTxQuery = _context.Transactions.AsNoTracking();
         var totalTx = await allTxQuery.CountAsync();
         var successTx = await allTxQuery.CountAsync(t => t.PaymentStatus == PaymentStatus.PAID);
         var pendingTx = await allTxQuery.CountAsync(t => t.PaymentStatus == PaymentStatus.PENDING);
@@ -223,11 +232,11 @@ public class DashboardService : IDashboardService
         var productCount = await _context.Products.AsNoTracking().CountAsync(p => p.IsActive);
         var refundCount = await _context.RefundQueues.AsNoTracking().CountAsync(r => !r.IsProcessed);
 
-        // Daily revenue for last 7 days (Financial Radar chart data)
-        // Step 1: Aggregate on DB side (no ToString — EF can't translate it)
-        var sevenDaysAgo = todayUtc.AddDays(-6);
-        var dailyRaw = await paidQuery
-            .Where(t => t.PaidAt != null && t.PaidAt.Value >= sevenDaysAgo)
+        // Daily revenue for last 7 or 30 days (Financial Radar chart data)
+        var chartDays = days ?? 7; // Default 7 days if no filter
+        var chartCutoff = todayUtc.AddDays(-(chartDays - 1));
+        var dailyRaw = await _context.Transactions.AsNoTracking()
+            .Where(t => t.PaymentStatus == PaymentStatus.PAID && t.PaidAt != null && t.PaidAt.Value >= chartCutoff)
             .GroupBy(t => t.PaidAt!.Value.Date)
             .Select(g => new
             {
@@ -239,7 +248,6 @@ public class DashboardService : IDashboardService
             .OrderBy(d => d.DateKey)
             .ToListAsync();
 
-        // Step 2: Format dates in C# memory (safe — no LINQ translation needed)
         var dailyData = dailyRaw.Select(d => new DailyRevenueDto
         {
             Date = d.DateKey.ToString("yyyy-MM-dd"),
@@ -248,6 +256,19 @@ public class DashboardService : IDashboardService
             OrderCount = d.OrderCount
         }).ToList();
 
+        // Top Games Calculation
+        var topGamesRaw = await paidQuery
+            .Include(t => t.Game)
+            .GroupBy(t => t.Game.Name)
+            .Select(g => new TopGameDto
+            {
+                GameName = g.Key,
+                OrderCount = g.Count(),
+                TotalSales = g.Sum(t => t.PriceSell)
+            })
+            .OrderByDescending(g => g.TotalSales)
+            .Take(5)
+            .ToListAsync();
 
         var stats = new OwnerStatsDto
         {
@@ -264,7 +285,8 @@ public class DashboardService : IDashboardService
             TotalGames = gameCount,
             TotalProducts = productCount,
             RefundQueueCount = refundCount,
-            DailyRevenue = dailyData
+            DailyRevenue = dailyData,
+            TopGames = topGamesRaw
         };
 
         return ApiResponse<OwnerStatsDto>.Ok(stats);

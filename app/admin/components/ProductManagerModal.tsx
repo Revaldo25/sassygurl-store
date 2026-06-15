@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { X, Plus, Trash2, Save, Upload } from "lucide-react";
 import { toast } from "sonner";
 import Image from "next/image";
+import { getGameProductsAdmin, createProduct, deleteProduct } from "@/app/actions/dashboard";
 
 export default function ProductManagerModal({ game, onClose }: { game: any, onClose: () => void }) {
   const [products, setProducts] = useState<any[]>([]);
@@ -25,11 +26,8 @@ export default function ProductManagerModal({ game, onClose }: { game: any, onCl
   const fetchProducts = async () => {
     setIsLoading(true);
     try {
-      const res = await fetch(`/api/admin/catalog/games/${game.id}/products`);
-      if (res.ok) {
-        const json = await res.json();
-        if (json.success) setProducts(json.data);
-      }
+      const data = await getGameProductsAdmin(game.id);
+      setProducts(data);
     } catch (e) {
       toast.error("Gagal mengambil data produk");
     } finally {
@@ -46,7 +44,7 @@ export default function ProductManagerModal({ game, onClose }: { game: any, onCl
     formDataObj.append("file", file);
 
     try {
-      const res = await fetch("/api/admin/catalog/upload-image", {
+      const res = await fetch("/api/upload", {
         method: "POST",
         body: formDataObj
       });
@@ -72,28 +70,21 @@ export default function ProductManagerModal({ game, onClose }: { game: any, onCl
 
     setIsSaving(true);
     try {
-      const res = await fetch("/api/admin/catalog/products", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          gameId: game.id,
-          name: formData.name,
-          sku: formData.sku,
-          priceSell: formData.priceSell,
-          imageUrl: formData.imageUrl
-        })
+      const res = await createProduct({
+        gameId: game.id,
+        name: formData.name,
+        sku: formData.sku,
+        priceSell: formData.priceSell,
+        thumbnail: formData.imageUrl
       });
 
-      if (res.ok) {
-        const json = await res.json();
-        if (json.success) {
-          toast.success("Produk berhasil ditambahkan");
-          setShowForm(false);
-          setFormData({ name: "", sku: "", priceSell: 0, imageUrl: "" });
-          fetchProducts();
-        }
+      if (res.success) {
+        toast.success("Produk berhasil ditambahkan");
+        setShowForm(false);
+        setFormData({ name: "", sku: "", priceSell: 0, imageUrl: "" });
+        fetchProducts();
       } else {
-        toast.error("Gagal menyimpan produk");
+        toast.error(res.message || "Gagal menyimpan produk");
       }
     } catch (e) {
       toast.error("Terjadi kesalahan server");
@@ -103,15 +94,18 @@ export default function ProductManagerModal({ game, onClose }: { game: any, onCl
   };
 
   const handleDeleteProduct = async (id: string) => {
-    if (!confirm("Hapus produk ini?")) return;
+    if (!confirm("Yakin ingin menghapus produk ini?")) return;
+    
     try {
-      const res = await fetch(`/api/admin/catalog/products/${id}`, { method: "DELETE" });
-      if (res.ok) {
-        toast.success("Produk dihapus");
+      const res = await deleteProduct(id);
+      if (res.success) {
+        toast.success("Produk berhasil dihapus");
         fetchProducts();
+      } else {
+        toast.error("Gagal menghapus produk");
       }
     } catch (e) {
-      toast.error("Gagal menghapus");
+      toast.error("Terjadi kesalahan");
     }
   };
 

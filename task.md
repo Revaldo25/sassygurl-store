@@ -1,0 +1,17 @@
+- `[/]` **Backend Updates**
+  - `[ ]` Add `TotalSold`, `AverageRating`, `TotalReviews` to `Game` entity.
+  - `[ ]` Update `Entities.cs` and run EF Core Migrations.
+  - `[ ]` Modify `SyncEngine.cs` for Dynamic Margin Pricing (2%, 5%, 10%, 15% based on base price).
+  - `[ ]` Add `NotificationService.cs` to mock WhatsApp/Telegram bot invoice sending.
+- `[ ]` **Frontend: UI/UX Premium Revamp**
+  - `[ ]` Redesign `CheckoutClient.tsx` to **Single Page Checkout**.
+  - `[ ]` Implement Wide Hero Banner with CSS Hover Animations (scale, glow) for HD/4K feel.
+  - `[ ]` Integrate Fake/Live Social Proof in `CheckoutClient.tsx`.
+  - `[ ]` Add WhatsApp input field in checkout form.
+  - `[ ]` Group items by `ProductCategory` with Ditusi-style interactive box design.
+- `[ ]` **Customer Service Bot Integration**
+  - `[ ]` Add floating Customer Service widget (WhatsApp & Telegram links) to global layout.
+- `[ ]` **Verification**
+  - `[ ]` Run Backend and test checkout flow.
+  - `[ ]` Verify dynamic margin calculations.
+  - `[ ]` Update `walkthrough.md` with new screenshots.
