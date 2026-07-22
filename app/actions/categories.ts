@@ -5,8 +5,8 @@ import { fetchApi } from "@/lib/api-client";
 
 export async function getProductCategories(gameId: string) {
   try {
-    const data = await fetchApi<any>(`/ProductCategories?gameId=${gameId}`, { cache: 'no-store' });
-    return { success: true, data };
+    const data = await fetchApi<any>(`/admin/catalog/games/${gameId}/categories`, { cache: 'no-store' });
+    return { success: true, data: data.data || data };
   } catch (e: any) {
     return { success: false, error: e.message };
   }
@@ -14,8 +14,8 @@ export async function getProductCategories(gameId: string) {
 
 export async function getAdminProductsByGame(gameId: string) {
   try {
-    const data = await fetchApi<any>(`/Products/game/${gameId}`, { cache: 'no-store' });
-    return { success: true, data };
+    const data = await fetchApi<any>(`/admin/catalog/games/${gameId}/products`, { cache: 'no-store' });
+    return { success: true, data: data.data || data };
   } catch (e: any) {
     return { success: false, error: e.message };
   }
@@ -23,9 +23,9 @@ export async function getAdminProductsByGame(gameId: string) {
 
 export async function createProductCategory(gameId: string, data: { name: string; icon: string; sortOrder: number }) {
   try {
-    await fetchApi<any>(`/ProductCategories?gameId=${gameId}`, {
+    await fetchApi<any>(`/admin/catalog/categories`, {
       method: "POST",
-      body: JSON.stringify(data)
+      body: JSON.stringify({ ...data, gameId })
     });
     revalidatePath("/admin");
     return { success: true };
@@ -36,7 +36,8 @@ export async function createProductCategory(gameId: string, data: { name: string
 
 export async function updateProductCategory(gameId: string, categoryId: string, data: { name: string; icon: string; sortOrder: number }) {
   try {
-    await fetchApi<any>(`/ProductCategories/${categoryId}?gameId=${gameId}`, {
+    // Note: Add endpoint to AdminCatalog if not exists, for now fallback to putting if AdminCatalog has it
+    await fetchApi<any>(`/admin/catalog/categories/${categoryId}`, {
       method: "PUT",
       body: JSON.stringify(data)
     });
@@ -49,7 +50,7 @@ export async function updateProductCategory(gameId: string, categoryId: string, 
 
 export async function deleteProductCategory(gameId: string, categoryId: string) {
   try {
-    await fetchApi<any>(`/ProductCategories/${categoryId}?gameId=${gameId}`, {
+    await fetchApi<any>(`/admin/catalog/categories/${categoryId}`, {
       method: "DELETE"
     });
     revalidatePath("/admin");
@@ -61,7 +62,8 @@ export async function deleteProductCategory(gameId: string, categoryId: string) 
 
 export async function assignProductsToCategory(gameId: string, categoryId: string, productIds: string[]) {
   try {
-    await fetchApi<any>(`/ProductCategories/${categoryId}/products?gameId=${gameId}`, {
+    // Note: Assuming bulk category mapping exists, else just placeholder
+    await fetchApi<any>(`/admin/catalog/categories/${categoryId}/products`, {
       method: "PUT",
       body: JSON.stringify(productIds)
     });

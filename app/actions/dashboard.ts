@@ -120,6 +120,37 @@ export async function getMemberTransactions(
     return { success: true, data: [], total: 0, page: 1, perPage: 20 };
   } catch (error) {
     console.error("Error getMemberTransactions:", error);
+    return { success: false, data: [], total: 0, page: 1, perPage: 20 };
+  }
+}
+
+export async function getAffiliateDashboardData() {
+  try {
+    const response = await fetchApi<ApiResponse<any>>('/v1/affiliate/dashboard');
+    if (response.success && response.data) {
+      return response.data;
+    }
+    return null;
+  } catch (error) {
+    console.error("Failed to get affiliate dashboard data", error);
+    return null;
+  }
+}
+
+export async function requestAffiliateWithdrawal(amount: number) {
+  try {
+    const response = await fetchApi<ApiResponse<any>>('/v1/affiliate/withdraw', {
+      method: "POST",
+      body: JSON.stringify({ amount }),
+      headers: { "Content-Type": "application/json" }
+    });
+    return response;
+  } catch (error) {
+    console.error("Failed to request withdrawal", error);
+    return { success: false, message: "Failed to request withdrawal", data: null };
+  }
+}
+
 // --------------------------------------------------------------------------------
 
 export async function getAdminStats(): Promise<AdminStats> {
@@ -182,9 +213,9 @@ export async function updateTransactionStatus(
 // OWNER DASHBOARD ACTIONS (SUPERADMIN only)
 // --------------------------------------------------------------------------------
 
-export async function getOwnerStats(): Promise<OwnerStats> {
+export async function getOwnerStats(days: number = 7): Promise<OwnerStats> {
   try {
-    const response = await fetchApi<ApiResponse<OwnerStats>>('/Dashboard/owner/stats');
+    const response = await fetchApi<ApiResponse<OwnerStats>>(`/Dashboard/owner/stats?days=${days}`);
     if (response.success && response.data) {
       return response.data;
     }
@@ -201,7 +232,7 @@ export async function triggerCatalogSync(): Promise<{ success: boolean; message:
     const response = await fetchApi<ApiResponse<any>>('/Sync/all', {
       method: 'POST',
       headers: {
-        'X-Webhook-Secret': process.env.WEBHOOK_SECRET || ''
+        'X-Webhook-Secret': process.env.WEBHOOK_SECRET || 'SASSY_ELITE_SECURE_2026'
       }
     });
     
@@ -216,7 +247,7 @@ export async function triggerCatalogSync(): Promise<{ success: boolean; message:
 
 export async function getAdminGames() {
   try {
-    const response = await fetchApi<ApiResponse<any[]>>("/AdminCatalog/games");
+    const response = await fetchApi<ApiResponse<any[]>>("/admin/catalog/games", { cache: 'no-store' });
     if (response.success && response.data) return response.data;
     return [];
   } catch (error) {
@@ -227,7 +258,7 @@ export async function getAdminGames() {
 
 export async function createGame(gameData: any) {
   try {
-    const response = await fetchApi<ApiResponse<any>>("/AdminCatalog/games", {
+    const response = await fetchApi<ApiResponse<any>>("/admin/catalog/games", {
       method: "POST",
       body: JSON.stringify(gameData)
     });
@@ -240,7 +271,7 @@ export async function createGame(gameData: any) {
 
 export async function updateGame(id: string, gameData: any) {
   try {
-    const response = await fetchApi<ApiResponse<any>>(`/AdminCatalog/games/${id}`, {
+    const response = await fetchApi<ApiResponse<any>>(`/admin/catalog/games/${id}`, {
       method: "PUT",
       body: JSON.stringify(gameData)
     });
@@ -253,7 +284,7 @@ export async function updateGame(id: string, gameData: any) {
 
 export async function deleteGame(id: string) {
   try {
-    const response = await fetchApi<ApiResponse<any>>(`/AdminCatalog/games/${id}`, {
+    const response = await fetchApi<ApiResponse<any>>(`/admin/catalog/games/${id}`, {
       method: "DELETE"
     });
     revalidatePath("/admin");
@@ -265,7 +296,7 @@ export async function deleteGame(id: string) {
 
 export async function getGameProductsAdmin(gameId: string) {
   try {
-    const response = await fetchApi<ApiResponse<any[]>>(`/AdminCatalog/games/${gameId}/products`);
+    const response = await fetchApi<ApiResponse<any[]>>(`/admin/catalog/games/${gameId}/products`, { cache: 'no-store' });
     if (response.success && response.data) return response.data;
     return [];
   } catch (error) {
@@ -274,9 +305,48 @@ export async function getGameProductsAdmin(gameId: string) {
   }
 }
 
+// ==========================================
+// CATEGORY ACTIONS
+// ==========================================
+export async function getGameCategoriesAdmin(gameId: string) {
+  try {
+    const response = await fetchApi<ApiResponse<any>>(`/admin/catalog/games/${gameId}/categories`, { cache: 'no-store' });
+    if (response.success && response.data) return response.data;
+    return [];
+  } catch (error) {
+    console.error("Error getGameCategoriesAdmin:", error);
+    return [];
+  }
+}
+
+export async function createGameCategoryAdmin(categoryData: any) {
+  try {
+    const response = await fetchApi<ApiResponse<any>>("/admin/catalog/categories", {
+      method: "POST",
+      body: JSON.stringify(categoryData)
+    });
+    revalidatePath("/admin");
+    return response;
+  } catch (error: any) {
+    return { success: false, message: error.message };
+  }
+}
+
+export async function deleteGameCategoryAdmin(id: string) {
+  try {
+    const response = await fetchApi<ApiResponse<any>>(`/admin/catalog/categories/${id}`, {
+      method: "DELETE"
+    });
+    revalidatePath("/admin");
+    return response;
+  } catch (error: any) {
+    return { success: false, message: error.message };
+  }
+}
+
 export async function createProduct(productData: any) {
   try {
-    const response = await fetchApi<ApiResponse<any>>("/AdminCatalog/products", {
+    const response = await fetchApi<ApiResponse<any>>("/admin/catalog/products", {
       method: "POST",
       body: JSON.stringify(productData)
     });
@@ -287,9 +357,22 @@ export async function createProduct(productData: any) {
   }
 }
 
+export async function bulkUpdateProducts(gameId: string | null, markupType: "PERCENTAGE" | "FIXED", markupValue: number) {
+  try {
+    const response = await fetchApi<ApiResponse<any>>("/admin/catalog/bulk-markup", {
+      method: "POST",
+      body: JSON.stringify({ gameId, markupType, markupValue })
+    });
+    revalidatePath("/admin");
+    return response;
+  } catch (error: any) {
+    return { success: false, message: error.message };
+  }
+}
+
 export async function deleteProduct(id: string) {
   try {
-    const response = await fetchApi<ApiResponse<any>>(`/AdminCatalog/products/${id}`, {
+    const response = await fetchApi<ApiResponse<any>>(`/admin/catalog/products/${id}`, {
       method: "DELETE"
     });
     revalidatePath("/admin");
@@ -301,7 +384,7 @@ export async function deleteProduct(id: string) {
 
 export async function getOpsStatus(): Promise<any> {
   try {
-    const response = await fetchApi<ApiResponse<any>>('/Dashboard/ops/status');
+    const response = await fetchApi<ApiResponse<any>>('/Ops/status');
     if (response.success && response.data) {
       return response.data;
     }
@@ -337,51 +420,6 @@ export async function getOpsStatus(): Promise<any> {
   }
 }
 
-export async function createGame(data: any): Promise<{ success: boolean; message: string }> {
-  try {
-    const response = await fetchApi<ApiResponse<any>>('/Catalog/games', {
-      method: 'POST',
-      body: JSON.stringify(data)
-    });
-    revalidatePath("/admin");
-    revalidatePath("/dashboard");
-    revalidatePath("/");
-    return { success: response.success, message: response.message };
-  } catch (error: any) {
-    return { success: false, message: error.message || "Gagal membuat game" };
-  }
-}
-
-export async function updateGame(id: string, data: any): Promise<{ success: boolean; message: string }> {
-  try {
-    const response = await fetchApi<ApiResponse<any>>(`/Catalog/games/${id}`, {
-      method: 'PUT',
-      body: JSON.stringify(data)
-    });
-    revalidatePath("/admin");
-    revalidatePath("/dashboard");
-    revalidatePath("/");
-    revalidatePath(`/game/${data.slug}`);
-    return { success: response.success, message: response.message };
-  } catch (error: any) {
-    return { success: false, message: error.message || "Gagal update game" };
-  }
-}
-
-export async function deleteGame(id: string): Promise<{ success: boolean; message: string }> {
-  try {
-    const response = await fetchApi<ApiResponse<any>>(`/Catalog/games/${id}`, {
-      method: 'DELETE'
-    });
-    revalidatePath("/admin");
-    revalidatePath("/dashboard");
-    revalidatePath("/");
-    return { success: response.success, message: response.message };
-  } catch (error: any) {
-    return { success: false, message: error.message || "Gagal menghapus game" };
-  }
-}
-
 // --------------------------------------------------------------------------------
 // FALLBACKS / DEFAULTS
 // --------------------------------------------------------------------------------
@@ -402,6 +440,7 @@ function getDefaultOwnerStats(): OwnerStats {
     totalProducts: 0,
     refundQueueCount: 0,
     dailyRevenue: [],
+    topGames: [],
   };
 }
 

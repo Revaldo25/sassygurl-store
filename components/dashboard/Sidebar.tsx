@@ -20,7 +20,8 @@ import {
   CreditCard,
   MessageSquare,
   ShieldCheck,
-  Zap
+  Zap,
+  Trophy
 } from "lucide-react";
 import { signOut } from "next-auth/react";
 
@@ -38,12 +39,15 @@ const navItems: NavItem[] = [
   // Member
   { label: "My Orders", href: "/dashboard?tab=orders", icon: History, roles: ["MEMBER", "RESELLER", "VIP"] },
   { label: "Loyalty Points", href: "/dashboard?tab=points", icon: Zap, roles: ["MEMBER", "RESELLER", "VIP"] },
+  { label: "Affiliate", href: "/dashboard/affiliate", icon: Users, roles: ["MEMBER", "RESELLER", "VIP", "SUPERADMIN", "OWNER"] },
+  { label: "Leaderboard", href: "/leaderboard", icon: Trophy, roles: ["MEMBER", "RESELLER", "VIP", "CS", "FINANCE", "SUPERADMIN", "OWNER"] },
   { label: "Profile", href: "/dashboard?tab=profile", icon: User, roles: ["MEMBER", "RESELLER", "VIP"] },
   
   // Admin / Owner
   { label: "Admin Dashboard", href: "/admin", icon: LayoutDashboard, roles: ["CS", "FINANCE", "SUPERADMIN", "OWNER"] },
   { label: "Catalog Health", href: "/admin/catalog-health", icon: Activity, roles: ["SUPERADMIN", "OWNER"] },
   { label: "Review Queue", href: "/admin/review", icon: ShieldCheck, roles: ["CS", "SUPERADMIN", "OWNER"] },
+  { label: "Live Chat", href: "/admin/livechat", icon: MessageSquare, roles: ["CS", "SUPERADMIN", "OWNER"] },
 ];
 
 export default function Sidebar({ role }: { role: string }) {

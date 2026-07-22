@@ -146,3 +146,23 @@ _ReSharper*/
 *.dotCover
 _NCrunch_*
 .NCrunch_*
+.vercel
+.env*
+
+# ── Sensitive Documents (NEVER COMMIT) ───────────────────────────────────
+Note_Username_Password.docx
+Manual_Book_SassyGurlStore.docx
+
+# ── WhatsApp Bot auth/cache ──────────────────────────────────────────────
+whatsapp-bot/.wwebjs_auth/
+whatsapp-bot/.wwebjs_cache/
+
+# ── Telegram Bot secrets ─────────────────────────────────────────────────
+telegram-bot/.env
+
+# ── Desktop app builds ───────────────────────────────────────────────────
+desktop-app/
+*.spec
+
+# ── Scratch / temp files ─────────────────────────────────────────────────
+scratch/

@@ -31,7 +31,11 @@ public sealed class MidtransWebhookSecurity : IMidtransWebhookSecurity
         }
 
         var expected = ComputeSha512($"{orderId}{statusCode}{grossAmountRaw}{serverKey}");
-        return string.Equals(expected, signatureKey, StringComparison.OrdinalIgnoreCase);
+        
+        var expectedBytes = Encoding.UTF8.GetBytes(expected.ToLowerInvariant());
+        var providedBytes = Encoding.UTF8.GetBytes(signatureKey.ToLowerInvariant());
+
+        return CryptographicOperations.FixedTimeEquals(expectedBytes, providedBytes);
     }
 
     public bool IsAmountValid(decimal expectedTotal, string grossAmountRaw)

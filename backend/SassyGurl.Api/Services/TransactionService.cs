@@ -5,6 +5,7 @@ using SassyGurl.Api.DTOs.Common;
 using SassyGurl.Api.DTOs.Transaction;
 using SassyGurl.Api.Models;
 using SassyGurl.Api.Models.Enums;
+using SassyGurl.Application.Interfaces;
 
 namespace SassyGurl.Api.Services;
 
@@ -21,19 +22,25 @@ public class TransactionService : ITransactionService
     private readonly IHubContext<SassyGurl.Api.Hubs.NotificationHub> _hub;
     private readonly IOrderTransitionHelper _transition;
     private readonly IMidtransService _midtrans;
+    private readonly ILoyaltyService _loyaltyService;
+    private readonly IPromoService _promoService;
 
     public TransactionService(
         SassyGurlDbContext context, 
         IWhatsAppService whatsApp,
         IHubContext<SassyGurl.Api.Hubs.NotificationHub> hub,
         IOrderTransitionHelper transition,
-        IMidtransService midtrans)
+        IMidtransService midtrans,
+        ILoyaltyService loyaltyService,
+        IPromoService promoService)
     {
         _context = context;
         _whatsApp = whatsApp;
         _hub = hub;
         _transition = transition;
         _midtrans = midtrans;
+        _loyaltyService = loyaltyService;
+        _promoService = promoService;
     }
 
     public async Task<ApiResponse<TransactionResponseDto>> CreateTransactionAsync(CreateTransactionDto request, string? userId)
@@ -52,8 +59,45 @@ public class TransactionService : ITransactionService
         var subTotal = product.PriceSell * request.Quantity;
         var adminFee = payment.FeeFlat + (subTotal * payment.FeePercent / 100);
         var taxVat = 0m;
-        var discount = 0m;
         var notifFee = request.WaNotif ? 500m : 0m;
+
+        var discount = 0m;
+        string? promoIdToSave = null;
+        string? affiliateUserIdToSave = null;
+
+        // Validasi Promo / Affiliate
+        if (!string.IsNullOrWhiteSpace(request.PromoCode))
+        {
+            var promoValidation = await _promoService.ValidatePromoAsync(new ValidatePromoRequestDto
+            {
+                Code = request.PromoCode,
+                Amount = subTotal
+            });
+
+            if (promoValidation.Success && promoValidation.Data != null)
+            {
+                discount = promoValidation.Data.Discount;
+
+                if (promoValidation.Data.IsAffiliateCode)
+                {
+                    affiliateUserIdToSave = promoValidation.Data.AffiliateUserId;
+                }
+                else
+                {
+                    // For regular promo, we need to find the PromoId from DB again, 
+                    // or PromoService could return it. Let's find it by Code:
+                    var promoData = await _context.Promos.FirstOrDefaultAsync(p => p.Code == promoValidation.Data.Code);
+                    if (promoData != null)
+                    {
+                        promoIdToSave = promoData.Id;
+                    }
+                }
+            }
+            else
+            {
+                return ApiResponse<TransactionResponseDto>.Fail(promoValidation.Message ?? "Promo code invalid");
+            }
+        }
 
         var totalAmount = subTotal + adminFee + taxVat + notifFee - discount;
         var profit = (product.PriceSell - product.PriceModal) * request.Quantity;
@@ -79,12 +123,14 @@ public class TransactionService : ITransactionService
             AdminFee = adminFee + notifFee,
             TaxVat = taxVat,
             Discount = discount,
+            PromoId = promoIdToSave,
+            AffiliateUserId = affiliateUserIdToSave,
             TotalAmount = totalAmount,
             Profit = profit,
             
             PaymentStatus = PaymentStatus.UNPAID,
             OrderStatus = OrderStatus.PENDING,
-            ExpiredAt = DateTime.UtcNow.AddDays(1)
+            ExpiredAt = DateTime.UtcNow.AddMinutes(10) // Changed to 10 minutes per user request
         };
 
         _context.Transactions.Add(transaction);
@@ -170,6 +216,9 @@ public class TransactionService : ITransactionService
                     Timestamp: DateTime.UtcNow
                 )
             );
+
+            // Give Loyalty Points on Success
+            await _loyaltyService.AwardPointsAfterSuccessAsync(transaction.Id);
         }
 
         return ApiResponse<string>.Ok("Status berhasil diubah", $"Status berhasil diubah ke {newStatus}");

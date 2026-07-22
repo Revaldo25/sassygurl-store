@@ -4,6 +4,7 @@ using SassyGurl.Api.DTOs.Catalog;
 using SassyGurl.Api.DTOs.Common;
 using SassyGurl.Api.Services;
 using System.Security.Claims;
+using Microsoft.EntityFrameworkCore;
 
 namespace SassyGurl.Api.Controllers;
 
@@ -70,6 +71,47 @@ public class CatalogController : ControllerBase
     {
         var result = await _catalogService.GetProviderStatusesAsync();
         return Ok(result);
+    }
+
+    // ── GET /api/catalog/flash-sale/active ────────────────────────────────
+    [HttpGet("flash-sale/active")]
+    public async Task<IActionResult> GetActiveFlashSale([FromServices] SassyGurl.Api.Data.SassyGurlDbContext context)
+    {
+        var setting = await context.SystemSettings.FirstOrDefaultAsync(s => s.Key == "FlashSaleConfig");
+        if (setting == null || string.IsNullOrEmpty(setting.Value)) return Ok(new { success = true, data = (object?)null });
+
+        var config = System.Text.Json.JsonSerializer.Deserialize<FlashSaleConfig>(setting.Value, new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+        if (config == null || !config.IsActive) return Ok(new { success = true, data = (object?)null });
+
+        // Check if currently active
+        var wibZone = TimeZoneInfo.FindSystemTimeZoneById("SE Asia Standard Time");
+        var currentTimeWib = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, wibZone);
+        var startTime = new TimeSpan(config.StartHour, config.StartMinute, 0);
+        var endTime = new TimeSpan(config.EndHour, config.EndMinute, 0);
+        var currentTime = currentTimeWib.TimeOfDay;
+
+        bool isTimeInWindow = (startTime <= endTime) 
+            ? (currentTime >= startTime && currentTime <= endTime)
+            : (currentTime >= startTime || currentTime <= endTime);
+
+        if (!isTimeInWindow && !config.ForceTrigger) return Ok(new { success = true, data = (object?)null });
+
+        // Calculate ending time relative to current time for countdown
+        DateTime endDateWib = currentTimeWib.Date + endTime;
+        if (startTime > endTime && currentTime >= startTime)
+        {
+            // Ends tomorrow
+            endDateWib = endDateWib.AddDays(1);
+        }
+        
+        return Ok(new { 
+            success = true, 
+            data = new {
+                endTimeUtc = TimeZoneInfo.ConvertTimeToUtc(endDateWib, wibZone),
+                discountPercent = config.DiscountPercent,
+                gameIds = config.GameIds
+            }
+        });
     }
 
     // ── ADMIN CRUD ────────────────────────────────────────────────────────

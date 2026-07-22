@@ -3,8 +3,9 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { 
-  Clock, CheckCircle2, Loader2, Receipt, AlertCircle
+  Clock, CheckCircle2, Loader2, Receipt, AlertCircle, CreditCard
 } from "lucide-react";
+import Script from "next/script";
 import { trackOrderAction } from "@/app/actions/track";
 
 export default function InvoicePage() {
@@ -83,7 +84,8 @@ export default function InvoicePage() {
   const isFailed =
     invoice.paymentStatus === "FAILED" ||
     invoice.paymentStatus === "EXPIRED" ||
-    invoice.orderStatus === "ERROR";
+    invoice.orderStatus === "ERROR" ||
+    invoice.orderStatus === "FAILED";
 
   if (isSuccess) {
     return (
@@ -147,6 +149,25 @@ export default function InvoicePage() {
                   <p className="text-zinc-500 text-sm">
                     Silakan selesaikan pembayaran Anda melalui popup Midtrans atau channel pembayaran yang Anda pilih.
                   </p>
+                  {invoice.paymentToken && (
+                    <button
+                      onClick={() => {
+                        // @ts-ignore
+                        if (window.snap && !invoice.paymentToken.startsWith("SNAP-")) {
+                          // @ts-ignore
+                          window.snap.pay(invoice.paymentToken);
+                        } else if (invoice.paymentToken.startsWith("http")) {
+                          window.location.href = invoice.paymentToken;
+                        } else {
+                          alert("Sistem pembayaran sedang disiapkan, silakan refresh halaman.");
+                        }
+                      }}
+                      className="mt-6 w-full bg-sakura text-black font-black hover:bg-sakura/80 py-4 rounded-2xl transition-all shadow-[0_0_20px_rgba(255,107,152,0.3)] flex items-center justify-center gap-2"
+                    >
+                      <CreditCard className="w-5 h-5" />
+                      BAYAR SEKARANG
+                    </button>
+                  )}
                 </div>
               )}
             </div>

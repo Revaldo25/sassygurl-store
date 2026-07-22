@@ -124,7 +124,7 @@ public class WebhookPipelineTests : IClassFixture<WebApplicationFactory<Program>
     {
         // Arrange
         var mockProvider = new Mock<IProviderService>();
-        mockProvider.Setup(p => p.PlaceOrderAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
+        mockProvider.Setup(p => p.PlaceOrderAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string?>()))
             .ReturnsAsync(new ProviderOrderResponse { IsSuccess = true, Sn = "123", ProviderRef = "abc", ProviderName = "Mock" });
 
         var mockValidation = new Mock<IPaymentValidationService>();
@@ -232,7 +232,7 @@ public class WebhookPipelineTests : IClassFixture<WebApplicationFactory<Program>
             Assert.Equal(OrderStatus.SUCCESS, tx.OrderStatus);
             Assert.NotNull(tx.ProviderRef);
             
-            mockProvider.Verify(p => p.PlaceOrderAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()), Times.Once);
+            mockProvider.Verify(p => p.PlaceOrderAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string?>()), Times.Once);
         }
     }
 }

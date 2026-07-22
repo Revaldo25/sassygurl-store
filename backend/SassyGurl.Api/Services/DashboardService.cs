@@ -48,7 +48,7 @@ public class DashboardService : IDashboardService
             PendingOrders = pendingOrders,
             Balance = user.Balance,
             Points = user.Points,
-            LoyaltyLevel = GetLoyaltyLevel(totalSpent)
+            LoyaltyLevel = user.Tier.ToString()
         };
 
         return ApiResponse<MemberStatsDto>.Ok(stats);

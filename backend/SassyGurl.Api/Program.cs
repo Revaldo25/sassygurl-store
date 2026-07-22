@@ -17,6 +17,7 @@ using Serilog;
 using Serilog.Events;
 using Serilog.Sinks.PostgreSQL;
 using SassyGurl.Infrastructure;
+using SassyGurl.Application.Interfaces;
 using SassyGurl.Infrastructure.Interceptors;
 using Microsoft.OpenApi;
 using NpgsqlTypes;
@@ -101,6 +102,8 @@ try
     // ========================================================================
     // Core Services
     // ========================================================================
+    builder.Services.AddScoped<SassyGurl.Api.Services.ReportGeneratorService>();
+
     builder.Services.AddControllers()
         .AddJsonOptions(options =>
         {
@@ -165,9 +168,18 @@ try
     builder.Services.AddScoped<SassyGurl.Api.Services.Providers.VipResellerAdapter>();
     builder.Services.AddScoped<IAuditService, AuditService>();
     builder.Services.AddScoped<IWhatsAppService, WhatsAppService>();
+    builder.Services.AddScoped<IAiSupportService, AiSupportService>();
     builder.Services.AddScoped<ISettingsService, SettingsService>();
     builder.Services.AddHostedService<ProviderHealthMonitor>();
+    builder.Services.AddHostedService<LeaderboardResetService>();
+    builder.Services.AddHostedService<SassyGurl.Api.Services.FlashSaleBackgroundService>();
+    builder.Services.AddSingleton<IWhatsAppNotificationQueue, WhatsAppNotificationQueue>();
+builder.Services.AddSingleton<IEmailNotificationQueue, EmailNotificationQueue>();
+builder.Services.AddHostedService<WhatsAppChannelWorker>();
+builder.Services.AddHostedService<EmailChannelWorker>();
+builder.Services.AddHostedService<WhatsAppBlastWorker>();
     builder.Services.AddHostedService<CatalogSyncScheduler>();
+    builder.Services.AddHostedService<TelegramSupportWorker>();
 
     // ── Core Engine Services ─────────────────────────────────────────────
     builder.Services.AddScoped<ICloudinaryService, CloudinaryService>();
@@ -177,6 +189,8 @@ try
     builder.Services.AddScoped<INotificationOrchestrator, NotificationOrchestrator>();
     builder.Services.AddScoped<IVoucherService, VoucherService>();
     builder.Services.AddScoped<ICheckoutService, CheckoutService>();
+    builder.Services.AddScoped<ILoyaltyService, LoyaltyService>();
+    builder.Services.AddScoped<IAffiliateService, AffiliateService>();
 
     // Master Plan §8 — Order State Machine (stateless, safe as singleton)
     builder.Services.AddSingleton<IOrderStateMachine, OrderStateMachine>();
@@ -264,6 +278,19 @@ try
                 ValidateLifetime = true,
                 RoleClaimType = System.Security.Claims.ClaimTypes.Role,
                 NameClaimType = System.Security.Claims.ClaimTypes.Name
+            };
+            options.Events = new JwtBearerEvents
+            {
+                OnMessageReceived = context =>
+                {
+                    var accessToken = context.Request.Query["access_token"];
+                    var path = context.HttpContext.Request.Path;
+                    if (!string.IsNullOrEmpty(accessToken) && path.StartsWithSegments("/hubs"))
+                    {
+                        context.Token = accessToken;
+                    }
+                    return Task.CompletedTask;
+                }
             };
         });
 
@@ -426,6 +453,7 @@ try
     // Map Endpoints
     app.MapControllers();
     app.MapHub<NotificationHub>("/hubs/notifications");
+    app.MapHub<SupportHub>("/hubs/support");
     app.MapHealthChecks("/health");
 
     app.Run();

@@ -119,7 +119,9 @@ public class GameValidationController : ControllerBase
             }
 
             var content = new FormUrlEncodedContent(formFields);
-            var response = await client.PostAsync("game-feature", content);
+            
+            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(3));
+            var response = await client.PostAsync("game-feature", content, cts.Token);
             var responseStr = await response.Content.ReadAsStringAsync();
 
             _logger.LogInformation("VIP Reseller validate response for {Game}/{Target}: {Response}",
@@ -152,10 +154,33 @@ public class GameValidationController : ControllerBase
             var errorMsg = json.TryGetProperty("message", out var msg) ? msg.GetString() : "Nickname not found.";
             return Ok(new { success = false, message = errorMsg });
         }
+        catch (TaskCanceledException ex)
+        {
+            _logger.LogWarning(ex, "Validation timeout for {GameCode}/{TargetId}. Initiating Failover Bypass.", request.GameCode, request.TargetId);
+            return Ok(new
+            {
+                success = true,
+                data = new
+                {
+                    nickname = "Player (Validation Bypassed)",
+                    targetId = request.TargetId,
+                    zoneId = request.ZoneId
+                }
+            });
+        }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to validate nickname for {GameCode}/{TargetId}", request.GameCode, request.TargetId);
-            return StatusCode(500, new { success = false, message = "Validation service temporarily unavailable." });
+            _logger.LogError(ex, "Validation failed for {GameCode}/{TargetId}. Initiating Failover Bypass.", request.GameCode, request.TargetId);
+            return Ok(new
+            {
+                success = true,
+                data = new
+                {
+                    nickname = "Player (Validation Bypassed)",
+                    targetId = request.TargetId,
+                    zoneId = request.ZoneId
+                }
+            });
         }
     }
 

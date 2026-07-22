@@ -9,9 +9,10 @@ import { NormalizedGame } from "@/lib/api-adapter";
 type Props = {
   games: NormalizedGame[];
   accent?: string;
+  flashSaleGameIds?: string[];
 };
 
-export default function GameCatalogClient({ games, accent = "#FDB0C0" }: Props) {
+export default function GameCatalogClient({ games = [], flashSaleGameIds = [] }: { games: any[], flashSaleGameIds?: string[] }) {
   const [searchQuery, setSearchQuery] = useState("");
   const [activeTab, setActiveTab] = useState("SEMUA");
 
@@ -113,7 +114,7 @@ export default function GameCatalogClient({ games, accent = "#FDB0C0" }: Props) 
           <Link
             key={game.slug}
             href={`/games/${game.slug}`}
-            className="group glass-card overflow-hidden flex flex-col transition-all duration-500 hover:-translate-y-2 hover:border-sakura/30 hover:shadow-[0_20px_40px_-15px_rgba(253,176,192,0.2)]"
+            className="group glass-card overflow-hidden flex flex-col transition-all duration-500 hover:-translate-y-3 hover:scale-105 hover:border-sakura/50 hover:shadow-[0_0_40px_rgba(253,176,192,0.4)] relative"
             style={{ animationDelay: `${idx * 50}ms` }}
           >
             {/* Image Container (Square App Icon Style) */}
@@ -123,21 +124,22 @@ export default function GameCatalogClient({ games, accent = "#FDB0C0" }: Props) 
                 alt={game.name}
                 fill
                 sizes="(max-width: 640px) 33vw, (max-width: 768px) 25vw, 20vw"
-                className="object-cover transition-transform duration-700 group-hover:scale-110"
+                className="object-cover transition-transform duration-700 group-hover:scale-125 group-hover:rotate-3"
               />
               
               {/* Premium Gradient Overlay */}
-              <div className="absolute inset-0 bg-gradient-to-t from-obsidian/90 via-obsidian/20 to-transparent opacity-80 md:opacity-90 transition-opacity duration-300 group-hover:opacity-100" />
-
-              {/* Glowing Aura on Hover */}
-              <div className="absolute inset-0 opacity-0 group-hover:opacity-100 bg-sakura-glow mix-blend-screen transition-opacity duration-500" />
-
-              {/* Badges */}
-              <div className="absolute left-3 top-3 flex flex-col gap-1.5 z-10">
+              <div className="absolute inset-0 bg-gradient-to-t from-obsidian via-obsidian/40 to-transparent z-10" />
+                
+              {/* Hot/Flash Sale Badges */}
+              <div className="absolute top-2 left-2 z-20 flex flex-col gap-1">
                 {game.isHot && (
-                  <span className="inline-flex items-center gap-1 rounded-full bg-rose-500/20 border border-rose-500/30 px-2.5 py-1 text-[9px] font-bold tracking-wider text-rose-400 backdrop-blur-md shadow-[0_0_10px_rgba(244,63,94,0.3)]">
-                    <Flame className="h-3 w-3" />
+                  <span className="bg-rose-500/90 backdrop-blur-sm text-white text-[9px] font-black px-1.5 py-0.5 rounded shadow-lg shadow-rose-500/20">
                     HOT
+                  </span>
+                )}
+                {flashSaleGameIds.includes(game.id) && (
+                  <span className="bg-status-warning/90 backdrop-blur-sm text-black text-[9px] font-black px-1.5 py-0.5 rounded shadow-lg shadow-status-warning/20 animate-pulse border border-white/20">
+                    ⚡ FLASH SALE
                   </span>
                 )}
               </div>

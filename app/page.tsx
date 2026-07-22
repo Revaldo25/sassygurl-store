@@ -2,8 +2,10 @@ import Link from "next/link";
 import { Compass, Zap, ShieldCheck, HelpCircle, ChevronDown, Gamepad2, Search } from "lucide-react";
 import SiteHeader from "@/components/SiteHeader";
 import BannerCarousel from "@/components/BannerCarousel";
+import FlashSaleBanner from "@/components/FlashSaleBanner";
 import GameCatalogClient from "@/components/GameCatalogClient";
 import LiveTransactionFeed from "@/components/LiveTransactionFeed";
+import LeaderboardBanner from "@/components/LeaderboardBanner";
 import { getAllGamesNormalized } from "@/lib/api-adapter";
 import { fetchApi } from "@/lib/api-client";
 import { PublicTransaction } from "@/components/LiveTransactionFeed";
@@ -26,6 +28,10 @@ export default async function HomePage() {
       timestamp: new Date(tx.timestamp).toLocaleTimeString("id-ID", { hour: '2-digit', minute: '2-digit' }),
     }));
   }
+
+  // Fetch active flash sale
+  const flashSaleRes = await fetchApi<{ success: boolean; data: any }>("/catalog/flash-sale/active").catch(() => ({ success: false, data: null }));
+  const flashSaleData = flashSaleRes.data;
 
   return (
     <main className="min-h-screen bg-obsidian text-white overflow-hidden">
@@ -59,9 +65,15 @@ export default async function HomePage() {
         </div>
       </section>
 
+      {/* ── Flash Sale Banner ────────────────────────────────────────────── */}
+      {flashSaleData && <FlashSaleBanner flashSaleData={flashSaleData} />}
+
+      {/* ── Leaderboard VIP Banner ─────────────────────────────────────── */}
+      <LeaderboardBanner />
+
       {/* ── The VIP Catalog ────────────────────────────────────────────── */}
-      <div className="relative z-20">
-        <GameCatalogClient games={games} />
+      <div className="relative z-20 mt-4">
+        <GameCatalogClient games={games} flashSaleGameIds={flashSaleData?.gameIds || []} />
       </div>
 
       {/* ── Live Transactions & VIP FAQ ────────────────────────────────── */}
@@ -86,7 +98,7 @@ export default async function HomePage() {
                 <HelpCircle className="h-6 w-6 text-sakura" />
               </div>
               <div>
-                <h3 className="text-xl font-bold text-white tracking-tight">SassyGurl Codex</h3>
+                <h3 className="text-xl font-bold text-white tracking-tight">FAQ SassyGurl</h3>
                 <p className="text-sm text-zinc-500 font-medium mt-1">Panduan transaksi eksklusif</p>
               </div>
             </div>

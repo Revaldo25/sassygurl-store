@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, Gamepad2, Search, User } from "lucide-react";
+import { Home, Gamepad2, Search, User, Trophy } from "lucide-react";
 import { useSession } from "next-auth/react";
 import { useEffect, useState } from "react";
 
@@ -18,7 +18,7 @@ export default function FloatingNav() {
 
   useEffect(() => {
     if (pathname !== "/") {
-      setIsCatalogInView(false);
+      setTimeout(() => setIsCatalogInView(false), 0);
       return;
     }
 

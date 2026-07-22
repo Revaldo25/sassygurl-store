@@ -27,22 +27,33 @@ public class AuthService : IAuthService
 {
     private readonly SassyGurlDbContext _context;
     private readonly IConfiguration _configuration;
-    private readonly IHostEnvironment _environment;
+    private readonly IWebHostEnvironment _environment;
     private readonly ILogger<AuthService> _logger;
+    private readonly IWhatsAppNotificationQueue _waQueue;
+    private readonly IEmailNotificationQueue _emailQueue;
 
-    public AuthService(SassyGurlDbContext context, IConfiguration configuration, IHostEnvironment environment, ILogger<AuthService> logger)
+    public AuthService(
+        SassyGurlDbContext context,
+        IConfiguration configuration,
+        ILogger<AuthService> logger,
+        IWebHostEnvironment environment,
+        IWhatsAppNotificationQueue waQueue,
+        IEmailNotificationQueue emailQueue)
     {
         _context = context;
         _configuration = configuration;
-        _environment = environment;
         _logger = logger;
+        _environment = environment;
+        _waQueue = waQueue;
+        _emailQueue = emailQueue;
     }
 
     public async Task<ApiResponse<AuthResponseDto>> LoginAsync(LoginRequestDto request)
     {
+        var normalizedEmail = request.Email?.ToLower();
         var user = await _context.Users
             .FirstOrDefaultAsync(u => 
-                (!string.IsNullOrEmpty(request.Email) && u.Email == request.Email) || 
+                (!string.IsNullOrEmpty(normalizedEmail) && u.Email != null && u.Email.ToLower() == normalizedEmail) || 
                 (!string.IsNullOrEmpty(request.Phone) && u.Phone == request.Phone));
 
         if (user == null) return ApiResponse<AuthResponseDto>.Fail("Akun tidak ditemukan.");
@@ -81,7 +92,8 @@ public class AuthService : IAuthService
 
     public async Task<ApiResponse<AuthResponseDto>> SocialLoginAsync(SocialLoginRequestDto request)
     {
-        var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == request.Email);
+        var normalizedEmail = request.Email?.ToLower();
+        var user = await _context.Users.FirstOrDefaultAsync(u => u.Email != null && normalizedEmail != null && u.Email.ToLower() == normalizedEmail);
         
         if (user == null)
         {
@@ -138,8 +150,9 @@ public class AuthService : IAuthService
 
     public async Task<ApiResponse<string>> RegisterAsync(RegisterRequestDto request)
     {
+        var normalizedEmail = request.Email?.ToLower();
         var exist = await _context.Users
-            .AnyAsync(u => (request.Email != null && u.Email == request.Email) || 
+            .AnyAsync(u => (normalizedEmail != null && u.Email != null && u.Email.ToLower() == normalizedEmail) || 
                            (request.Phone != null && u.Phone == request.Phone));
 
         if (exist) return ApiResponse<string>.Fail("Identitas sudah terdaftar!");
@@ -147,7 +160,7 @@ public class AuthService : IAuthService
         var user = new User
         {
             Name = string.IsNullOrEmpty(request.Name) ? "Member VIP" : request.Name,
-            Email = request.Email,
+            Email = normalizedEmail,
             Phone = request.Phone,
             Password = BCrypt.Net.BCrypt.HashPassword(request.Password),
             IsVerified = false
@@ -166,11 +179,22 @@ public class AuthService : IAuthService
         _context.VerificationTokens.Add(token);
         await _context.SaveChangesAsync();
 
-        // TODO: Send Email/WA based on method (Omitted for dev)
-        if (_environment.IsDevelopment())
+        if (request.Method == "email")
         {
-            _logger.LogDebug("[DEV ONLY] OTP for {Identifier}: {Otp}", token.Identifier, otp);
-            return ApiResponse<string>.Ok(request.Method == "email" ? request.Email! : request.Phone!, $"[DEV] OTP Anda: {otp}");
+            await _emailQueue.EnqueueAsync(new EmailMessageItem
+            {
+                ToEmail = request.Email!,
+                Subject = "SassyGurl Store - Kode Verifikasi Anda",
+                HtmlBody = $"<h2>Kode Verifikasi</h2><p>Kode OTP Anda adalah: <strong>{otp}</strong></p><p>Berlaku selama 10 menit.</p>"
+            });
+        }
+        else
+        {
+            await _waQueue.EnqueueAsync(new WhatsAppMessageItem
+            {
+                Phone = request.Phone!,
+                Message = $"🔒 *Kode Verifikasi SassyGurl*\n\nKode OTP Anda adalah: *{otp}*\n\nJangan bagikan kode ini kepada siapapun! Berlaku selama 10 menit."
+            });
         }
 
         return ApiResponse<string>.Ok(request.Method == "email" ? request.Email! : request.Phone!, "OTP Terkirim! Silakan cek email/WhatsApp Anda.");
@@ -184,8 +208,9 @@ public class AuthService : IAuthService
         if (tokenRecord == null) return ApiResponse<AuthResponseDto>.Fail("Kode OTP Salah atau tidak ditemukan!");
         if (DateTime.UtcNow > tokenRecord.Expires) return ApiResponse<AuthResponseDto>.Fail("Kode OTP sudah kedaluwarsa!");
 
+        var normalizedIdentifier = request.Identifier?.ToLower();
         var user = await _context.Users
-            .FirstOrDefaultAsync(u => u.Email == request.Identifier || u.Phone == request.Identifier);
+            .FirstOrDefaultAsync(u => (u.Email != null && normalizedIdentifier != null && u.Email.ToLower() == normalizedIdentifier) || u.Phone == request.Identifier);
 
         if (user == null) return ApiResponse<AuthResponseDto>.Fail("User tidak ditemukan.");
 
@@ -245,10 +270,22 @@ public class AuthService : IAuthService
         _context.VerificationTokens.Add(token);
         await _context.SaveChangesAsync();
 
-        if (_environment.IsDevelopment())
+        if (request.Identifier.Contains("@"))
         {
-            _logger.LogDebug("[DEV ONLY] Forgot Password OTP for {Identifier}: {Otp}", token.Identifier, otp);
-            return ApiResponse<string>.Ok(request.Identifier, $"[DEV] OTP Anda: {otp}");
+            await _emailQueue.EnqueueAsync(new EmailMessageItem
+            {
+                ToEmail = request.Identifier,
+                Subject = "SassyGurl Store - Reset Password",
+                HtmlBody = $"<h2>Reset Password</h2><p>Kode OTP reset password Anda adalah: <strong>{otp}</strong></p><p>Berlaku selama 10 menit.</p>"
+            });
+        }
+        else
+        {
+            await _waQueue.EnqueueAsync(new WhatsAppMessageItem
+            {
+                Phone = request.Identifier,
+                Message = $"🔒 *Reset Password SassyGurl*\n\nKode OTP Anda adalah: *{otp}*\n\nJangan bagikan kode ini kepada siapapun! Berlaku selama 10 menit."
+            });
         }
 
         return ApiResponse<string>.Ok(request.Identifier, "Kode OTP telah dikirim!");

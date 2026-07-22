@@ -63,7 +63,7 @@ public static class ProviderClientRegistration
             .OrResult(msg => (int)msg.StatusCode == 429)
             .WaitAndRetryAsync([TimeSpan.FromMilliseconds(200), TimeSpan.FromMilliseconds(600), TimeSpan.FromMilliseconds(1200)]);
 
-        services.AddHttpClient<IDigiflazzClient, DigiflazzClient>(client =>
+        services.AddHttpClient("DigiflazzClient", client =>
         {
             client.BaseAddress = new Uri(options.DigiflazzBaseUrl);
             client.Timeout = TimeSpan.FromSeconds(8);
@@ -75,7 +75,7 @@ public static class ProviderClientRegistration
         .AddPolicyHandler(resiliencePolicy)
         .AddTransientHttpErrorPolicy(policy => policy.CircuitBreakerAsync(5, TimeSpan.FromSeconds(30)));
 
-        services.AddHttpClient<IVipResellerClient, VipResellerClient>(client =>
+        services.AddHttpClient("VipResellerClient", client =>
         {
             client.BaseAddress = new Uri(options.VipResellerBaseUrl);
             client.Timeout = TimeSpan.FromSeconds(8);

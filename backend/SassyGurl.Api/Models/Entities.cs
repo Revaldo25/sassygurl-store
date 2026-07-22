@@ -27,6 +27,8 @@ public class User
 
     public Role Role { get; set; } = Role.MEMBER;
 
+    public MemberTier Tier { get; set; } = MemberTier.BRONZE;
+
     public KycStatus KycStatus { get; set; } = KycStatus.UNVERIFIED;
 
     public bool IsVerified { get; set; } = false;
@@ -68,8 +70,10 @@ public class User
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
 
     // Navigation Properties
+    [InverseProperty("User")]
     public ICollection<Transaction> Transactions { get; set; } = [];
     public ICollection<WalletLedger> WalletLedgers { get; set; } = [];
+    public ICollection<PointLedger> PointLedgers { get; set; } = [];
     public ICollection<Review> Reviews { get; set; } = [];
     public ICollection<SupportTicket> SupportTickets { get; set; } = [];
     public ICollection<SystemAudit> AuditLogs { get; set; } = [];
@@ -136,6 +140,31 @@ public class WalletLedger
     public string Description { get; set; } = null!;
 
     public string? PerformedById { get; set; }
+
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+}
+
+public class PointLedger
+{
+    [Key]
+    public string Id { get; set; } = Guid.NewGuid().ToString();
+
+    public string UserId { get; set; } = null!;
+
+    [ForeignKey(nameof(UserId))]
+    public User User { get; set; } = null!;
+
+    public string? TransactionId { get; set; }
+
+    public MutationType Type { get; set; }
+
+    public int Debit { get; set; } = 0;
+
+    public int Credit { get; set; } = 0;
+
+    public int BalanceSnapshot { get; set; }
+
+    public string Description { get; set; } = null!;
 
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 }
@@ -361,6 +390,8 @@ public class Product
 
     public bool IsFlashSale { get; set; } = false;
 
+    public int? OverridePoints { get; set; }
+
     public int Stock { get; set; } = 99999;
 
     public DateTime? LastSyncedAt { get; set; }
@@ -419,6 +450,8 @@ public class Promo
 
     [Column(TypeName = "decimal(10,2)")]
     public decimal MinTransaction { get; set; } = 0;
+
+    public int PointsCost { get; set; } = 0;
 
     public int Quota { get; set; } = 100;
 
@@ -483,6 +516,11 @@ public class Transaction
     [ForeignKey(nameof(PromoId))]
     public Promo? Promo { get; set; }
 
+    public string? AffiliateUserId { get; set; }
+
+    [ForeignKey(nameof(AffiliateUserId))]
+    public User? AffiliateUser { get; set; }
+
     [Column(TypeName = "decimal(10,2)")]
     public decimal PriceModal { get; set; }
 
@@ -497,6 +535,11 @@ public class Transaction
 
     [Column(TypeName = "decimal(10,2)")]
     public decimal Discount { get; set; } = 0;
+
+    public int PointsUsed { get; set; } = 0;
+
+    [Column(TypeName = "decimal(10,2)")]
+    public decimal PointsDiscount { get; set; } = 0;
 
     [Column(TypeName = "decimal(10,2)")]
     public decimal TotalAmount { get; set; }
@@ -649,6 +692,31 @@ public class VerificationToken
 }
 
 // ============================================================================
+// 10. WHATSAPP & NOTIFICATION QUEUE
+// ============================================================================
+
+public class NotificationQueue
+{
+    [Key]
+    public string Id { get; set; } = Guid.NewGuid().ToString();
+
+    public string TargetPhone { get; set; } = null!;
+
+    [Column(TypeName = "text")]
+    public string Message { get; set; } = null!;
+
+    [MaxLength(50)]
+    public string Status { get; set; } = "PENDING"; // PENDING, SENT, FAILED
+
+    [Column(TypeName = "text")]
+    public string? ErrorMessage { get; set; }
+
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+
+    public DateTime? ProcessedAt { get; set; }
+}
+
+// ============================================================================
 // 10. SYSTEM SETTINGS (Smart Markup, Fees, Store Config)
 // ============================================================================
 
@@ -698,4 +766,58 @@ public class DailyProfit
     public int FailedCount { get; set; }
 
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+}
+
+// ============================================================================
+// 10. AFFILIATE & WITHDRAWALS
+// ============================================================================
+
+public class AffiliateCommission
+{
+    [Key]
+    public string Id { get; set; } = Guid.NewGuid().ToString();
+
+    public string AffiliateUserId { get; set; } = null!;
+
+    [ForeignKey(nameof(AffiliateUserId))]
+    public User AffiliateUser { get; set; } = null!;
+
+    public string TransactionId { get; set; } = null!;
+
+    [ForeignKey(nameof(TransactionId))]
+    public Transaction Transaction { get; set; } = null!;
+
+    [Column(TypeName = "decimal(15,2)")]
+    public decimal Amount { get; set; }
+
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+}
+
+public class WithdrawalRequest
+{
+    [Key]
+    public string Id { get; set; } = Guid.NewGuid().ToString();
+
+    public string UserId { get; set; } = null!;
+
+    [ForeignKey(nameof(UserId))]
+    public User User { get; set; } = null!;
+
+    [Column(TypeName = "decimal(15,2)")]
+    public decimal Amount { get; set; }
+
+    public string BankName { get; set; } = null!;
+
+    public string AccountNumber { get; set; } = null!;
+
+    public string AccountName { get; set; } = null!;
+
+    // Using string for Status (PENDING, APPROVED, REJECTED)
+    public string Status { get; set; } = "PENDING";
+
+    public string? AdminNote { get; set; }
+
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+
+    public DateTime? ProcessedAt { get; set; }
 }

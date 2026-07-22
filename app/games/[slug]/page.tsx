@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import { getGameProducts, getGroupedPayments, getRecentTransactions } from "@/lib/api-adapter";
 import CheckoutClient from "./CheckoutClient";
 import SiteHeader from "@/components/SiteHeader";
+import { auth } from "@/lib/auth";
+import { getMemberDashboardStats } from "@/app/actions/dashboard";
 import GameHero from "@/components/game/GameHero";
 import FAQAccordion from "@/components/game/FAQAccordion";
 import RelatedGamesGrid from "@/components/game/RelatedGamesGrid";
@@ -60,6 +62,17 @@ export default async function GameSlugPage({
     getGroupedPayments(),
     getRecentTransactions(),
   ]);
+
+  const session = await auth();
+  let userPoints = 0;
+  if (session?.user) {
+    try {
+      const stats = await getMemberDashboardStats();
+      userPoints = stats?.points || 0;
+    } catch {
+      userPoints = 0;
+    }
+  }
 
   if (!game) return notFound();
 
@@ -131,6 +144,7 @@ export default async function GameSlugPage({
           game={game}
           groupedByCategory={groupedByCategory}
           paymentGroups={paymentGroups}
+          userPoints={userPoints}
         />
         
         <div className="mt-16 space-y-12">

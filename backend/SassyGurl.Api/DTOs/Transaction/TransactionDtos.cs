@@ -25,6 +25,8 @@ public class CreateTransactionDto
     public string? Whatsapp { get; set; }
     
     public bool WaNotif { get; set; } = false;
+
+    public string? PromoCode { get; set; }
 }
 
 public class TransactionResponseDto

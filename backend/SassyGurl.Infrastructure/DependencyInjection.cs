@@ -6,6 +6,7 @@ using RedLockNet.SERedis;
 using RedLockNet.SERedis.Configuration;
 using StackExchange.Redis;
 using SassyGurl.Application.Interfaces;
+using SassyGurl.Application.Services;
 using SassyGurl.Infrastructure.Interceptors;
 using SassyGurl.Infrastructure.Services;
 
@@ -50,12 +51,9 @@ public static class DependencyInjection
             }
         });
 
-        // ─── Distributed Cache (IDistributedCache → Redis) ──────────────
-        services.AddStackExchangeRedisCache(options =>
-        {
-            options.Configuration = redisConnectionString;
-            options.InstanceName = "SassyGurl:";
-        });
+        // ─── Distributed Cache (IDistributedCache) ──────────────
+        // Switched from Redis to Memory Cache because Redis is not running locally, causing a 40-second timeout.
+        services.AddDistributedMemoryCache();
 
         // ─── RedLock.net Distributed Lock Factory ────────────────────────
         // RedLockFactory requires a list of Redis endpoints.
@@ -83,6 +81,7 @@ public static class DependencyInjection
         // ─── Phase 2 Services (Financial Fortress) ───────────────────────
         services.AddSingleton<IEncryptionService, AesGcmEncryptionService>();
         services.AddScoped<IPaymentValidationService, XenditPaymentValidationService>();
+        services.AddScoped<IFileStorageService, CloudinaryStorageService>();
 
         // Register the LogMaskingHandler
         services.AddTransient<SassyGurl.Infrastructure.HttpHandlers.LogMaskingHandler>();
@@ -109,6 +108,7 @@ public static class DependencyInjection
         {
             var baseUrl = configuration["ProviderApis:DigiflazzBaseUrl"] ?? "https://api.digiflazz.com/v1/";
             client.BaseAddress = new Uri(baseUrl);
+            client.Timeout = TimeSpan.FromSeconds(8);
         })
         .AddHttpMessageHandler<SassyGurl.Infrastructure.HttpHandlers.LogMaskingHandler>()
         .AddStandardResilienceHandler();
@@ -117,6 +117,7 @@ public static class DependencyInjection
         {
             var baseUrl = configuration["ProviderApis:VipResellerBaseUrl"] ?? "https://vipreseller.co.id/api/";
             client.BaseAddress = new Uri(baseUrl);
+            client.Timeout = TimeSpan.FromSeconds(8);
         })
         .AddHttpMessageHandler<SassyGurl.Infrastructure.HttpHandlers.LogMaskingHandler>()
         .AddStandardResilienceHandler();
@@ -130,6 +131,9 @@ public static class DependencyInjection
 
         // Register Background Service for Order Fulfillment Queue
         services.AddHostedService<SassyGurl.Infrastructure.BackgroundServices.OrderFulfillmentBackgroundService>();
+
+        // Register Email Service
+        services.AddScoped<IEmailService, EmailService>();
 
         return services;
     }

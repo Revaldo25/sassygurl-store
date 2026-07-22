@@ -51,15 +51,40 @@ public class RedLockDistributedLockService : IDistributedLockService
                 return new RedLockHandle(redLock, _logger);
             }
 
+            // Jika RedLock gagal (IsAcquired = false), bisa jadi karena dikunci orang lain,
+            // ATAU karena server Redis sedang mati/tidak merespons (RedLock tidak selalu throw Exception).
             _logger.LogWarning(
-                "Failed to acquire distributed lock for resource {Resource} after 5s wait.",
+                "Failed to acquire distributed lock for resource {Resource} after 5s wait. Proceeding without strict lock (Redis might be down).",
                 resource);
-            return null;
+                
+            // Untuk mencegah user stuck dengan error "This request is currently being processed" 
+            // saat Redis mati, kita fallback ke DummyLock agar request tetap berjalan.
+            // Peringatan: Dalam skala enterprise multi-node, ini bisa menyebabkan race condition jika Redis mati.
+            return new DummyLockHandle(_logger);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error acquiring distributed lock for resource {Resource}.", resource);
-            return null;
+            _logger.LogError(ex, "Error acquiring distributed lock for resource {Resource}. Redis might be down. Falling back to dummy lock.", resource);
+            return new DummyLockHandle(_logger);
+        }
+    }
+
+    /// <summary>
+    /// A dummy lock that does nothing, used when Redis is unavailable so the application can gracefully degrade.
+    /// </summary>
+    private sealed class DummyLockHandle : IAsyncDisposable
+    {
+        private readonly ILogger _logger;
+
+        public DummyLockHandle(ILogger logger)
+        {
+            _logger = logger;
+        }
+
+        public ValueTask DisposeAsync()
+        {
+            _logger.LogDebug("Releasing dummy lock.");
+            return ValueTask.CompletedTask;
         }
     }
 

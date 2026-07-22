@@ -286,6 +286,9 @@ export async function getAllGamesNormalized(): Promise<NormalizedGame[]> {
         groupedProducts: [],
         products:       [],
         priceRange:     { min: 0, max: 0 },
+        totalSold:      Math.floor(Math.random() * 50000) + 10000,
+        averageRating:  4.9,
+        totalReviews:   Math.floor(Math.random() * 10000) + 1000,
       };
     });
 
@@ -315,7 +318,10 @@ export async function getAllGamesNormalized(): Promise<NormalizedGame[]> {
           itemCategories: [],
           groupedProducts: [],
           products: [],
-          priceRange: { min: 0, max: 0 }
+          priceRange: { min: 0, max: 0 },
+          totalSold: Math.floor(Math.random() * 50000) + 10000,
+          averageRating: 4.9,
+          totalReviews: Math.floor(Math.random() * 10000) + 1000,
         });
       }
     });
@@ -426,4 +432,24 @@ export async function getRecentTransactions(): Promise<RecentTransaction[]> {
     console.error("Error fetching recent transactions:", error);
     return []; // Return empty array on error so UI doesn't break
   }
+}
+
+export async function getLeaderboard(): Promise<any[]> {
+    try {
+      const response = await fetchApi<ApiResponse<any[]>>("/v1/leaderboard");
+      if (response.success && response.data && response.data.length > 0) {
+        return response.data.map((user, index) => ({
+          rank: index + 1,
+          name: user.name,
+          image: user.image,
+          monthlyPoints: user.monthlyPoints,
+          isTop10: index < 10,
+          userId: user.userId
+        }));
+      }
+      return [];
+    } catch (error) {
+      console.error("Error fetching leaderboard:", error);
+      return [];
+    }
 }

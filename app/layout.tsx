@@ -47,8 +47,10 @@ export const viewport: Viewport = {
 
 import { Providers } from "@/components/Providers";
 import FloatingNav from "@/components/FloatingNav";
-import CustomerServiceWidget from "@/components/CustomerServiceWidget";
+import LiveChatWidget from "@/components/LiveChatWidget";
+import PushNotificationManager from "@/components/PushNotificationManager";
 import { Toaster } from "sonner";
+import Script from "next/script";
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -60,8 +62,14 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <Providers>
           {children}
           <FloatingNav />
-          <CustomerServiceWidget />
+          <LiveChatWidget />
+          <PushNotificationManager />
         </Providers>
+        <Script 
+          src={process.env.NEXT_PUBLIC_MIDTRANS_SNAP_URL || (process.env.NEXT_PUBLIC_MIDTRANS_CLIENT_KEY?.startsWith("SB-") ? "https://app.sandbox.midtrans.com/snap/snap.js" : "https://app.midtrans.com/snap/snap.js")}
+          strategy="beforeInteractive"
+          data-client-key={process.env.NEXT_PUBLIC_MIDTRANS_CLIENT_KEY}
+        />
       </body>
     </html>
   );

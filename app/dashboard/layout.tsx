@@ -9,11 +9,11 @@ export default async function DashboardLayout({
 }) {
   const session = await auth();
 
-  if (!session?.user) {
+  if (!session) {
     redirect("/auth/login");
   }
 
-  const role = (session.user as any).role || "MEMBER";
+  const role = (session?.user as any)?.role || "MEMBER";
 
   return (
     <div className="min-h-screen bg-zinc-950 text-white selection:bg-sakura/30 selection:text-sakura">

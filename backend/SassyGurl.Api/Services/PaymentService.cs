@@ -7,12 +7,13 @@ using System.Text.Json;
 using System.Threading;
 using Microsoft.AspNetCore.SignalR;
 using SassyGurl.Api.Hubs;
+using SassyGurl.Application.Interfaces;
 
 namespace SassyGurl.Api.Services;
 
 public interface IPaymentService
 {
-    Task<ApiResponse<string>> ProcessMidtransWebhookAsync(JsonDocument payload, string sourceIp);
+    Task<ApiResponse<string>> ProcessMidtransWebhookAsync(JsonDocument payload, string sourceIp, bool skipSignatureValidation = false);
 }
 
 public class PaymentService : IPaymentService
@@ -25,6 +26,8 @@ public class PaymentService : IPaymentService
     private readonly IWhatsAppService _whatsApp;
     private readonly IOrderTransitionHelper _transition;
     private readonly IOrderLockManager _lockManager;
+    private readonly ILoyaltyService _loyaltyService;
+    private readonly IAffiliateService _affiliateService;
 
     public PaymentService(
         SassyGurlDbContext context,
@@ -34,7 +37,9 @@ public class PaymentService : IPaymentService
         IHubContext<NotificationHub> hub,
         IWhatsAppService whatsApp,
         IOrderTransitionHelper transition,
-        IOrderLockManager lockManager)
+        IOrderLockManager lockManager,
+        ILoyaltyService loyaltyService,
+        IAffiliateService affiliateService)
     {
         _context = context;
         _logger = logger;
@@ -44,17 +49,18 @@ public class PaymentService : IPaymentService
         _whatsApp = whatsApp;
         _transition = transition;
         _lockManager = lockManager;
+        _loyaltyService = loyaltyService;
+        _affiliateService = affiliateService;
     }
 
-    public async Task<ApiResponse<string>> ProcessMidtransWebhookAsync(JsonDocument payload, string sourceIp)
+    public async Task<ApiResponse<string>> ProcessMidtransWebhookAsync(JsonDocument payload, string sourceIp, bool skipSignatureValidation = false)
     {
         var root = payload.RootElement;
 
         if (!root.TryGetProperty("order_id", out var orderIdEl) ||
             !root.TryGetProperty("transaction_status", out var statusEl) ||
             !root.TryGetProperty("status_code", out var statusCodeEl) ||
-            !root.TryGetProperty("gross_amount", out var grossAmountEl) ||
-            !root.TryGetProperty("signature_key", out var signatureEl))
+            !root.TryGetProperty("gross_amount", out var grossAmountEl))
         {
             return ApiResponse<string>.Fail("Invalid webhook payload.");
         }
@@ -63,11 +69,11 @@ public class PaymentService : IPaymentService
         var transactionStatus = statusEl.GetString()!;
         var statusCode = statusCodeEl.GetString() ?? string.Empty;
         var grossAmountRaw = grossAmountEl.GetString() ?? string.Empty;
-        var signatureKey = signatureEl.GetString() ?? string.Empty;
+        var signatureKey = root.TryGetProperty("signature_key", out var sigEl) ? sigEl.GetString() ?? string.Empty : string.Empty;
         var fraudStatus = root.TryGetProperty("fraud_status", out var fraudEl) 
             ? fraudEl.GetString() : null;
 
-        if (!_webhookSecurity.IsSignatureValid(orderId, statusCode, grossAmountRaw, signatureKey))
+        if (!skipSignatureValidation && !_webhookSecurity.IsSignatureValid(orderId, statusCode, grossAmountRaw, signatureKey))
         {
             _logger.LogWarning("Rejected webhook due to invalid signature. OrderId={OrderId}, SourceIp={SourceIp}", orderId, sourceIp);
             return ApiResponse<string>.Fail("Invalid webhook signature.");
@@ -165,104 +171,128 @@ public class PaymentService : IPaymentService
                             transaction.Product?.Name ?? "");
                         
                         // ── SYNCHRONOUS Provider Fulfillment ─────────────────────
-                        // Previously this was fire-and-forget (Task.Run), which risked
-                        // data loss on app restart. Now runs synchronously within the
-                        // webhook handler to guarantee completion or proper failure recording.
-                        try
+                        if (transaction.Product?.Source == ProviderSource.MANUAL)
                         {
-                            var providerRes = await _providerService.PlaceOrderAsync(
-                                transaction.Product!.Sku, 
-                                transaction.TargetId, 
-                                transaction.ZoneId ?? "", 
-                                transaction.InvoiceId);
-
-                            if (providerRes.IsSuccess)
-                            {
-                                try
-                                {
-                                    _transition.TransitionStatus(
-                                        _context,
-                                        transaction,
-                                        OrderStatus.SUCCESS,
-                                        "system",
-                                        reason: "Provider fulfillment success");
-                                }
-                                catch (InvalidOperationException ex)
-                {
-                    _logger.LogWarning(ex, "State transition to SUCCESS failed for {OrderId}. Order may remain in PROCESSING.", orderId);
-                }
-
-                                transaction.ProviderRef = providerRes.ProviderRef;
-                                transaction.Sn = providerRes.Sn;
-                                transaction.CompletedAt = DateTime.UtcNow;
-
-                                // ── Profit Tracking: Record to DailyProfits ──────
-                                var todayDate = DateTime.UtcNow.Date;
-                                var dailyProfit = await _context.DailyProfits
-                                    .FirstOrDefaultAsync(d => d.Date == todayDate);
-
-                                if (dailyProfit == null)
-                                {
-                                    dailyProfit = new DailyProfit { Date = todayDate };
-                                    _context.DailyProfits.Add(dailyProfit);
-                                }
-
-                                dailyProfit.TotalRevenue += transaction.PriceSell;
-                                dailyProfit.TotalProviderCost += transaction.PriceModal;
-                                dailyProfit.NetProfit += (transaction.PriceSell - transaction.PriceModal);
-                                dailyProfit.OrderCount++;
-                                dailyProfit.SuccessCount++;
-
-                                // WhatsApp: Notify member of success
-                                _ = _whatsApp.SendOrderSuccessAsync(
-                                    transaction.User?.Phone ?? "",
-                                    transaction.InvoiceId,
-                                    transaction.Game?.Name ?? "",
-                                    transaction.Product?.Name ?? "",
-                                    providerRes.Sn);
-                            }
-                            else
-                            {
-                                try
-                                {
-                                    _transition.TransitionStatus(
-                                        _context,
-                                        transaction,
-                                        OrderStatus.FAILED,
-                                        "system",
-                                        reason: $"Provider error: {providerRes.Message}");
-                                }
-                                catch (InvalidOperationException ex)
-                {
-                    _logger.LogWarning(ex, "State transition to FAILED failed for {OrderId}. Order may remain in PROCESSING.", orderId);
-                }
-                                
-                                // Add to RefundQueue because Paid but Failed to topup
-                                _context.RefundQueues.Add(new RefundQueue
-                                {
-                                    TransactionId = transaction.Id,
-                                    Reason = $"Provider Error: {providerRes.Message}",
-                                    IsProcessed = false
-                                });
-                                
-                                _logger.LogCritical("Topup Failed for Paid Order {InvoiceId}. Added to RefundQueue. Reason: {Reason}", 
-                                    transaction.InvoiceId, providerRes.Message);
-
-                                // WhatsApp: Notify member of issue
-                                _ = _whatsApp.SendOrderFailedAsync(
-                                    transaction.User?.Phone ?? "",
-                                    transaction.InvoiceId,
-                                    providerRes.Message ?? "Provider unavailable");
-                            }
-
-                            await _context.SaveChangesAsync();
+                            _logger.LogInformation("Order {OrderId} is MANUAL fulfillment. Leaving in PROCESSING state.", orderId);
+                            // Notify Admin/Ops about new manual order if needed
                         }
-                        catch (Exception ex)
+                        else
                         {
-                            _logger.LogError(ex, "Provider fulfillment failed for order {InvoiceId}. Order remains in PROCESSING state.", 
-                                transaction.InvoiceId);
-                            // Order stays PROCESSING — can be retried manually or by background job
+                            try
+                            {
+                                var providerRes = await _providerService.PlaceOrderAsync(
+                                    transaction.Product!.Sku, 
+                                    transaction.TargetId, 
+                                    transaction.ZoneId ?? "", 
+                                    transaction.InvoiceId);
+
+                                if (providerRes.IsSuccess)
+                                {
+                                    try
+                                    {
+                                        _transition.TransitionStatus(
+                                            _context,
+                                            transaction,
+                                            OrderStatus.SUCCESS,
+                                            "system",
+                                            reason: "Provider fulfillment success");
+                                    }
+                                    catch (InvalidOperationException ex)
+                                    {
+                                        _logger.LogWarning(ex, "State transition to SUCCESS failed for {OrderId}. Order may remain in PROCESSING.", orderId);
+                                    }
+
+                                    transaction.ProviderRef = providerRes.ProviderRef;
+                                    transaction.Sn = providerRes.Sn;
+                                    transaction.CompletedAt = DateTime.UtcNow;
+
+                                    // Loyalty points on success
+                                    await _loyaltyService.AwardPointsAfterSuccessAsync(transaction.Id);
+
+                                    // Affiliate Commission on success
+                                    await _affiliateService.AwardCommissionAsync(transaction.Id);
+
+                                    // ── Profit Tracking: Record to DailyProfits ──────
+                                    var todayDate = DateTime.UtcNow.Date;
+                                    var dailyProfit = await _context.DailyProfits
+                                        .FirstOrDefaultAsync(d => d.Date == todayDate);
+
+                                    if (dailyProfit == null)
+                                    {
+                                        dailyProfit = new DailyProfit { Date = todayDate };
+                                        _context.DailyProfits.Add(dailyProfit);
+                                    }
+
+                                    dailyProfit.TotalRevenue += transaction.PriceSell;
+                                    dailyProfit.TotalProviderCost += transaction.PriceModal;
+                                    dailyProfit.NetProfit += (transaction.PriceSell - transaction.PriceModal);
+                                    dailyProfit.OrderCount++;
+                                    dailyProfit.SuccessCount++;
+
+                                    // WhatsApp: Notify member of success
+                                    _ = _whatsApp.SendOrderSuccessAsync(
+                                        transaction.User?.Phone ?? "",
+                                        transaction.InvoiceId,
+                                        transaction.Game?.Name ?? "",
+                                        transaction.Product?.Name ?? "",
+                                        providerRes.Sn);
+                                }
+                                else if (providerRes.IsProviderDown)
+                                {
+                                    // FAILOVER BYPASS: Provider is down, keep order in PROCESSING state.
+                                    _logger.LogWarning("CRITICAL: Provider is DOWN for {OrderId}. Order left in PROCESSING state for manual fulfillment.", orderId);
+                                    
+                                    _context.RefundQueues.Add(new RefundQueue
+                                    {
+                                        TransactionId = transaction.Id,
+                                        Reason = $"Provider DOWN. Manual Top-Up Required: {providerRes.Message}",
+                                        IsProcessed = false
+                                    });
+                                }
+                                else
+                                {
+                                    try
+                                    {
+                                        _transition.TransitionStatus(
+                                            _context,
+                                            transaction,
+                                            OrderStatus.FAILED,
+                                            "system",
+                                            reason: $"Provider error: {providerRes.Message}");
+                                    }
+                                    catch (InvalidOperationException ex)
+                                    {
+                                        _logger.LogWarning(ex, "State transition to FAILED failed for {OrderId}. Order may remain in PROCESSING.", orderId);
+                                    }
+                                    
+                                    _context.RefundQueues.Add(new RefundQueue
+                                    {
+                                        TransactionId = transaction.Id,
+                                        Reason = $"Provider Error: {providerRes.Message}",
+                                        IsProcessed = false
+                                    });
+                                    
+                                    _logger.LogCritical("Topup Failed for Paid Order {InvoiceId}. Added to RefundQueue. Reason: {Reason}", 
+                                        transaction.InvoiceId, providerRes.Message);
+
+                                    _ = _whatsApp.SendOrderFailedAsync(
+                                        transaction.User?.Phone ?? "",
+                                        transaction.InvoiceId,
+                                        providerRes.Message ?? "Provider unavailable");
+                                }
+                            }
+                            catch (Exception ex)
+                            {
+                                _logger.LogError(ex, "Provider fulfillment failed for order {InvoiceId}. Order remains in PROCESSING state.", transaction.InvoiceId);
+                            }
                         }
+
+                        await _context.SaveChangesAsync();
+                        await _hub.Clients.User(transaction.UserId).SendAsync("OrderStatusUpdated", new
+                        {
+                            InvoiceId = transaction.InvoiceId,
+                            Status = transaction.OrderStatus.ToString()
+                        });
                     }
                     break;
 

@@ -15,6 +15,7 @@ public class SassyGurlDbContext : DbContext
     public DbSet<User> Users { get; set; } = null!;
     public DbSet<Account> Accounts { get; set; } = null!;
     public DbSet<WalletLedger> WalletLedgers { get; set; } = null!;
+    public DbSet<PointLedger> PointLedgers { get; set; } = null!;
     public DbSet<Category> Categories { get; set; } = null!;
     public DbSet<Game> Games { get; set; } = null!;
     public DbSet<Review> Reviews { get; set; } = null!;
@@ -29,6 +30,7 @@ public class SassyGurlDbContext : DbContext
     public DbSet<TicketMessage> TicketMessages { get; set; } = null!;
     public DbSet<SystemAudit> SystemAudits { get; set; } = null!;
     public DbSet<SystemSetting> SystemSettings { get; set; } = null!;
+    public DbSet<NotificationQueue> NotificationQueues { get; set; } = null!;
     public DbSet<DailyProfit> DailyProfits { get; set; } = null!;
     public DbSet<VerificationToken> VerificationTokens { get; set; } = null!;
 
@@ -44,6 +46,15 @@ public class SassyGurlDbContext : DbContext
     // Master Plan §5.1 — Raw Provider Response Storage
     public DbSet<ProviderSyncLog> ProviderSyncLogs { get; set; } = null!;
 
+    // Phase 2 - Affiliate Withdrawals & Commissions
+    public DbSet<WithdrawalRequest> WithdrawalRequests { get; set; } = null!;
+    public DbSet<AffiliateCommission> AffiliateCommissions { get; set; } = null!;
+    public DbSet<PushSubscription> PushSubscriptions { get; set; } = null!;
+
+    // Live CS Module
+    public DbSet<ChatSession> ChatSessions { get; set; } = null!;
+    public DbSet<ChatMessage> ChatMessages { get; set; } = null!;
+
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -51,6 +62,7 @@ public class SassyGurlDbContext : DbContext
 
         // Map PostgreSQL enums — names match pg_type.typname (PascalCase as created by Prisma)
         modelBuilder.HasPostgresEnum<Role>("Role");
+        modelBuilder.HasPostgresEnum<MemberTier>("MemberTier");
         modelBuilder.HasPostgresEnum<KycStatus>("KycStatus");
         modelBuilder.HasPostgresEnum<PaymentStatus>("PaymentStatus");
         modelBuilder.HasPostgresEnum<OrderStatus>("OrderStatus");
@@ -65,6 +77,7 @@ public class SassyGurlDbContext : DbContext
         modelBuilder.Entity<User>().ToTable("User");
         modelBuilder.Entity<Account>().ToTable("Account");
         modelBuilder.Entity<WalletLedger>().ToTable("WalletLedger");
+        modelBuilder.Entity<PointLedger>().ToTable("PointLedger");
         modelBuilder.Entity<Category>().ToTable("Category");
         modelBuilder.Entity<Game>().ToTable("Game");
         modelBuilder.Entity<Review>().ToTable("Review");
@@ -78,6 +91,13 @@ public class SassyGurlDbContext : DbContext
         modelBuilder.Entity<SystemAudit>().ToTable("SystemAudit");
         modelBuilder.Entity<VerificationToken>().ToTable("VerificationToken");
         modelBuilder.Entity<ProductCategory>().ToTable("ProductCategory");
+        modelBuilder.Entity<WithdrawalRequest>().ToTable("WithdrawalRequest");
+        modelBuilder.Entity<AffiliateCommission>().ToTable("AffiliateCommission");
+        modelBuilder.Entity<PushSubscription>().ToTable("PushSubscription");
+        
+        // Live CS
+        modelBuilder.Entity<ChatSession>().ToTable("ChatSession");
+        modelBuilder.Entity<ChatMessage>().ToTable("ChatMessage");
 
         // Convert PascalCase properties to camelCase column names to match Prisma
         foreach (var entity in modelBuilder.Model.GetEntityTypes())

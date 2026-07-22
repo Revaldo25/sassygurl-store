@@ -13,6 +13,7 @@ public class CheckoutRequest
     public string ProductId { get; set; } = null!;
     public string CustomerTarget { get; set; } = null!;
     public string? PromoCode { get; set; }
+    public int PointsToUse { get; set; } = 0;
 }
 
 public interface ICheckoutService
@@ -24,17 +25,20 @@ public class CheckoutService : ICheckoutService
 {
     private readonly SassyGurlDbContext _dbContext;
     private readonly IVoucherService _voucherService;
+    private readonly ILoyaltyService _loyaltyService;
     private readonly IOrderFulfillmentQueue _queue;
     private readonly ILogger<CheckoutService> _logger;
 
     public CheckoutService(
         SassyGurlDbContext dbContext,
         IVoucherService voucherService,
+        ILoyaltyService loyaltyService,
         IOrderFulfillmentQueue queue,
         ILogger<CheckoutService> logger)
     {
         _dbContext = dbContext;
         _voucherService = voucherService;
+        _loyaltyService = loyaltyService;
         _queue = queue;
         _logger = logger;
     }
@@ -83,6 +87,23 @@ public class CheckoutService : ICheckoutService
                 }
             }
 
+            // 2.5 Deduct Points if requested
+            decimal pointsDiscount = 0;
+            if (request.PointsToUse > 0)
+            {
+                if (user.Points < request.PointsToUse)
+                    throw new InvalidOperationException("Insufficient points.");
+                
+                pointsDiscount = request.PointsToUse; // 1 point = Rp 1
+                if (pointsDiscount > finalPrice)
+                {
+                    pointsDiscount = finalPrice;
+                    request.PointsToUse = (int)pointsDiscount;
+                }
+                
+                finalPrice -= pointsDiscount;
+            }
+
             // 3. Deduct Balance (Step 2 of Prompt)
             if (user.Balance < finalPrice)
             {
@@ -126,7 +147,9 @@ public class CheckoutService : ICheckoutService
                 PaymentStatus = PaymentStatus.PAID, // Already paid via balance deduction
                 OrderStatus = OrderStatus.PROCESSING, // T-06 fix: Start as PROCESSING since it's already PAID
                 PaymentId = walletPayment.Id,
-                PromoId = validPromo?.Id
+                PromoId = validPromo?.Id,
+                PointsUsed = request.PointsToUse,
+                PointsDiscount = pointsDiscount
             };
             _dbContext.Transactions.Add(newOrder);
 
@@ -143,6 +166,12 @@ public class CheckoutService : ICheckoutService
             // Save all changes to the database
             // If Optimistic Concurrency fails here (e.g. balance changed), DbUpdateConcurrencyException is thrown.
             await _dbContext.SaveChangesAsync();
+
+            // Spend points logic after transaction is created to get the TransactionId
+            if (request.PointsToUse > 0)
+            {
+                await _loyaltyService.SpendPointsAsync(user.Id, request.PointsToUse, $"Discount for {newOrder.InvoiceId}", newOrder.Id);
+            }
 
             // Commit the transaction
             await transaction.CommitAsync();

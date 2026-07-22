@@ -15,4 +15,5 @@ public class TrackResponseDto
     public DateTime CreatedAt { get; set; }
     public DateTime? PaidAt { get; set; }
     public DateTime? CompletedAt { get; set; }
+    public string? PaymentToken { get; set; }
 }

@@ -291,10 +291,15 @@ public class ProviderService : IProviderService
             var errorMsg = content.TryGetProperty("message", out var msgProp) ? msgProp.GetString() : "Unknown error from VIP Reseller";
             return new ProviderOrderResponse { IsSuccess = false, Message = errorMsg };
         }
+        catch (TaskCanceledException ex)
+        {
+            _logger.LogWarning(ex, "VIP Reseller API Timeout");
+            return new ProviderOrderResponse { IsSuccess = false, Message = "Connection to VIP Reseller timeout.", IsProviderDown = true };
+        }
         catch (Exception ex)
         {
             _logger.LogError(ex, "VIP Reseller API Exception");
-            return new ProviderOrderResponse { IsSuccess = false, Message = "Connection to VIP Reseller failed." };
+            return new ProviderOrderResponse { IsSuccess = false, Message = "Connection to VIP Reseller failed.", IsProviderDown = true };
         }
     }
 
@@ -314,6 +319,7 @@ public class ProviderOrderResponse
     public string? ProviderRef { get; set; }
     public string? Sn { get; set; }
     public string? Message { get; set; }
+    public bool IsProviderDown { get; set; }
 }
 
 public class ProviderBalanceResponse

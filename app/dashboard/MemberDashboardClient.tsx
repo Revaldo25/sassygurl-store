@@ -27,7 +27,8 @@ import {
   Shield,
   CreditCard,
   ShieldCheck,
-  LayoutDashboard
+  LayoutDashboard,
+  Share2
 } from "lucide-react";
 import { formatIDR, featuredGames } from "@/lib/catalog";
 import {
@@ -88,6 +89,12 @@ export default function MemberDashboardClient({ initialStats, initialTransaction
   const [filter, setFilter] = useState("ALL");
   const [search, setSearch] = useState("");
   const [isPending, startTransition] = useTransition();
+  // NOTE: these must be declared before any early return below (Rules of Hooks).
+  const [profileName, setProfileName] = useState(session?.user?.name || "");
+  const [profileWa, setProfileWa] = useState("");
+  const [oldPassword, setOldPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [settingsLoading, setSettingsLoading] = useState(false);
 
   useEffect(() => {
     if (tabParam) setActiveTab(tabParam);
@@ -100,7 +107,7 @@ export default function MemberDashboardClient({ initialStats, initialTransaction
         newFilter as "ALL" | "SUCCESS" | "PENDING" | "FAILED",
         search
       );
-      setTransactions(result);
+      setTransactions(result.data || []);
     });
   }
 
@@ -111,7 +118,7 @@ export default function MemberDashboardClient({ initialStats, initialTransaction
         filter as "ALL" | "SUCCESS" | "PENDING" | "FAILED",
         value
       );
-      setTransactions(result);
+      setTransactions(result.data || []);
     });
   }
 
@@ -221,6 +228,7 @@ export default function MemberDashboardClient({ initialStats, initialTransaction
       title: "Keuangan",
       items: [
         { id: "wallet", label: "Dompet Sassy", icon: Wallet },
+        { id: "affiliate", label: "Program Afiliasi", icon: Share2, href: "/dashboard/affiliate" },
       ]
     },
     {
@@ -236,26 +244,42 @@ export default function MemberDashboardClient({ initialStats, initialTransaction
       {/* ═══════════════ TOP ROW (Profile & Tracking) ═══════════════ */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         
-        {/* PROFILE CARD */}
-        <motion.div variants={item} className="lg:col-span-1 flex flex-col justify-between rounded-3xl border border-white/5 bg-zinc-900/40 p-6 backdrop-blur-xl shadow-xl">
-          <div className="flex items-center gap-5 mb-6">
-             <div className="h-16 w-16 shrink-0 rounded-full border-2 border-white/10 overflow-hidden bg-black relative">
+        {/* VIP PROFILE CARD */}
+        <motion.div variants={item} className="lg:col-span-1 relative flex flex-col justify-between rounded-3xl p-6 shadow-2xl overflow-hidden min-h-[220px]">
+          {/* Card Background based on Tier */}
+          <div className={`absolute inset-0 z-0 ${
+            stats.loyaltyLevel === 'PLATINUM' ? 'bg-gradient-to-br from-zinc-800 via-zinc-900 to-black border border-zinc-700' :
+            stats.loyaltyLevel === 'GOLD' ? 'bg-gradient-to-br from-[#d4af37] via-[#aa7c11] to-[#604b12] border border-[#d4af37]/50' :
+            stats.loyaltyLevel === 'SILVER' ? 'bg-gradient-to-br from-slate-400 via-slate-600 to-slate-800 border border-slate-400/50' :
+            'bg-gradient-to-br from-[#cd7f32] via-[#8c5622] to-[#4a2e12] border border-[#cd7f32]/50' // Bronze
+          }`} />
+          {/* Shine effect */}
+          <div className="absolute inset-0 z-0 bg-gradient-to-tr from-transparent via-white/10 to-transparent pointer-events-none opacity-50" />
+
+          <div className="relative z-10 flex items-center justify-between mb-6">
+            <div className="flex items-center gap-4">
+              <div className="h-14 w-14 shrink-0 rounded-full border-2 border-white/20 overflow-hidden bg-black/50 shadow-inner">
                 <img src={session?.user?.image || "/images/default-avatar.png"} alt="Avatar" className="h-full w-full object-cover" />
-             </div>
-             <div>
-                <h3 className="text-xl font-black text-white">{session?.user?.name || "Member"}</h3>
-                <p className="text-[10px] font-bold text-zinc-500">{session?.user?.email}</p>
-             </div>
+              </div>
+              <div>
+                <h3 className="text-lg font-black text-white drop-shadow-md">{session?.user?.name || "Member"}</h3>
+                <p className="text-[10px] font-bold text-white/70 uppercase tracking-wider">VIP MEMBER</p>
+              </div>
+            </div>
+            <Crown className={`w-8 h-8 ${stats.loyaltyLevel === 'PLATINUM' ? 'text-zinc-300' : stats.loyaltyLevel === 'GOLD' ? 'text-yellow-200' : stats.loyaltyLevel === 'SILVER' ? 'text-slate-200' : 'text-orange-200'} drop-shadow-[0_0_10px_rgba(255,255,255,0.3)]`} />
           </div>
-          <div className="flex gap-3">
-             <div className="flex-1 rounded-2xl bg-white/5 p-4 border border-white/5">
-                <p className="text-[9px] font-black uppercase tracking-widest text-zinc-500">Joined</p>
-                <p className="text-xs font-bold text-white mt-1">{session?.user?.createdAt ? new Date(session.user.createdAt).toLocaleDateString("id-ID", { month: "short", year: "numeric" }) : "Tidak Diketahui"}</p>
-             </div>
-             <div className="flex-1 rounded-2xl bg-sakura/10 border border-sakura/20 p-4">
-                <p className="text-[9px] font-black uppercase tracking-widest text-sakura">Loyalty</p>
-                <p className="text-xs font-black text-white uppercase mt-1 flex items-center gap-1.5"><Crown className="w-3.5 h-3.5 text-sakura"/> {stats.loyaltyLevel}</p>
-             </div>
+
+          <div className="relative z-10 mt-auto flex items-end justify-between">
+            <div>
+              <p className="text-[9px] font-black uppercase tracking-widest text-white/50">Current Tier</p>
+              <h2 className="text-2xl font-black text-white tracking-widest uppercase drop-shadow-md">
+                {stats.loyaltyLevel}
+              </h2>
+            </div>
+            <div className="text-right">
+               <p className="text-[9px] font-black uppercase tracking-widest text-white/50">Total Points</p>
+               <h3 className="text-xl font-bold text-white drop-shadow-md">{stats.points.toLocaleString("id-ID")} XP</h3>
+            </div>
           </div>
         </motion.div>
 
@@ -543,12 +567,6 @@ export default function MemberDashboardClient({ initialStats, initialTransaction
     </motion.div>
   );
 
-  const [profileName, setProfileName] = useState(session?.user?.name || "");
-  const [profileWa, setProfileWa] = useState("");
-  const [oldPassword, setOldPassword] = useState("");
-  const [newPassword, setNewPassword] = useState("");
-  const [settingsLoading, setSettingsLoading] = useState(false);
-
   const handleUpdateProfile = async (e: React.FormEvent) => {
     e.preventDefault();
     setSettingsLoading(true);
@@ -704,6 +722,10 @@ export default function MemberDashboardClient({ initialStats, initialTransaction
                       <button
                         key={tab.id}
                         onClick={() => {
+                          if ('href' in tab && tab.href) {
+                            window.location.href = tab.href;
+                            return;
+                          }
                           setActiveTab(tab.id);
                           const url = new URL(window.location.href);
                           url.searchParams.set("tab", tab.id);
@@ -770,6 +792,10 @@ export default function MemberDashboardClient({ initialStats, initialTransaction
                 <button
                   key={tab.id}
                   onClick={() => {
+                    if ('href' in tab && tab.href) {
+                      window.location.href = tab.href;
+                      return;
+                    }
                     setActiveTab(tab.id);
                     const url = new URL(window.location.href);
                     url.searchParams.set("tab", tab.id);
@@ -827,7 +853,7 @@ function StatusBadge({ status }: { status: string }) {
       ? { color: "bg-status-success/10 text-status-success border-status-success/20", icon: CheckCircle2, label: "SUCCESS" }
       : status === "PROCESSING"
         ? { color: "bg-status-info/10 text-status-info border-status-info/20", icon: Clock, label: "PROCESSING" }
-        : status === "PENDING"
+        : (status === "PENDING" || status === "UNPAID")
           ? { color: "bg-status-warning/10 text-status-warning border-status-warning/20", icon: Clock, label: "PENDING" }
           : { color: "bg-status-danger/10 text-status-danger border-status-danger/20", icon: XCircle, label: "FAILED" };
 

@@ -23,8 +23,9 @@ namespace SassyGurl.Api.Migrations
 
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "KycStatus", new[] { "BANNED", "PENDING", "REJECTED", "UNVERIFIED", "VERIFIED" });
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "KycStatus", "kyc_status", new[] { "unverified", "pending", "verified", "rejected", "banned" });
-            NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "MutationType", new[] { "ADJUSTMENT", "COMMISSION", "DEPOSIT", "PAYMENT", "REFUND", "WITHDRAWAL" });
-            NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "MutationType", "mutation_type", new[] { "deposit", "payment", "refund", "commission", "withdrawal", "adjustment" });
+            NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "MemberTier", "member_tier", new[] { "bronze", "silver", "gold", "platinum" });
+            NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "MutationType", new[] { "ADJUSTMENT", "COMMISSION", "DEPOSIT", "PAYMENT", "POINT_EARN", "POINT_EXPIRE", "POINT_SPEND", "REFUND", "WITHDRAWAL" });
+            NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "MutationType", "mutation_type", new[] { "deposit", "payment", "refund", "commission", "withdrawal", "adjustment", "point_earn", "point_spend", "point_expire" });
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "OrderStatus", new[] { "CANCELLED", "DRAFT", "ERROR", "FAILED", "PARTIAL", "PENDING", "PROCESSING", "REFUNDED", "REFUNDING", "SUCCESS" });
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "OrderStatus", "order_status", new[] { "draft", "pending", "processing", "success", "failed", "error", "partial", "refunding", "refunded", "cancelled" });
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "PaymentStatus", new[] { "CHARGEBACK", "EXPIRED", "FAILED", "PAID", "PENDING", "REFUNDED", "UNPAID" });
@@ -33,8 +34,8 @@ namespace SassyGurl.Api.Migrations
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "PaymentType", "payment_type", new[] { "ewallet", "qris", "virtual_account", "retail" });
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "PromoType", new[] { "FLAT", "PERCENTAGE" });
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "PromoType", "promo_type", new[] { "flat", "percentage" });
-            NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "ProviderSource", new[] { "DIGIFLAZZ", "VIP" });
-            NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "ProviderSource", "provider_source", new[] { "vip", "digiflazz" });
+            NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "ProviderSource", new[] { "DIGIFLAZZ", "MANUAL", "VIP" });
+            NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "ProviderSource", "provider_source", new[] { "vip", "digiflazz", "manual" });
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "Role", new[] { "CS", "FINANCE", "MEMBER", "OWNER", "RESELLER", "SUPERADMIN", "VIP" });
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "Role", "role", new[] { "member", "reseller", "vip", "cs", "finance", "superadmin", "owner" });
             NpgsqlModelBuilderExtensions.HasPostgresEnum(modelBuilder, "TicketPriority", new[] { "HIGH", "LOW", "MEDIUM", "URGENT" });
@@ -105,6 +106,39 @@ namespace SassyGurl.Api.Migrations
                         .IsUnique();
 
                     b.ToTable("Account", (string)null);
+                });
+
+            modelBuilder.Entity("SassyGurl.Api.Models.AffiliateCommission", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasColumnType("text")
+                        .HasColumnName("id");
+
+                    b.Property<string>("AffiliateUserId")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("affiliateUserId");
+
+                    b.Property<decimal>("Amount")
+                        .HasColumnType("decimal(15,2)")
+                        .HasColumnName("amount");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("createdAt");
+
+                    b.Property<string>("TransactionId")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("transactionId");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AffiliateUserId");
+
+                    b.HasIndex("TransactionId");
+
+                    b.ToTable("AffiliateCommission", (string)null);
                 });
 
             modelBuilder.Entity("SassyGurl.Api.Models.Category", b =>
@@ -270,6 +304,45 @@ namespace SassyGurl.Api.Migrations
                     b.ToTable("Game", (string)null);
                 });
 
+            modelBuilder.Entity("SassyGurl.Api.Models.NotificationQueue", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasColumnType("text")
+                        .HasColumnName("id");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("createdAt");
+
+                    b.Property<string>("ErrorMessage")
+                        .HasColumnType("text")
+                        .HasColumnName("errorMessage");
+
+                    b.Property<string>("Message")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("message");
+
+                    b.Property<DateTime?>("ProcessedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("processedAt");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)")
+                        .HasColumnName("status");
+
+                    b.Property<string>("TargetPhone")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("targetPhone");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("NotificationQueues");
+                });
+
             modelBuilder.Entity("SassyGurl.Api.Models.OrderStatusHistory", b =>
                 {
                     b.Property<string>("Id")
@@ -367,6 +440,53 @@ namespace SassyGurl.Api.Migrations
                     b.ToTable("PaymentMethod", (string)null);
                 });
 
+            modelBuilder.Entity("SassyGurl.Api.Models.PointLedger", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasColumnType("text")
+                        .HasColumnName("id");
+
+                    b.Property<int>("BalanceSnapshot")
+                        .HasColumnType("integer")
+                        .HasColumnName("balanceSnapshot");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("createdAt");
+
+                    b.Property<int>("Credit")
+                        .HasColumnType("integer")
+                        .HasColumnName("credit");
+
+                    b.Property<int>("Debit")
+                        .HasColumnType("integer")
+                        .HasColumnName("debit");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("description");
+
+                    b.Property<string>("TransactionId")
+                        .HasColumnType("text")
+                        .HasColumnName("transactionId");
+
+                    b.Property<MutationType>("Type")
+                        .HasColumnType("\"MutationType\"")
+                        .HasColumnName("type");
+
+                    b.Property<string>("UserId")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("userId");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("PointLedger", (string)null);
+                });
+
             modelBuilder.Entity("SassyGurl.Api.Models.Product", b =>
                 {
                     b.Property<string>("Id")
@@ -422,6 +542,10 @@ namespace SassyGurl.Api.Migrations
                     b.Property<decimal?>("OriginalPrice")
                         .HasColumnType("decimal(10,2)")
                         .HasColumnName("originalPrice");
+
+                    b.Property<int?>("OverridePoints")
+                        .HasColumnType("integer")
+                        .HasColumnName("overridePoints");
 
                     b.Property<decimal>("PriceMember")
                         .HasColumnType("decimal(10,2)")
@@ -543,6 +667,10 @@ namespace SassyGurl.Api.Migrations
                     b.Property<decimal>("MinTransaction")
                         .HasColumnType("decimal(10,2)")
                         .HasColumnName("minTransaction");
+
+                    b.Property<int>("PointsCost")
+                        .HasColumnType("integer")
+                        .HasColumnName("pointsCost");
 
                     b.Property<int>("Quota")
                         .HasColumnType("integer")
@@ -707,6 +835,44 @@ namespace SassyGurl.Api.Migrations
                         .HasDatabaseName("IX_ProviderSyncLog_Provider_Date");
 
                     b.ToTable("ProviderSyncLog", (string)null);
+                });
+
+            modelBuilder.Entity("SassyGurl.Api.Models.PushSubscription", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Auth")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("auth");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("createdAt");
+
+                    b.Property<string>("Endpoint")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("endpoint");
+
+                    b.Property<string>("P256dh")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("p256dh");
+
+                    b.Property<string>("UserId")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("userId");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("PushSubscription", (string)null);
                 });
 
             modelBuilder.Entity("SassyGurl.Api.Models.RefundQueue", b =>
@@ -979,6 +1145,10 @@ namespace SassyGurl.Api.Migrations
                         .HasColumnType("decimal(10,2)")
                         .HasColumnName("adminFee");
 
+                    b.Property<string>("AffiliateUserId")
+                        .HasColumnType("text")
+                        .HasColumnName("affiliateUserId");
+
                     b.Property<DateTime?>("CompletedAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("completedAt");
@@ -1034,6 +1204,14 @@ namespace SassyGurl.Api.Migrations
                     b.Property<PaymentStatus>("PaymentStatus")
                         .HasColumnType("\"PaymentStatus\"")
                         .HasColumnName("paymentStatus");
+
+                    b.Property<decimal>("PointsDiscount")
+                        .HasColumnType("decimal(10,2)")
+                        .HasColumnName("pointsDiscount");
+
+                    b.Property<int>("PointsUsed")
+                        .HasColumnType("integer")
+                        .HasColumnName("pointsUsed");
 
                     b.Property<decimal>("PriceModal")
                         .HasColumnType("decimal(10,2)")
@@ -1103,6 +1281,8 @@ namespace SassyGurl.Api.Migrations
                         .HasColumnName("zoneId");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("AffiliateUserId");
 
                     b.HasIndex("CreatedAt");
 
@@ -1218,6 +1398,10 @@ namespace SassyGurl.Api.Migrations
                     b.Property<string>("TaxNumber")
                         .HasColumnType("text")
                         .HasColumnName("taxNumber");
+
+                    b.Property<int>("Tier")
+                        .HasColumnType("integer")
+                        .HasColumnName("tier");
 
                     b.Property<decimal>("TotalCommission")
                         .HasColumnType("decimal(15,2)")
@@ -1344,6 +1528,60 @@ namespace SassyGurl.Api.Migrations
                     b.ToTable("WalletLedger", (string)null);
                 });
 
+            modelBuilder.Entity("SassyGurl.Api.Models.WithdrawalRequest", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasColumnType("text")
+                        .HasColumnName("id");
+
+                    b.Property<string>("AccountName")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("accountName");
+
+                    b.Property<string>("AccountNumber")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("accountNumber");
+
+                    b.Property<string>("AdminNote")
+                        .HasColumnType("text")
+                        .HasColumnName("adminNote");
+
+                    b.Property<decimal>("Amount")
+                        .HasColumnType("decimal(15,2)")
+                        .HasColumnName("amount");
+
+                    b.Property<string>("BankName")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("bankName");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("createdAt");
+
+                    b.Property<DateTime?>("ProcessedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("processedAt");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("status");
+
+                    b.Property<string>("UserId")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("userId");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("WithdrawalRequest", (string)null);
+                });
+
             modelBuilder.Entity("SassyGurl.Domain.Entities.AuditableTransaction", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1400,6 +1638,80 @@ namespace SassyGurl.Api.Migrations
                     b.ToTable("AuditableTransaction", (string)null);
                 });
 
+            modelBuilder.Entity("SassyGurl.Domain.Entities.ChatMessage", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasColumnType("text")
+                        .HasColumnName("id");
+
+                    b.Property<string>("ChatSessionId")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("chatSessionId");
+
+                    b.Property<bool>("IsRead")
+                        .HasColumnType("boolean")
+                        .HasColumnName("isRead");
+
+                    b.Property<string>("MessageText")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("messageText");
+
+                    b.Property<string>("SenderRole")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("senderRole");
+
+                    b.Property<DateTime>("Timestamp")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("timestamp");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ChatSessionId");
+
+                    b.ToTable("ChatMessage", (string)null);
+                });
+
+            modelBuilder.Entity("SassyGurl.Domain.Entities.ChatSession", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasColumnType("text")
+                        .HasColumnName("id");
+
+                    b.Property<string>("Channel")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("channel");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("createdAt");
+
+                    b.Property<string>("GuestName")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("guestName");
+
+                    b.Property<DateTime>("LastUpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("lastUpdatedAt");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("status");
+
+                    b.Property<string>("UserId")
+                        .HasColumnType("text")
+                        .HasColumnName("userId");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("ChatSession", (string)null);
+                });
+
             modelBuilder.Entity("SassyGurl.Api.Models.Account", b =>
                 {
                     b.HasOne("SassyGurl.Api.Models.User", "User")
@@ -1409,6 +1721,25 @@ namespace SassyGurl.Api.Migrations
                         .IsRequired();
 
                     b.Navigation("User");
+                });
+
+            modelBuilder.Entity("SassyGurl.Api.Models.AffiliateCommission", b =>
+                {
+                    b.HasOne("SassyGurl.Api.Models.User", "AffiliateUser")
+                        .WithMany()
+                        .HasForeignKey("AffiliateUserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("SassyGurl.Api.Models.Transaction", "Transaction")
+                        .WithMany()
+                        .HasForeignKey("TransactionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("AffiliateUser");
+
+                    b.Navigation("Transaction");
                 });
 
             modelBuilder.Entity("SassyGurl.Api.Models.Game", b =>
@@ -1431,6 +1762,17 @@ namespace SassyGurl.Api.Migrations
                         .IsRequired();
 
                     b.Navigation("Transaction");
+                });
+
+            modelBuilder.Entity("SassyGurl.Api.Models.PointLedger", b =>
+                {
+                    b.HasOne("SassyGurl.Api.Models.User", "User")
+                        .WithMany("PointLedgers")
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("SassyGurl.Api.Models.Product", b =>
@@ -1546,6 +1888,10 @@ namespace SassyGurl.Api.Migrations
 
             modelBuilder.Entity("SassyGurl.Api.Models.Transaction", b =>
                 {
+                    b.HasOne("SassyGurl.Api.Models.User", "AffiliateUser")
+                        .WithMany()
+                        .HasForeignKey("AffiliateUserId");
+
                     b.HasOne("SassyGurl.Api.Models.Game", "Game")
                         .WithMany("Transactions")
                         .HasForeignKey("GameId")
@@ -1571,6 +1917,8 @@ namespace SassyGurl.Api.Migrations
                     b.HasOne("SassyGurl.Api.Models.User", "User")
                         .WithMany("Transactions")
                         .HasForeignKey("UserId");
+
+                    b.Navigation("AffiliateUser");
 
                     b.Navigation("Game");
 
@@ -1603,12 +1951,34 @@ namespace SassyGurl.Api.Migrations
                     b.Navigation("User");
                 });
 
+            modelBuilder.Entity("SassyGurl.Api.Models.WithdrawalRequest", b =>
+                {
+                    b.HasOne("SassyGurl.Api.Models.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("User");
+                });
+
             modelBuilder.Entity("SassyGurl.Domain.Entities.AuditableTransaction", b =>
                 {
                     b.HasOne("SassyGurl.Api.Models.Transaction", null)
                         .WithMany()
                         .HasForeignKey("OriginalTransactionId")
                         .OnDelete(DeleteBehavior.Restrict);
+                });
+
+            modelBuilder.Entity("SassyGurl.Domain.Entities.ChatMessage", b =>
+                {
+                    b.HasOne("SassyGurl.Domain.Entities.ChatSession", "ChatSession")
+                        .WithMany("Messages")
+                        .HasForeignKey("ChatSessionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("ChatSession");
                 });
 
             modelBuilder.Entity("SassyGurl.Api.Models.Category", b =>
@@ -1663,6 +2033,8 @@ namespace SassyGurl.Api.Migrations
 
                     b.Navigation("AuditLogs");
 
+                    b.Navigation("PointLedgers");
+
                     b.Navigation("Referees");
 
                     b.Navigation("Reviews");
@@ -1672,6 +2044,11 @@ namespace SassyGurl.Api.Migrations
                     b.Navigation("Transactions");
 
                     b.Navigation("WalletLedgers");
+                });
+
+            modelBuilder.Entity("SassyGurl.Domain.Entities.ChatSession", b =>
+                {
+                    b.Navigation("Messages");
                 });
 #pragma warning restore 612, 618
         }

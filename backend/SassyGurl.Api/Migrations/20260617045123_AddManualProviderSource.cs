@@ -1,0 +1,106 @@
+﻿using Microsoft.EntityFrameworkCore.Migrations;
+
+#nullable disable
+
+namespace SassyGurl.Api.Migrations
+{
+    /// <inheritdoc />
+    public partial class AddManualProviderSource : Migration
+    {
+        /// <inheritdoc />
+        protected override void Up(MigrationBuilder migrationBuilder)
+        {
+            migrationBuilder.AlterDatabase()
+                .Annotation("Npgsql:Enum:KycStatus", "BANNED,PENDING,REJECTED,UNVERIFIED,VERIFIED")
+                .Annotation("Npgsql:Enum:KycStatus.kyc_status", "unverified,pending,verified,rejected,banned")
+                .Annotation("Npgsql:Enum:MemberTier.member_tier", "bronze,silver,gold,platinum")
+                .Annotation("Npgsql:Enum:MutationType", "ADJUSTMENT,COMMISSION,DEPOSIT,PAYMENT,POINT_EARN,POINT_EXPIRE,POINT_SPEND,REFUND,WITHDRAWAL")
+                .Annotation("Npgsql:Enum:MutationType.mutation_type", "deposit,payment,refund,commission,withdrawal,adjustment,point_earn,point_spend,point_expire")
+                .Annotation("Npgsql:Enum:OrderStatus", "CANCELLED,DRAFT,ERROR,FAILED,PARTIAL,PENDING,PROCESSING,REFUNDED,REFUNDING,SUCCESS")
+                .Annotation("Npgsql:Enum:OrderStatus.order_status", "draft,pending,processing,success,failed,error,partial,refunding,refunded,cancelled")
+                .Annotation("Npgsql:Enum:PaymentStatus", "CHARGEBACK,EXPIRED,FAILED,PAID,PENDING,REFUNDED,UNPAID")
+                .Annotation("Npgsql:Enum:PaymentStatus.payment_status", "unpaid,pending,paid,expired,failed,refunded,chargeback")
+                .Annotation("Npgsql:Enum:PaymentType", "EWALLET,QRIS,RETAIL,VIRTUAL_ACCOUNT")
+                .Annotation("Npgsql:Enum:PaymentType.payment_type", "ewallet,qris,virtual_account,retail")
+                .Annotation("Npgsql:Enum:PromoType", "FLAT,PERCENTAGE")
+                .Annotation("Npgsql:Enum:PromoType.promo_type", "flat,percentage")
+                .Annotation("Npgsql:Enum:ProviderSource", "DIGIFLAZZ,MANUAL,VIP")
+                .Annotation("Npgsql:Enum:ProviderSource.provider_source", "vip,digiflazz,manual")
+                .Annotation("Npgsql:Enum:Role", "CS,FINANCE,MEMBER,OWNER,RESELLER,SUPERADMIN,VIP")
+                .Annotation("Npgsql:Enum:Role.role", "member,reseller,vip,cs,finance,superadmin,owner")
+                .Annotation("Npgsql:Enum:TicketPriority", "HIGH,LOW,MEDIUM,URGENT")
+                .Annotation("Npgsql:Enum:TicketPriority.ticket_priority", "low,medium,high,urgent")
+                .Annotation("Npgsql:Enum:TicketStatus", "CLOSED,IN_PROGRESS,OPEN,RESOLVED,WAITING_USER")
+                .Annotation("Npgsql:Enum:TicketStatus.ticket_status", "open,in_progress,waiting_user,resolved,closed")
+                .OldAnnotation("Npgsql:Enum:KycStatus", "BANNED,PENDING,REJECTED,UNVERIFIED,VERIFIED")
+                .OldAnnotation("Npgsql:Enum:KycStatus.kyc_status", "unverified,pending,verified,rejected,banned")
+                .OldAnnotation("Npgsql:Enum:MemberTier.member_tier", "bronze,silver,gold,platinum")
+                .OldAnnotation("Npgsql:Enum:MutationType", "ADJUSTMENT,COMMISSION,DEPOSIT,PAYMENT,POINT_EARN,POINT_EXPIRE,POINT_SPEND,REFUND,WITHDRAWAL")
+                .OldAnnotation("Npgsql:Enum:MutationType.mutation_type", "deposit,payment,refund,commission,withdrawal,adjustment,point_earn,point_spend,point_expire")
+                .OldAnnotation("Npgsql:Enum:OrderStatus", "CANCELLED,DRAFT,ERROR,FAILED,PARTIAL,PENDING,PROCESSING,REFUNDED,REFUNDING,SUCCESS")
+                .OldAnnotation("Npgsql:Enum:OrderStatus.order_status", "draft,pending,processing,success,failed,error,partial,refunding,refunded,cancelled")
+                .OldAnnotation("Npgsql:Enum:PaymentStatus", "CHARGEBACK,EXPIRED,FAILED,PAID,PENDING,REFUNDED,UNPAID")
+                .OldAnnotation("Npgsql:Enum:PaymentStatus.payment_status", "unpaid,pending,paid,expired,failed,refunded,chargeback")
+                .OldAnnotation("Npgsql:Enum:PaymentType", "EWALLET,QRIS,RETAIL,VIRTUAL_ACCOUNT")
+                .OldAnnotation("Npgsql:Enum:PaymentType.payment_type", "ewallet,qris,virtual_account,retail")
+                .OldAnnotation("Npgsql:Enum:PromoType", "FLAT,PERCENTAGE")
+                .OldAnnotation("Npgsql:Enum:PromoType.promo_type", "flat,percentage")
+                .OldAnnotation("Npgsql:Enum:ProviderSource", "DIGIFLAZZ,VIP")
+                .OldAnnotation("Npgsql:Enum:ProviderSource.provider_source", "vip,digiflazz")
+                .OldAnnotation("Npgsql:Enum:Role", "CS,FINANCE,MEMBER,OWNER,RESELLER,SUPERADMIN,VIP")
+                .OldAnnotation("Npgsql:Enum:Role.role", "member,reseller,vip,cs,finance,superadmin,owner")
+                .OldAnnotation("Npgsql:Enum:TicketPriority", "HIGH,LOW,MEDIUM,URGENT")
+                .OldAnnotation("Npgsql:Enum:TicketPriority.ticket_priority", "low,medium,high,urgent")
+                .OldAnnotation("Npgsql:Enum:TicketStatus", "CLOSED,IN_PROGRESS,OPEN,RESOLVED,WAITING_USER")
+                .OldAnnotation("Npgsql:Enum:TicketStatus.ticket_status", "open,in_progress,waiting_user,resolved,closed");
+        }
+
+        /// <inheritdoc />
+        protected override void Down(MigrationBuilder migrationBuilder)
+        {
+            migrationBuilder.AlterDatabase()
+                .Annotation("Npgsql:Enum:KycStatus", "BANNED,PENDING,REJECTED,UNVERIFIED,VERIFIED")
+                .Annotation("Npgsql:Enum:KycStatus.kyc_status", "unverified,pending,verified,rejected,banned")
+                .Annotation("Npgsql:Enum:MemberTier.member_tier", "bronze,silver,gold,platinum")
+                .Annotation("Npgsql:Enum:MutationType", "ADJUSTMENT,COMMISSION,DEPOSIT,PAYMENT,POINT_EARN,POINT_EXPIRE,POINT_SPEND,REFUND,WITHDRAWAL")
+                .Annotation("Npgsql:Enum:MutationType.mutation_type", "deposit,payment,refund,commission,withdrawal,adjustment,point_earn,point_spend,point_expire")
+                .Annotation("Npgsql:Enum:OrderStatus", "CANCELLED,DRAFT,ERROR,FAILED,PARTIAL,PENDING,PROCESSING,REFUNDED,REFUNDING,SUCCESS")
+                .Annotation("Npgsql:Enum:OrderStatus.order_status", "draft,pending,processing,success,failed,error,partial,refunding,refunded,cancelled")
+                .Annotation("Npgsql:Enum:PaymentStatus", "CHARGEBACK,EXPIRED,FAILED,PAID,PENDING,REFUNDED,UNPAID")
+                .Annotation("Npgsql:Enum:PaymentStatus.payment_status", "unpaid,pending,paid,expired,failed,refunded,chargeback")
+                .Annotation("Npgsql:Enum:PaymentType", "EWALLET,QRIS,RETAIL,VIRTUAL_ACCOUNT")
+                .Annotation("Npgsql:Enum:PaymentType.payment_type", "ewallet,qris,virtual_account,retail")
+                .Annotation("Npgsql:Enum:PromoType", "FLAT,PERCENTAGE")
+                .Annotation("Npgsql:Enum:PromoType.promo_type", "flat,percentage")
+                .Annotation("Npgsql:Enum:ProviderSource", "DIGIFLAZZ,VIP")
+                .Annotation("Npgsql:Enum:ProviderSource.provider_source", "vip,digiflazz")
+                .Annotation("Npgsql:Enum:Role", "CS,FINANCE,MEMBER,OWNER,RESELLER,SUPERADMIN,VIP")
+                .Annotation("Npgsql:Enum:Role.role", "member,reseller,vip,cs,finance,superadmin,owner")
+                .Annotation("Npgsql:Enum:TicketPriority", "HIGH,LOW,MEDIUM,URGENT")
+                .Annotation("Npgsql:Enum:TicketPriority.ticket_priority", "low,medium,high,urgent")
+                .Annotation("Npgsql:Enum:TicketStatus", "CLOSED,IN_PROGRESS,OPEN,RESOLVED,WAITING_USER")
+                .Annotation("Npgsql:Enum:TicketStatus.ticket_status", "open,in_progress,waiting_user,resolved,closed")
+                .OldAnnotation("Npgsql:Enum:KycStatus", "BANNED,PENDING,REJECTED,UNVERIFIED,VERIFIED")
+                .OldAnnotation("Npgsql:Enum:KycStatus.kyc_status", "unverified,pending,verified,rejected,banned")
+                .OldAnnotation("Npgsql:Enum:MemberTier.member_tier", "bronze,silver,gold,platinum")
+                .OldAnnotation("Npgsql:Enum:MutationType", "ADJUSTMENT,COMMISSION,DEPOSIT,PAYMENT,POINT_EARN,POINT_EXPIRE,POINT_SPEND,REFUND,WITHDRAWAL")
+                .OldAnnotation("Npgsql:Enum:MutationType.mutation_type", "deposit,payment,refund,commission,withdrawal,adjustment,point_earn,point_spend,point_expire")
+                .OldAnnotation("Npgsql:Enum:OrderStatus", "CANCELLED,DRAFT,ERROR,FAILED,PARTIAL,PENDING,PROCESSING,REFUNDED,REFUNDING,SUCCESS")
+                .OldAnnotation("Npgsql:Enum:OrderStatus.order_status", "draft,pending,processing,success,failed,error,partial,refunding,refunded,cancelled")
+                .OldAnnotation("Npgsql:Enum:PaymentStatus", "CHARGEBACK,EXPIRED,FAILED,PAID,PENDING,REFUNDED,UNPAID")
+                .OldAnnotation("Npgsql:Enum:PaymentStatus.payment_status", "unpaid,pending,paid,expired,failed,refunded,chargeback")
+                .OldAnnotation("Npgsql:Enum:PaymentType", "EWALLET,QRIS,RETAIL,VIRTUAL_ACCOUNT")
+                .OldAnnotation("Npgsql:Enum:PaymentType.payment_type", "ewallet,qris,virtual_account,retail")
+                .OldAnnotation("Npgsql:Enum:PromoType", "FLAT,PERCENTAGE")
+                .OldAnnotation("Npgsql:Enum:PromoType.promo_type", "flat,percentage")
+                .OldAnnotation("Npgsql:Enum:ProviderSource", "DIGIFLAZZ,MANUAL,VIP")
+                .OldAnnotation("Npgsql:Enum:ProviderSource.provider_source", "vip,digiflazz,manual")
+                .OldAnnotation("Npgsql:Enum:Role", "CS,FINANCE,MEMBER,OWNER,RESELLER,SUPERADMIN,VIP")
+                .OldAnnotation("Npgsql:Enum:Role.role", "member,reseller,vip,cs,finance,superadmin,owner")
+                .OldAnnotation("Npgsql:Enum:TicketPriority", "HIGH,LOW,MEDIUM,URGENT")
+                .OldAnnotation("Npgsql:Enum:TicketPriority.ticket_priority", "low,medium,high,urgent")
+                .OldAnnotation("Npgsql:Enum:TicketStatus", "CLOSED,IN_PROGRESS,OPEN,RESOLVED,WAITING_USER")
+                .OldAnnotation("Npgsql:Enum:TicketStatus.ticket_status", "open,in_progress,waiting_user,resolved,closed");
+        }
+    }
+}

@@ -11,6 +11,14 @@ public enum Role
     OWNER
 }
 
+public enum MemberTier
+{
+    BRONZE,
+    SILVER,
+    GOLD,
+    PLATINUM
+}
+
 public enum KycStatus
 {
     UNVERIFIED,
@@ -81,7 +89,10 @@ public enum MutationType
     REFUND,
     COMMISSION,
     WITHDRAWAL,
-    ADJUSTMENT
+    ADJUSTMENT,
+    POINT_EARN,
+    POINT_SPEND,
+    POINT_EXPIRE
 }
 
 public enum PromoType
@@ -101,5 +112,6 @@ public enum PaymentType
 public enum ProviderSource
 {
     VIP,
-    DIGIFLAZZ
+    DIGIFLAZZ,
+    MANUAL
 }

@@ -29,6 +29,8 @@ import {
   Settings,
   UploadCloud,
   Download,
+  Flame,
+  MessageSquare,
 } from "lucide-react";
 import { formatIDR } from "@/lib/catalog";
 import {
@@ -41,14 +43,19 @@ import {
   createGame,
   updateGame,
   deleteGame,
+  getOwnerStats,
 } from "@/app/actions/dashboard";
+import { requestAnalyticsReportExport } from "@/app/actions/report";
 import { ProviderStatus } from "@/lib/api-adapter";
 import OpsStatusView from "./components/OpsStatusView";
 import PaymentsTab from "./components/PaymentsTab";
 import UsersTab from "./components/UsersTab";
+import FlashSaleManager from "./components/FlashSaleManager";
+import WhatsAppBlastManager from "./components/WhatsAppBlastManager";
 import SettingsTab from "./components/SettingsTab";
 import ProductCategoriesTab from "./components/ProductCategoriesTab";
 import ProductManagerModal from "./components/ProductManagerModal";
+import DeepAnalyticsTab from "./components/DeepAnalyticsTab";
 
 type Props = {
   initialStats: OwnerStats | AdminStats;
@@ -153,14 +160,14 @@ export default function AdminDashboardClient({ initialStats, initialTransactions
   const searchParams = useSearchParams();
   const tabParam = searchParams.get("tab") as any;
   
-  const [activeTab, setActiveTab] = useState<"overview" | "transactions" | "games" | "categories" | "payments" | "providers" | "ops" | "users" | "settings">(
-    ["overview", "transactions", "games", "categories", "payments", "providers", "ops", "users", "settings"].includes(tabParam) ? tabParam : "overview"
+  const [activeTab, setActiveTab] = useState<"overview" | "analytics" | "transactions" | "games" | "categories" | "payments" | "providers" | "ops" | "users" | "settings" | "flashsale">(
+    ["overview", "analytics", "transactions", "games", "categories", "payments", "providers", "ops", "users", "settings", "flashsale"].includes(tabParam) ? tabParam : "overview"
   );
   
   const [searchGame, setSearchGame] = useState("");
 
   useEffect(() => {
-    if (tabParam && ["overview", "transactions", "games", "payments", "providers", "ops", "users", "settings"].includes(tabParam)) {
+    if (tabParam && ["overview", "analytics", "transactions", "games", "payments", "providers", "ops", "users", "settings"].includes(tabParam)) {
       setActiveTab(tabParam);
     }
   }, [tabParam]);
@@ -311,21 +318,46 @@ export default function AdminDashboardClient({ initialStats, initialTransactions
     setOwnerStatsState(data);
   };
 
-  const exportToCSV = () => {
-    if (!ownerStatsState || !ownerStatsState.dailyRevenue) return;
+  const handleExportEmail = async () => {
+    const email = window.prompt("Masukkan alamat email untuk menerima laporan Excel:");
+    if (!email) return;
     
-    let csvContent = "data:text/csv;charset=utf-8,Tanggal,Pendapatan (IDR),Profit (IDR),Total Transaksi\n";
-    ownerStatsState.dailyRevenue.forEach(row => {
-      csvContent += `${row.date},${row.revenue},${row.profit},${row.orderCount}\n`;
-    });
+    const loadingId = toast.loading("Memproses permintaan ekspor...");
+    try {
+      const res = await requestAnalyticsReportExport(email, timeFilter || 30);
+      toast.dismiss(loadingId);
+      if (res.success) {
+        toast.success(res.message || "Laporan sedang dikirim.");
+      } else {
+        toast.error(res.message || "Gagal memproses ekspor.");
+      }
+    } catch (e: any) {
+      toast.dismiss(loadingId);
+      toast.error("Terjadi kesalahan jaringan saat request export.");
+    }
+  };
 
-    const encodedUri = encodeURI(csvContent);
-    const link = document.createElement("a");
-    link.setAttribute("href", encodedUri);
-    link.setAttribute("download", `Laporan_Keuangan_SassyGurl_${timeFilter || 'All'}_Hari.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+  const handleExportCsv = async () => {
+    try {
+      const res = await import("@/app/actions/report").then(m => m.downloadCsvReport(timeFilter || 30));
+      if (!res.success) {
+        toast.error(res.error || "Gagal mengunduh CSV");
+        return;
+      }
+      
+      const blob = new Blob([res.data || ""], { type: "text/csv" });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `Laporan_SassyGurl_${new Date().toISOString().slice(0,10)}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+      toast.success("CSV berhasil diunduh");
+    } catch (err: any) {
+      toast.error("Terjadi kesalahan saat mengunduh CSV");
+    }
   };
 
   function handleFilterChange(newFilter: string) {
@@ -429,6 +461,7 @@ export default function AdminDashboardClient({ initialStats, initialTransactions
       title: "Main",
       items: [
         { id: "overview", label: "Ringkasan", icon: LayoutDashboard },
+        ...(isOwner ? [{ id: "analytics", label: "Analitik Visual", icon: TrendingUp }] : []),
         { id: "transactions", label: "Transaksi", icon: History },
       ]
     },
@@ -438,7 +471,8 @@ export default function AdminDashboardClient({ initialStats, initialTransactions
         ...(isOwner || role?.toUpperCase() === "CS" ? [{ id: "users", label: "Kelola User", icon: Users }] : []),
         ...(isOwner ? [
           { id: "games", label: "Kelola Game", icon: Gamepad2 },
-          { id: "categories", label: "Kategori Produk", icon: Package }
+          { id: "categories", label: "Kategori Produk", icon: Package },
+          { id: "flashsale", label: "Flash Sale", icon: Flame }
         ] : []),
       ]
     },
@@ -450,7 +484,8 @@ export default function AdminDashboardClient({ initialStats, initialTransactions
           { id: "providers", label: "Provider Status", icon: Megaphone },
           { id: "settings", label: "Sistem Settings", icon: Settings },
           { id: "ops", label: "Ops Status", icon: Zap },
-        ] : [])
+        ] : []),
+        { id: "livechat", label: "Live Chat", icon: MessageSquare, href: "/admin/livechat" }
       ]
     }
   ];
@@ -480,10 +515,15 @@ export default function AdminDashboardClient({ initialStats, initialTransactions
                   <div className="space-y-1">
                     {group.items.map((tab) => {
                       const isActive = activeTab === tab.id;
+                      
+                      const Element = tab.href ? "a" : "button";
+                      const props = tab.href 
+                        ? { href: tab.href, key: tab.id } 
+                        : { onClick: () => setActiveTab(tab.id as any), key: tab.id };
+                        
                       return (
-                        <button
-                          key={tab.id}
-                          onClick={() => setActiveTab(tab.id as any)}
+                        <Element
+                          {...props}
                           className={`flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-bold transition-all ${
                             isActive 
                               ? "bg-sakura/10 text-sakura shadow-[inset_2px_0_0_0,rgba(253,176,192,1)]" 
@@ -492,7 +532,7 @@ export default function AdminDashboardClient({ initialStats, initialTransactions
                         >
                           <tab.icon className={`h-4 w-4 ${isActive ? "text-sakura" : "text-zinc-500"}`} />
                           {tab.label}
-                        </button>
+                        </Element>
                       );
                     })}
                   </div>
@@ -541,17 +581,26 @@ export default function AdminDashboardClient({ initialStats, initialTransactions
              </button>
            </div>
            <div className="flex gap-2 overflow-x-auto pb-2 no-scrollbar">
-             {navGroups.flatMap(g => g.items).map(tab => (
-                <button
-                  key={tab.id}
-                  onClick={() => setActiveTab(tab.id as any)}
-                  className={`shrink-0 rounded-lg px-4 py-2 text-xs font-bold transition-all ${
-                    activeTab === tab.id ? "bg-sakura/10 text-sakura border border-sakura/20" : "bg-zinc-900 text-zinc-400"
-                  }`}
-                >
-                  {tab.label}
-                </button>
-             ))}
+             {navGroups.flatMap(g => g.items).map(tab => {
+                const isActive = activeTab === tab.id;
+                const Element = tab.href ? "a" : "button";
+                const props = tab.href 
+                  ? { href: tab.href, key: tab.id } 
+                  : { onClick: () => setActiveTab(tab.id as any), key: tab.id };
+                return (
+                  <Element
+                    {...props}
+                    className={`flex shrink-0 items-center gap-2 rounded-xl px-4 py-2 text-sm font-bold transition-all ${
+                      isActive 
+                        ? "bg-sakura/10 text-sakura border border-sakura/20 shadow-[0_0_10px_rgba(253,176,192,0.1)]" 
+                        : "text-zinc-400 bg-zinc-900/50 border border-zinc-800"
+                    }`}
+                  >
+                    <tab.icon className="h-4 w-4" />
+                    {tab.label}
+                  </Element>
+                );
+             })}
            </div>
         </div>
 
@@ -601,14 +650,14 @@ export default function AdminDashboardClient({ initialStats, initialTransactions
                       <span>Sync Catalog</span>
                       <RefreshCw className={`h-4 w-4 ${isSyncing ? "animate-spin" : ""}`} />
                     </button>
-                    <a href="/admin/catalog-health" className="flex w-full items-center justify-between rounded-xl bg-white/5 p-4 text-xs font-bold text-white transition-all hover:bg-white/10">
+                    <button onClick={() => toast.info("Fitur Catalog Health akan segera hadir!")} className="flex w-full items-center justify-between rounded-xl bg-white/5 p-4 text-xs font-bold text-white transition-all hover:bg-white/10 active:scale-95">
                       <span>Catalog Health</span>
                       <Activity className="h-4 w-4 text-status-success" />
-                    </a>
-                    <a href="/admin/review" className="flex w-full items-center justify-between rounded-xl bg-white/5 p-4 text-xs font-bold text-white transition-all hover:bg-white/10">
+                    </button>
+                    <button onClick={() => toast.info("Fitur Review Queue akan segera hadir!")} className="flex w-full items-center justify-between rounded-xl bg-white/5 p-4 text-xs font-bold text-white transition-all hover:bg-white/10 active:scale-95">
                       <span>Review Queue</span>
                       <ShieldCheck className="h-4 w-4 text-status-warning" />
-                    </a>
+                    </button>
                   </div>
                 </div>
               </motion.div>
@@ -632,13 +681,20 @@ export default function AdminDashboardClient({ initialStats, initialTransactions
                       </button>
                     ))}
                   </div>
-                  
-                  <button 
-                    onClick={exportToCSV}
-                    className="flex items-center gap-2 px-4 py-2 bg-white/5 border border-white/10 hover:bg-white/10 rounded-lg text-xs font-bold text-white transition-colors"
-                  >
-                    <Download size={14} /> Export CSV
-                  </button>
+                  <div className="flex gap-2">
+                    <button 
+                      onClick={handleExportEmail}
+                      className="flex items-center gap-2 px-4 py-2 bg-white/5 border border-white/10 hover:bg-white/10 rounded-lg text-xs font-bold text-white transition-colors"
+                    >
+                      <UploadCloud size={14} /> Ke Email
+                    </button>
+                    <button 
+                      onClick={handleExportCsv}
+                      className="flex items-center gap-2 px-4 py-2 bg-brand-cyan/20 border border-brand-cyan/50 hover:bg-brand-cyan/30 rounded-lg text-xs font-bold text-brand-cyan transition-colors"
+                    >
+                      <Download size={14} /> Download CSV
+                    </button>
+                  </div>
                 </div>
               )}
 
@@ -743,6 +799,123 @@ export default function AdminDashboardClient({ initialStats, initialTransactions
             </motion.div>
           )}
 
+          {/* ═══════════════ TAB: ANALYTICS (OWNER ONLY) ═══════════════ */}
+          {activeTab === "analytics" && isOwner && (
+            <motion.div
+              key="analytics"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              className="space-y-8"
+            >
+              {/* Filter Row and Export */}
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div className="flex items-center gap-2 overflow-x-auto pb-2 md:pb-0 hide-scrollbar">
+                  {[
+                    { label: "Hari ini", value: 1 },
+                    { label: "7 Hari", value: 7 },
+                    { label: "30 Hari", value: 30 },
+                    { label: "Semua", value: undefined }
+                  ].map(opt => (
+                    <button
+                      key={opt.label}
+                      onClick={() => loadOwnerStats(opt.value)}
+                      className={`whitespace-nowrap px-4 py-1.5 rounded-full text-xs font-bold transition-all ${timeFilter === opt.value ? "bg-sakura text-obsidian shadow-[0_0_15px_rgba(253,176,192,0.3)]" : "bg-white/5 text-zinc-400 hover:bg-white/10 hover:text-white"}`}
+                    >
+                      {opt.label}
+                    </button>
+                  ))}
+                </div>
+                
+                <button 
+                  onClick={handleExportEmail}
+                  className="flex items-center gap-2 px-4 py-2 bg-status-success/10 border border-status-success/20 hover:bg-status-success/20 rounded-lg text-xs font-bold text-status-success transition-colors"
+                >
+                  <Download size={14} /> Export Laporan Excel ke Email
+                </button>
+              </div>
+
+              {/* Stats Grid */}
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                {[
+                  { label: "Total Omzet", value: formatIDR(ownerStatsState.totalRevenue), color: "text-white", accent: "border-sakura/20 bg-sakura/5" },
+                  { label: "Laba Bersih", value: formatIDR(ownerStatsState.netProfit), color: "text-status-success", accent: "border-status-success/20 bg-status-success/5" },
+                  { label: "Omzet Hari Ini", value: formatIDR(ownerStatsState.todayRevenue), color: "text-brand-cyan", accent: "border-brand-cyan/20 bg-brand-cyan/5" },
+                  { label: "Total Transaksi", value: String(ownerStatsState.totalTransactions), color: "text-status-warning", accent: "border-status-warning/20 bg-status-warning/5" },
+                ].map((stat, i) => (
+                  <motion.div key={i} variants={item} whileHover={{ y: -4 }} className={`rounded-[2rem] border p-6 backdrop-blur-2xl transition-all ${stat.accent}`}>
+                    <p className="mb-2 text-[10px] font-black uppercase tracking-[0.3em] text-zinc-500">{stat.label}</p>
+                    <h3 className={`text-2xl font-black tracking-tight ${stat.color}`}>{stat.value}</h3>
+                  </motion.div>
+                ))}
+              </div>
+              
+              {/* Owner Revenue Chart & Top Games PieChart */}
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <div className="lg:col-span-2 rounded-[2.5rem] border border-white/5 bg-zinc-900/20 p-8 backdrop-blur-2xl">
+                  <h3 className="mb-6 flex items-center gap-3 text-sm font-black uppercase tracking-[0.2em] text-white">
+                    <TrendingUp className="h-5 w-5 text-status-success" /> Omzet vs Keuntungan
+                  </h3>
+                  <div className="min-h-[400px] w-full" style={{ position: 'relative' }}>
+                    <ResponsiveContainer width="100%" height={400}>
+                      <AreaChart data={ownerStatsState.dailyRevenue?.length > 0 ? ownerStatsState.dailyRevenue : [{ date: "N/A", revenue: 0, profit: 0, orderCount: 0 }]}>
+                        <defs>
+                          <linearGradient id="profitGradAnalytic" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="5%" stopColor="#10b981" stopOpacity={0.4}/>
+                            <stop offset="95%" stopColor="#10b981" stopOpacity={0}/>
+                          </linearGradient>
+                          <linearGradient id="revGradAnalytic" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="5%" stopColor="#FDB0C0" stopOpacity={0.4}/>
+                            <stop offset="95%" stopColor="#FDB0C0" stopOpacity={0}/>
+                          </linearGradient>
+                        </defs>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#ffffff05" vertical={false} />
+                        <XAxis dataKey="date" stroke="#52525b" fontSize={10} tickFormatter={(val) => val !== "N/A" ? new Date(val).toLocaleDateString('id-ID', { day: '2-digit', month: 'short' }) : val} />
+                        <YAxis stroke="#52525b" fontSize={10} tickFormatter={(v) => `Rp ${(v / 1000).toLocaleString()}k`} />
+                        <Tooltip contentStyle={{ backgroundColor: '#09090b', border: '1px solid #ffffff10', borderRadius: '16px', fontSize: '12px' }} />
+                        <Area type="monotone" dataKey="revenue" name="Omzet" stroke="#FDB0C0" strokeWidth={3} fillOpacity={1} fill="url(#revGradAnalytic)" />
+                        <Area type="monotone" dataKey="profit" name="Laba Bersih" stroke="#10b981" strokeWidth={2} fillOpacity={1} fill="url(#profitGradAnalytic)" />
+                      </AreaChart>
+                    </ResponsiveContainer>
+                  </div>
+                </div>
+
+                <div className="rounded-[2.5rem] border border-white/5 bg-zinc-900/20 p-8 backdrop-blur-2xl">
+                  <h3 className="mb-6 flex items-center gap-3 text-sm font-black uppercase tracking-[0.2em] text-white">
+                    <Gamepad2 className="h-5 w-5 text-sakura" /> Peringkat Game Terlaris
+                  </h3>
+                  {ownerStatsState.topGames?.length > 0 ? (
+                    <div className="space-y-6 mt-6">
+                      {ownerStatsState.topGames.map((game, i) => (
+                        <div key={i} className="flex flex-col gap-2">
+                            <div className="flex items-center justify-between text-sm">
+                              <span className="font-black text-white truncate max-w-[150px]">
+                                {i === 0 ? "🥇 " : i === 1 ? "🥈 " : i === 2 ? "🥉 " : ""}
+                                {game.gameName}
+                              </span>
+                              <span className="text-sakura font-black">{formatIDR(game.totalSales)}</span>
+                            </div>
+                            <div className="flex items-center justify-between text-[10px] text-zinc-500 uppercase tracking-widest font-bold">
+                              <span>{game.orderCount} Transaksi Sukses</span>
+                            </div>
+                            <div className="h-2 w-full bg-white/5 rounded-full overflow-hidden">
+                              <div className="h-full bg-sakura rounded-full relative overflow-hidden" style={{ width: `${(game.totalSales / ownerStatsState.topGames[0].totalSales) * 100}%` }}>
+                                <div className="absolute inset-0 bg-white/20 w-full h-full animate-[shimmer_2s_infinite]" />
+                              </div>
+                            </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="flex h-48 items-center justify-center text-sm text-zinc-500">
+                      Belum ada data penjualan.
+                    </div>
+                  )}
+                </div>
+              </div>
+              <DeepAnalyticsTab />
+            </motion.div>
+          )}
           {/* ═══════════════ TAB: TRANSACTIONS ═══════════════ */}
           {activeTab === "transactions" && (
             <motion.div
@@ -1267,6 +1440,18 @@ export default function AdminDashboardClient({ initialStats, initialTransactions
               exit={{ opacity: 0, y: -10 }}
             >
               <UsersTab role={role} />
+            </motion.div>
+          )}
+
+          {/* ═══════════════ TAB: FLASH SALE ═══════════════ */}
+          {activeTab === "flashsale" && isOwner && (
+            <motion.div
+              key="flashsale"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+            >
+              <FlashSaleManager games={games} />
             </motion.div>
           )}
 

@@ -58,7 +58,7 @@ export function createDashboardConnection(
   }
 
   const builder = new signalR.HubConnectionBuilder()
-    .withUrl(`${HUB_URL}/hubs/notifications`, {
+    .withUrl("/hubs/notifications", {
       accessTokenFactory: () => accessToken ?? "",
       transport: signalR.HttpTransportType.WebSockets,
       skipNegotiation: true,

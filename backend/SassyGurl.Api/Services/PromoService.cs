@@ -17,6 +17,8 @@ public class PromoResultDto
     public string Code { get; set; } = null!;
     public decimal Discount { get; set; }
     public string Description { get; set; } = null!;
+    public string? AffiliateUserId { get; set; }
+    public bool IsAffiliateCode { get; set; } = false;
 }
 
 public class PromoDto
@@ -67,12 +69,35 @@ public class PromoService : IPromoService
 
     public async Task<ApiResponse<PromoResultDto>> ValidatePromoAsync(ValidatePromoRequestDto request)
     {
+        var inputCode = request.Code.Trim();
         var promo = await _context.Promos
             .AsNoTracking()
-            .FirstOrDefaultAsync(p => p.Code == request.Code.ToUpper() && p.IsActive);
+            .FirstOrDefaultAsync(p => p.Code == inputCode.ToUpper() && p.IsActive);
 
         if (promo == null)
-            return ApiResponse<PromoResultDto>.Fail("Kode promo tidak valid atau sudah kadaluarsa.");
+        {
+            // Check if it's an Affiliate Code
+            var affiliate = await _context.Users
+                .AsNoTracking()
+                .FirstOrDefaultAsync(u => u.ReferralCode == inputCode);
+
+            if (affiliate != null)
+            {
+                // Affiliate code logic: For example, buyer gets 1% discount
+                decimal affDiscount = request.Amount * 0.01m; // 1% discount
+                
+                return ApiResponse<PromoResultDto>.Ok(new PromoResultDto
+                {
+                    Code = affiliate.ReferralCode,
+                    Discount = affDiscount,
+                    Description = $"Kode Afiliasi Berhasil! Kamu hemat Rp {affDiscount:N0}",
+                    IsAffiliateCode = true,
+                    AffiliateUserId = affiliate.Id
+                }, "Kode Afiliasi berhasil diterapkan!");
+            }
+
+            return ApiResponse<PromoResultDto>.Fail("Kode promo atau afiliasi tidak valid atau sudah kadaluarsa.");
+        }
 
         if (promo.UsedCount >= promo.Quota)
             return ApiResponse<PromoResultDto>.Fail("Kuota promo sudah habis.");
@@ -99,7 +124,8 @@ public class PromoService : IPromoService
         {
             Code = promo.Code,
             Discount = discount,
-            Description = $"Kode Promo Berhasil! Kamu hemat Rp {discount:N0}"
+            Description = $"Kode Promo Berhasil! Kamu hemat Rp {discount:N0}",
+            IsAffiliateCode = false
         }, "Promo berhasil diterapkan!");
     }
 

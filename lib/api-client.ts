@@ -18,6 +18,8 @@ export async function fetchApi<T>(endpoint: string, options: RequestInit = {}): 
 
   const headers = new Headers(options.headers);
   headers.set('Content-Type', 'application/json');
+  // Bypass Ngrok Free Tier Warning
+  headers.set('ngrok-skip-browser-warning', 'true');
   
   if (token) {
     headers.set('Authorization', `Bearer ${token}`);

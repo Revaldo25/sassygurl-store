@@ -227,6 +227,19 @@ public class XenditWebhookController : ControllerBase
                 _logger.LogInformation("Order {Invoice} fulfilled successfully via {Provider}.",
                     transaction.InvoiceId, providerResult.ProviderName);
             }
+            else if (providerResult.IsProviderDown)
+            {
+                // FAILOVER BYPASS: Provider is down, keep order in PROCESSING state.
+                // Do NOT fail the order. Admin will process it manually.
+                _logger.LogWarning("CRITICAL: Provider is DOWN for {InvoiceId}. Order left in PROCESSING state for manual fulfillment.", transaction.InvoiceId);
+                
+                _db.RefundQueues.Add(new Models.RefundQueue
+                {
+                    TransactionId = transaction.Id,
+                    Reason = $"Provider DOWN. Manual Top-Up Required: {providerResult.Message}",
+                    IsProcessed = false
+                });
+            }
             else
             {
                 try

@@ -162,3 +162,25 @@ jobs:
             exit 1
           fi
           echo "✅ vercel.json tersedia"
+
+      # ── Gate 6: Larang .env file nyata ter-commit ──────────────────────────
+      - name: "Gate: Tidak ada .env file nyata ter-commit"
+        run: |
+          # Cari .env file (bukan .env.example) yang ter-commit
+          ENV_FILES=$(git ls-files | grep -E '\.env$' | grep -v '.env.example' || true)
+          if [ -n "$ENV_FILES" ]; then
+            echo "❌ GAGAL: .env file ter-commit:"
+            echo "$ENV_FILES"
+            exit 1
+          fi
+          echo "✅ Tidak ada .env file nyata yang ter-commit"
+
+      # ── Gate 7: Larang Telegram Bot Token ter-commit ───────────────────────
+      - name: "Gate: Tidak ada Telegram/Cloudinary secrets"
+        run: |
+          PATTERNS="[0-9]{8,10}:AA[A-Za-z0-9_-]{33}"
+          if git grep -rn -E "$PATTERNS" -- '*.json' '*.ts' '*.tsx' '*.js' '*.yml' | grep -v 'PLACEHOLDER\|node_modules'; then
+            echo "❌ GAGAL: Telegram Bot Token terdeteksi di codebase!"
+            exit 1
+          fi
+          echo "✅ Tidak ada Telegram/Cloudinary secrets yang ter-commit"

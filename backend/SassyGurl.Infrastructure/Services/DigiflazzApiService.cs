@@ -76,7 +76,14 @@ public class DigiflazzApiService : IProviderApiService
         var response = await _httpClient.PostAsJsonAsync("cek-saldo", payload);
         response.EnsureSuccessStatusCode();
 
-        var result = await response.Content.ReadFromJsonAsync<DigiflazzBalanceResponse>();
+        var options = new JsonSerializerOptions 
+        { 
+            PropertyNameCaseInsensitive = true, 
+            NumberHandling = JsonNumberHandling.AllowReadingFromString 
+        };
+        options.Converters.Add(new FlexibleBoolConverter());
+
+        var result = await response.Content.ReadFromJsonAsync<DigiflazzBalanceResponse>(options);
         return result?.Data?.Deposit ?? 0m;
     }
 
@@ -95,7 +102,14 @@ public class DigiflazzApiService : IProviderApiService
         var response = await _httpClient.PostAsJsonAsync("price-list", payload);
         response.EnsureSuccessStatusCode();
 
-        var result = await response.Content.ReadFromJsonAsync<DigiflazzPriceListResponse>();
+        var options = new JsonSerializerOptions 
+        { 
+            PropertyNameCaseInsensitive = true, 
+            NumberHandling = JsonNumberHandling.AllowReadingFromString 
+        };
+        options.Converters.Add(new FlexibleBoolConverter());
+
+        var result = await response.Content.ReadFromJsonAsync<DigiflazzPriceListResponse>(options);
         if (result?.Data == null) return new List<ProviderProductDto>();
 
         return result.Data.Select(p => new ProviderProductDto
@@ -124,34 +138,72 @@ public class DigiflazzApiService : IProviderApiService
             sign = sign
         };
 
-        var response = await _httpClient.PostAsJsonAsync("transaction", payload);
-        var responseString = await response.Content.ReadAsStringAsync();
-        
-        _logger.LogInformation("Digiflazz order response: {Response}", responseString);
+        int maxRetries = 3;
+        int delayMs = 2000;
+        int attempts = 0;
 
-        var result = JsonSerializer.Deserialize<DigiflazzTransactionResponse>(responseString, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
-
-        if (result?.Data == null)
+        while (attempts < maxRetries)
         {
+            var response = await _httpClient.PostAsJsonAsync("transaction", payload);
+            var responseString = await response.Content.ReadAsStringAsync();
+            
+            _logger.LogInformation("Digiflazz order response (Attempt {Attempt}): {Response}", attempts + 1, responseString);
+
+            // Handle "currently being processed" from Digiflazz
+            if (responseString.Contains("currently being processed", StringComparison.OrdinalIgnoreCase))
+            {
+                attempts++;
+                _logger.LogWarning("Digiflazz order pending/locked. Retrying in {DelayMs}ms... (Attempt {Attempt} of {MaxRetries})", delayMs, attempts, maxRetries);
+                
+                if (attempts >= maxRetries)
+                {
+                    return new ProviderOrderResponseDto
+                    {
+                        IsSuccess = false,
+                        Status = "Failed",
+                        Note = "Digiflazz is currently processing the request and did not finish in time. Please try again later.",
+                        ProviderOrderId = internalOrderId
+                    };
+                }
+                
+                await Task.Delay(delayMs);
+                delayMs *= 2; // Exponential backoff
+                continue;
+            }
+
+            var options = new JsonSerializerOptions 
+            { 
+                PropertyNameCaseInsensitive = true, 
+                NumberHandling = JsonNumberHandling.AllowReadingFromString 
+            };
+            options.Converters.Add(new FlexibleBoolConverter());
+
+            var result = JsonSerializer.Deserialize<DigiflazzTransactionResponse>(responseString, options);
+
+            if (result?.Data == null)
+            {
+                return new ProviderOrderResponseDto
+                {
+                    IsSuccess = false,
+                    Status = "Failed",
+                    Note = "No data returned from provider.",
+                    ProviderOrderId = internalOrderId
+                };
+            }
+
+            bool isSuccess = result.Data.Status == "Sukses" || result.Data.Status == "Pending";
+
             return new ProviderOrderResponseDto
             {
-                IsSuccess = false,
-                Status = "Failed",
-                Note = "No data returned from provider.",
+                IsSuccess = isSuccess,
+                Status = result.Data.Status ?? "Unknown",
+                Sn = result.Data.Sn,
+                Note = result.Data.Message,
                 ProviderOrderId = internalOrderId
             };
         }
 
-        bool isSuccess = result.Data.Status == "Sukses" || result.Data.Status == "Pending";
-
-        return new ProviderOrderResponseDto
-        {
-            IsSuccess = isSuccess,
-            Status = result.Data.Status ?? "Unknown",
-            Sn = result.Data.Sn,
-            Note = result.Data.Message,
-            ProviderOrderId = internalOrderId
-        };
+        return new ProviderOrderResponseDto { IsSuccess = false, Status = "Failed", Note = "Unexpected end of retry loop", ProviderOrderId = internalOrderId };
     }
 
     // --- DTOs specific to Digiflazz ---
@@ -176,5 +228,28 @@ public class DigiflazzApiService : IProviderApiService
         [JsonPropertyName("status")] public string? Status { get; set; }
         [JsonPropertyName("sn")] public string? Sn { get; set; }
         [JsonPropertyName("message")] public string? Message { get; set; }
+    }
+
+    private class FlexibleBoolConverter : JsonConverter<bool>
+    {
+        public override bool Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+        {
+            if (reader.TokenType == JsonTokenType.True) return true;
+            if (reader.TokenType == JsonTokenType.False) return false;
+            if (reader.TokenType == JsonTokenType.String)
+            {
+                var s = reader.GetString();
+                if (bool.TryParse(s, out var b)) return b;
+                if (s == "1") return true;
+                if (s == "0") return false;
+            }
+            if (reader.TokenType == JsonTokenType.Number)
+            {
+                if (reader.TryGetInt32(out var i)) return i == 1;
+            }
+            return false;
+        }
+
+        public override void Write(Utf8JsonWriter writer, bool value, JsonSerializerOptions options) => writer.WriteBooleanValue(value);
     }
 }

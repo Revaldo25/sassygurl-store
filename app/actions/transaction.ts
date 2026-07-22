@@ -14,6 +14,7 @@ const TransactionSchema = z.object({
   email: z.string().email("Format email salah").optional().or(z.literal("")),
   whatsapp: z.string().optional(),
   waNotif: z.boolean().default(false),
+  pointsUsed: z.number().optional(),
 });
 
 export type TransactionInput = z.infer<typeof TransactionSchema>;

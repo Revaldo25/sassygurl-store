@@ -12,6 +12,8 @@ public interface IMidtransService
         string customerName, 
         string customerEmail, 
         string customerPhone);
+
+    Task<JsonDocument?> GetTransactionStatusAsync(string orderId);
 }
 
 public class MidtransTransactionDetails

@@ -45,7 +45,7 @@ export default function GameHero({
         />
         {/* Soft radial glow reflecting the game's accent color */}
         <div 
-          className="absolute inset-0 mix-blend-screen opacity-40 transition-opacity duration-1000 group-hover:opacity-70" 
+          className="absolute inset-0 mix-blend-screen opacity-40 transition-opacity duration-1000 group-hover:opacity-70 group-hover:animate-pulse-slow" 
           style={{ background: `radial-gradient(circle at 50% 30%, ${glowColor}90 0%, transparent 70%)` }} 
         />
         {/* Deep gradient overlays for blending into the body */}

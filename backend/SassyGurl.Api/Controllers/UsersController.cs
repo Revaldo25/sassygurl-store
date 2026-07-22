@@ -43,7 +43,7 @@ public class UsersController : ControllerBase
         if (!string.IsNullOrWhiteSpace(search))
         {
             var s = search.ToLower();
-            query = query.Where(u => u.Email.ToLower().Contains(s) || 
+            query = query.Where(u => (u.Email != null && u.Email.ToLower().Contains(s)) || 
                                    (u.Name != null && u.Name.ToLower().Contains(s)));
         }
 

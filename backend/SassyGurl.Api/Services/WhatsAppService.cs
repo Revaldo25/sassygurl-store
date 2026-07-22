@@ -13,6 +13,7 @@ public interface IWhatsAppService
     Task<bool> SendPaymentReceivedAsync(string phone, string invoiceId, string gameName, string productName);
     Task<bool> SendOrderSuccessAsync(string phone, string invoiceId, string gameName, string productName, string? sn, decimal savings = 0);
     Task<bool> SendOrderFailedAsync(string phone, string invoiceId, string reason);
+    Task<bool> SendMessageAsync(string phone, string message);
 }
 
 public class WhatsAppService : IWhatsAppService
@@ -20,15 +21,18 @@ public class WhatsAppService : IWhatsAppService
     private readonly IHttpClientFactory _httpClientFactory;
     private readonly IConfiguration _configuration;
     private readonly ILogger<WhatsAppService> _logger;
+    private readonly IWhatsAppNotificationQueue _queue;
 
     public WhatsAppService(
         IHttpClientFactory httpClientFactory,
         IConfiguration configuration,
-        ILogger<WhatsAppService> logger)
+        ILogger<WhatsAppService> logger,
+        IWhatsAppNotificationQueue queue)
     {
         _httpClientFactory = httpClientFactory;
         _configuration = configuration;
         _logger = logger;
+        _queue = queue;
     }
 
     public async Task<bool> SendOrderCreatedAsync(string phone, string invoiceId, string gameName, string productName, decimal amount)
@@ -47,7 +51,8 @@ public class WhatsAppService : IWhatsAppService
         *SassyGurl Store* 💖
         """;
 
-        return await SendMessageAsync(phone, message.Trim());
+        await _queue.EnqueueAsync(new WhatsAppMessageItem { Phone = phone, Message = message.Trim() });
+        return true;
     }
 
     public async Task<bool> SendPaymentReceivedAsync(string phone, string invoiceId, string gameName, string productName)
@@ -66,7 +71,8 @@ public class WhatsAppService : IWhatsAppService
         *SassyGurl Store* 💖
         """;
 
-        return await SendMessageAsync(phone, message.Trim());
+        await _queue.EnqueueAsync(new WhatsAppMessageItem { Phone = phone, Message = message.Trim() });
+        return true;
     }
 
     public async Task<bool> SendOrderSuccessAsync(string phone, string invoiceId, string gameName, string productName, string? sn, decimal savings = 0)
@@ -84,7 +90,8 @@ public class WhatsAppService : IWhatsAppService
         Butuh bantuan? Hubungi CS kami.
         """;
 
-        return await SendMessageAsync(phone, message.Trim());
+        await _queue.EnqueueAsync(new WhatsAppMessageItem { Phone = phone, Message = message.Trim() });
+        return true;
     }
 
     public async Task<bool> SendOrderFailedAsync(string phone, string invoiceId, string reason)
@@ -102,10 +109,11 @@ public class WhatsAppService : IWhatsAppService
         *SassyGurl Store* 💖
         """;
 
-        return await SendMessageAsync(phone, message.Trim());
+        await _queue.EnqueueAsync(new WhatsAppMessageItem { Phone = phone, Message = message.Trim() });
+        return true;
     }
 
-    private async Task<bool> SendMessageAsync(string phone, string message)
+    public async Task<bool> SendMessageAsync(string phone, string message)
     {
         var apiToken = _configuration["Fonnte:ApiToken"];
         if (string.IsNullOrEmpty(apiToken))

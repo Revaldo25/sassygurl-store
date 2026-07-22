@@ -55,7 +55,7 @@ public class WebhookIntegrationTests : TestBase
             Amount = transaction.TotalAmount
         };
 
-        MockProviderService.Setup(p => p.PlaceOrderAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
+        MockProviderService.Setup(p => p.PlaceOrderAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string?>()))
             .ReturnsAsync(new ProviderOrderResponse { IsSuccess = true, Sn = "123", ProviderRef = "abc" });
 
         // Act - Simulate 3 concurrent webhooks arriving at the exact same millisecond
@@ -70,7 +70,7 @@ public class WebhookIntegrationTests : TestBase
 
         // Assert
         // Provider should only be called EXACTLY ONCE despite 3 concurrent requests
-        MockProviderService.Verify(p => p.PlaceOrderAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()), Times.Once);
+        MockProviderService.Verify(p => p.PlaceOrderAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string?>()), Times.Once);
 
         var dbTx = DbContext.Transactions.Find(transaction.Id);
         Assert.Equal(PaymentStatus.PAID, dbTx!.PaymentStatus);

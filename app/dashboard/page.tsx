@@ -13,16 +13,12 @@ export const metadata = {
 
 export default async function DashboardPage() {
   const session = await auth();
-  if (!session?.user) {
+
+  if (!session) {
     redirect("/auth/login");
   }
 
-  const role = (session.user as any).role?.toUpperCase() || "MEMBER";
-  const isAdminOrOwner = ["SUPERADMIN", "OWNER", "FINANCE", "CS", "ADMIN"].includes(role);
-
-  if (isAdminOrOwner) {
-    redirect("/admin");
-  }
+  const role = (session?.user as any)?.role || "MEMBER";
 
   // Fetch Member Data
   const [memberStats, memberTransactions] = await Promise.all([
@@ -33,7 +29,7 @@ export default async function DashboardPage() {
   return (
     <MemberDashboardClient 
       initialStats={memberStats} 
-      initialTransactions={memberTransactions} 
+      initialTransactions={memberTransactions.data || []} 
       session={session} 
     />
   );

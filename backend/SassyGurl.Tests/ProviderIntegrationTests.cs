@@ -55,7 +55,7 @@ public class ProviderIntegrationTests : TestBase
         };
 
         // Simulate provider failing or timing out
-        MockProviderService.Setup(p => p.PlaceOrderAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>()))
+        MockProviderService.Setup(p => p.PlaceOrderAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string?>()))
             .ReturnsAsync(new ProviderOrderResponse { IsSuccess = false, Message = "Connection Timeout" });
 
         System.Console.WriteLine($"DB Count: {DbContext.Transactions.Count()}, ID in DB: {DbContext.Transactions.First().InvoiceId}, Payload ID: {payload.ExternalId}");

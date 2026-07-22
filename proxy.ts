@@ -34,14 +34,14 @@ export default auth(async (req) => {
   const isAdminOrOwner = ["SUPERADMIN", "ADMIN", "FINANCE", "CS", "OWNER"].includes(roleUpper);
 
   const path = req.nextUrl.pathname;
-  const isAuthPage = path.startsWith("/auth") || path.startsWith("/admin/login");
+  const isAuthPage = path.startsWith("/auth");
   const isDashboardPage = path.startsWith("/dashboard");
-  const isAdminRoute = path.startsWith("/admin") && !path.startsWith("/admin/login");
+  const isAdminRoute = path.startsWith("/admin");
 
   // Protect Admin routes
   if (isAdminRoute) {
     if (!isLoggedIn) {
-      return NextResponse.redirect(new URL("/admin/login", req.nextUrl));
+      return NextResponse.redirect(new URL("/auth/login", req.nextUrl));
     }
     if (!isAdminOrOwner) {
       return NextResponse.redirect(new URL("/dashboard", req.nextUrl));
@@ -55,6 +55,9 @@ export default auth(async (req) => {
 
   // Redirect away from login if already logged in
   if (isAuthPage && isLoggedIn) {
+    if (isAdminOrOwner) {
+      return NextResponse.redirect(new URL("/admin", req.nextUrl));
+    }
     return NextResponse.redirect(new URL("/dashboard", req.nextUrl));
   }
 })

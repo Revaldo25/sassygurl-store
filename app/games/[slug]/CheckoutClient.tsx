@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
-import Script from "next/script";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
   CheckCircle2, AlertCircle, Search,
@@ -29,6 +28,41 @@ function getCleanProductName(rawName: string): string {
   return cleanName === "Astrite" ? rawName : cleanName;
 }
 
+// ── Step Header Component ────────────────────────────────────────────────
+// NOTE: must live outside CheckoutClient so React doesn't recreate this
+// component (and remount its subtree) on every parent render.
+function StepHeader({
+  num,
+  title,
+  icon: Icon,
+  done,
+  accent,
+}: {
+  num: number;
+  title: string;
+  icon?: React.ElementType;
+  done?: boolean;
+  accent: string;
+}) {
+  return (
+    <div className="relative z-10 mb-6 flex items-start gap-4">
+      <div
+        className="relative w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 transition-all duration-500 shadow-inner"
+        style={done
+          ? { backgroundColor: "rgba(16,185,129,0.1)", border: "1px solid rgba(16,185,129,0.2)", color: "#10b981", boxShadow: "0 0 20px rgba(16,185,129,0.1)" }
+          : { backgroundColor: `${accent}15`, color: accent, border: `1px solid ${accent}40`, boxShadow: `0 0 15px ${accent}20` }
+        }
+      >
+        {done ? <CheckCircle2 className="w-5 h-5" /> : (Icon ? <Icon className="w-5 h-5 drop-shadow-md" /> : <span className="font-black text-sm">{num}</span>)}
+      </div>
+      <div className="pt-1">
+        <p className="text-[10px] font-black tracking-widest text-zinc-500 uppercase mb-0.5">Step 0{num}</p>
+        <h2 className="text-xl font-bold text-white tracking-tight leading-none">{title}</h2>
+      </div>
+    </div>
+  );
+}
+
 // ── Asset Directory Mapping ────────────────────────────────────────────────
 // Digiflazz categories are normalized (e.g., currency, pass, bundle).
 // But local public/images folders use specific game nomenclature.
@@ -53,11 +87,12 @@ type Props = {
   game: NormalizedGame;
   groupedByCategory: GroupedProducts[];
   paymentGroups: PaymentGroup[];
+  userPoints?: number;
 };
 
 const formatIDR = (n: number) => `Rp ${Math.round(n).toLocaleString("id-ID")}`;
 
-export default function CheckoutClient({ game, groupedByCategory, paymentGroups }: Props) {
+export default function CheckoutClient({ game, groupedByCategory, paymentGroups, userPoints = 0 }: Props) {
   // ── State ─────────────────────────────────────────────────────────────────
   const [userId, setUserId] = useState("");
   const [zoneId, setZoneId] = useState("");
@@ -71,6 +106,8 @@ export default function CheckoutClient({ game, groupedByCategory, paymentGroups 
   const [isCheckingOut, setIsCheckingOut] = useState(false);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [idempotencyKey, setIdempotencyKey] = useState("");
+  const isCheckingOutRef = useRef(false);
+  const [pointsUsed, setPointsUsed] = useState(0);
 
   // Filter & Tabs
   const [activeTab, setActiveTab] = useState<string>("ALL");
@@ -89,7 +126,7 @@ export default function CheckoutClient({ game, groupedByCategory, paymentGroups 
     : 0;
 
   const finalPrice = selectedProduct
-    ? (selectedProduct.displayPrice * quantity) + paymentFee
+    ? Math.max(0, (selectedProduct.displayPrice * quantity) + paymentFee - pointsUsed)
     : null;
 
   const isWhatsappInvalid = whatsapp.length > 0 && (whatsapp.length < 9 || whatsapp.length > 14 || !whatsapp.startsWith("8"));
@@ -163,8 +200,11 @@ export default function CheckoutClient({ game, groupedByCategory, paymentGroups 
   };
 
   const handleCheckout = async () => {
-    if (!canCheckout) return;
+    if (!canCheckout || isCheckingOutRef.current) return;
+    
+    isCheckingOutRef.current = true;
     setIsCheckingOut(true);
+    
     try {
       // ── Server Action: auth token otomatis disertakan, backend URL tidak bocor ke browser ──
       const data = await createTransaction(
@@ -176,6 +216,7 @@ export default function CheckoutClient({ game, groupedByCategory, paymentGroups 
           paymentMethod: selectedPayment!.id,
           whatsapp,
           waNotif: !!whatsapp,
+          pointsUsed: pointsUsed > 0 ? pointsUsed : undefined,
         },
         idempotencyKey
       );
@@ -200,32 +241,15 @@ export default function CheckoutClient({ game, groupedByCategory, paymentGroups 
       } else {
         alert(data.message || "Gagal membuat pesanan.");
       }
-    } catch {
-      alert("Terjadi kesalahan jaringan.");
+    } catch (e: any) {
+      console.error("Checkout Error:", e);
+      alert("Terjadi kesalahan jaringan atau sistem: " + (e?.message || e));
     } finally {
+      isCheckingOutRef.current = false;
       setIsCheckingOut(false);
       setShowConfirmModal(false);
     }
   };
-
-  // ── Step Header Component ────────────────────────────────────────────────
-  const StepHeader = ({ num, title, icon: Icon, done }: { num: number; title: string; icon?: any; done?: boolean }) => (
-    <div className="relative z-10 mb-6 flex items-start gap-4">
-      <div 
-        className="relative w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 transition-all duration-500 shadow-inner"
-        style={done 
-          ? { backgroundColor: "rgba(16,185,129,0.1)", border: "1px solid rgba(16,185,129,0.2)", color: "#10b981", boxShadow: "0 0 20px rgba(16,185,129,0.1)" } 
-          : { backgroundColor: `${accent}15`, color: accent, border: `1px solid ${accent}40`, boxShadow: `0 0 15px ${accent}20` }
-        }
-      >
-        {done ? <CheckCircle2 className="w-5 h-5" /> : (Icon ? <Icon className="w-5 h-5 drop-shadow-md" /> : <span className="font-black text-sm">{num}</span>)}
-      </div>
-      <div className="pt-1">
-        <p className="text-[10px] font-black tracking-widest text-zinc-500 uppercase mb-0.5">Step 0{num}</p>
-        <h2 className="text-xl font-bold text-white tracking-tight leading-none">{title}</h2>
-      </div>
-    </div>
-  );
 
   return (
     <>
@@ -265,7 +289,7 @@ export default function CheckoutClient({ game, groupedByCategory, paymentGroups 
         ) : (
           <section className="glass-panel rounded-3xl p-5 md:p-6 shadow-xl">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
-              <StepHeader num={2} title="Pilih Item" icon={Package} done={!!selectedProduct} />
+              <StepHeader num={2} title="Pilih Item" icon={Package} done={!!selectedProduct} accent={accent} />
               
               <div className="group relative w-full sm:w-56">
                 <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-white/40 transition-colors group-focus-within:text-sakura" />
@@ -277,7 +301,41 @@ export default function CheckoutClient({ game, groupedByCategory, paymentGroups 
                   className="w-full bg-black/40 border border-white/10 rounded-xl py-2.5 pl-10 pr-4 text-xs text-white placeholder:text-white/30 focus:outline-none focus:border-sakura/50 transition-all font-semibold"
                 />
               </div>
-            </div>
+              </div>
+
+              {/* POINTS REDEMPTION (If User has Points) */}
+              {userPoints > 0 && selectedProduct && (
+                <div className="rounded-2xl border border-brand-cyan/20 bg-brand-cyan/5 p-4 mb-6">
+                   <div className="flex items-center gap-3 mb-3">
+                      <Gem className="w-5 h-5 text-brand-cyan" />
+                      <div>
+                         <p className="text-sm font-bold text-white">Sassy Points (XP)</p>
+                         <p className="text-xs text-brand-cyan">Anda memiliki {userPoints.toLocaleString('id-ID')} XP (1 XP = Rp 1)</p>
+                      </div>
+                   </div>
+                   <div className="flex items-center gap-3">
+                      <input 
+                         type="number"
+                         min="0"
+                         max={Math.min(userPoints, (selectedProduct.displayPrice * quantity) + paymentFee)}
+                         value={pointsUsed || ""}
+                         onChange={(e) => {
+                           const val = parseInt(e.target.value) || 0;
+                           const maxAllowed = Math.min(userPoints, (selectedProduct.displayPrice * quantity) + paymentFee);
+                           setPointsUsed(Math.min(val, maxAllowed));
+                         }}
+                         placeholder="0"
+                         className="flex-1 rounded-xl border border-white/10 bg-black/40 px-4 py-3 text-sm font-bold text-white outline-none focus:border-brand-cyan"
+                      />
+                      <button 
+                        onClick={() => setPointsUsed(Math.min(userPoints, (selectedProduct.displayPrice * quantity) + paymentFee))}
+                        className="rounded-xl bg-brand-cyan/20 px-4 py-3 text-xs font-black text-brand-cyan hover:bg-brand-cyan/30 transition-colors"
+                      >
+                        PAKAI SEMUA
+                      </button>
+                   </div>
+                </div>
+              )}
 
             {/* Filter Tabs */}
             <div className="flex gap-2 overflow-x-auto pb-4 mb-2 no-scrollbar">
@@ -437,7 +495,7 @@ export default function CheckoutClient({ game, groupedByCategory, paymentGroups 
         <section className={`glass-panel rounded-3xl p-5 md:p-6 transition-all ${
           selectedProduct ? "opacity-100" : "opacity-60"
         }`}>
-          <StepHeader num={3} title="Pembayaran" icon={Wallet} done={!!selectedPayment} />
+          <StepHeader num={3} title="Pembayaran" icon={Wallet} done={!!selectedPayment} accent={accent} />
           <PaymentAccordion 
             groups={paymentGroups}
             selectedCode={selectedPayment?.code}
@@ -454,7 +512,7 @@ export default function CheckoutClient({ game, groupedByCategory, paymentGroups 
         <section className={`glass-panel rounded-3xl p-5 md:p-6 transition-all duration-500 mt-5 mb-10 lg:mb-0 ${
           selectedPayment ? "opacity-100" : "opacity-60"
         }`}>
-          <StepHeader num={4} title="Informasi Kontak" icon={UserRound} />
+          <StepHeader num={4} title="Informasi Kontak" icon={UserRound} accent={accent} />
 
           <div className="space-y-4">
             <div>
@@ -519,18 +577,25 @@ export default function CheckoutClient({ game, groupedByCategory, paymentGroups 
              </div>
 
              {selectedPayment && paymentFee > 0 && (
-               <div className="flex justify-between items-center text-xs">
-                 <span className="font-bold text-white/50">Biaya Admin</span>
-                 <span className="font-black text-white">{formatIDR(paymentFee)}</span>
+               <div className="flex justify-between text-sm">
+                 <span className="text-zinc-400">Biaya Layanan ({selectedPayment.name})</span>
+                 <span className="text-zinc-300">+{formatIDR(paymentFee)}</span>
                </div>
              )}
-           </div>
 
-           <div className="flex justify-between items-end mb-6">
-             <span className="text-sm font-black text-white/60">Total</span>
-             <span className="text-2xl font-black leading-none" style={{ color: accent }}>
-               {finalPrice ? formatIDR(finalPrice) : (selectedProduct ? formatIDR(selectedProduct.displayPrice * quantity) : "Rp 0")}
-             </span>
+             {pointsUsed > 0 && (
+               <div className="flex justify-between text-sm text-brand-cyan font-bold">
+                 <span>Sassy Points Used</span>
+                 <span>-{formatIDR(pointsUsed)}</span>
+               </div>
+             )}
+             
+             <div className="pt-4 mt-2 border-t border-white/10 flex justify-between items-center">
+               <span className="text-sm font-black text-white/60">Total</span>
+               <span className="text-2xl font-black leading-none" style={{ color: accent }}>
+                 {finalPrice ? formatIDR(finalPrice) : (selectedProduct ? formatIDR(selectedProduct.displayPrice * quantity) : "Rp 0")}
+               </span>
+             </div>
            </div>
            
            <button
@@ -617,16 +682,10 @@ export default function CheckoutClient({ game, groupedByCategory, paymentGroups 
             finalPrice={finalPrice!}
             accent={accent}
             quantity={quantity}
+            pointsUsed={pointsUsed}
           />
         )}
       </AnimatePresence>
-
-      {/* Midtrans Snap — loaded only on checkout pages */}
-      <Script
-        src={process.env.NEXT_PUBLIC_MIDTRANS_SNAP_URL || (process.env.NEXT_PUBLIC_MIDTRANS_CLIENT_KEY?.startsWith("SB-") ? "https://app.sandbox.midtrans.com/snap/snap.js" : "https://app.midtrans.com/snap/snap.js")}
-        data-client-key={process.env.NEXT_PUBLIC_MIDTRANS_CLIENT_KEY}
-        strategy="lazyOnload"
-      />
     </>
   );
 }
@@ -638,7 +697,7 @@ function ConfirmModal({
   onClose, onConfirm, isLoading,
   game, userId, zoneId, validatedName,
   selectedProduct, selectedPayment,
-  whatsapp, paymentFee, finalPrice, accent, quantity
+  whatsapp, paymentFee, finalPrice, accent, quantity, pointsUsed
 }: {
   onClose: () => void;
   onConfirm: () => void;
@@ -654,6 +713,7 @@ function ConfirmModal({
   finalPrice: number;
   accent: string;
   quantity: number;
+  pointsUsed: number;
 }) {
   const modalRef = useRef<HTMLDivElement>(null);
 

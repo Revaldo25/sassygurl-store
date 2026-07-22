@@ -5,7 +5,7 @@ import { motion, AnimatePresence, Variants } from "framer-motion";
 import { Mail, Lock, ArrowRight, ShieldCheck, AlertCircle, Eye, EyeOff, KeyRound, Globe, RefreshCw } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { signIn } from "next-auth/react";
+import { signIn, getSession } from "next-auth/react";
 
 export default function LoginElitePage() {
   const router = useRouter();
@@ -18,19 +18,20 @@ export default function LoginElitePage() {
   });
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
+    setFormData(prev => ({ ...prev, [e.target.name]: e.target.value }));
+    if (errorMsg) setErrorMsg("");
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setErrorMsg("");
     setLoading(true);
+    setErrorMsg("");
 
     try {
       // FIX: Use Next.js proxy rewrite for Ngrok compatibility
       const apiUrl = typeof window !== "undefined" && window.location.hostname !== "localhost" 
         ? "/api/backend" 
-        : (process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api");
+        : (process.env.NEXT_PUBLIC_API_URL || "http://localhost:5009/api");
 
       const validateRes = await fetch(`${apiUrl}/auth/login`, {
         method: 'POST',
@@ -58,7 +59,13 @@ export default function LoginElitePage() {
         throw new Error("Terjadi kesalahan konfigurasi NextAuth.");
       }
 
-      router.push("/dashboard");
+      const session = await getSession();
+      // @ts-ignore
+      if (session?.user?.role === "SUPERADMIN") {
+        router.push("/admin");
+      } else {
+        router.push("/dashboard");
+      }
     } catch (error: any) {
       setErrorMsg(error.message);
       setLoading(false);

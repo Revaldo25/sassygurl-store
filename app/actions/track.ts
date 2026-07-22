@@ -22,6 +22,7 @@ export type TrackResult = {
   createdAt: string;
   paidAt?: string;
   completedAt?: string;
+  paymentToken?: string;
 };
 
 export async function trackOrderAction(query: string) {

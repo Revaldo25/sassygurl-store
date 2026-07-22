@@ -28,6 +28,14 @@ const nextConfig: NextConfig = {
 
   experimental: {
     optimizeCss: true,
+    serverActions: {
+      allowedOrigins: [
+        "reviewing-captain-cream-subscriptions.trycloudflare.com",
+        "sassygurlvip.loca.lt",
+        "unpresentative-apolonia-otherwise.ngrok-free.dev",
+        "localhost:3000"
+      ]
+    }
   },
 
   async headers() {
